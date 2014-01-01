@@ -1,0 +1,158 @@
+--- configure.orig	2013-10-14 11:17:32.890963343 +0100
++++ configure	2013-10-14 11:25:42.951671345 +0100
+@@ -587,6 +587,7 @@
+   --disable-fastmemcpy      disable 3DNow!/SSE/MMX optimized memcpy [enable]
+   --enable-hardcoded-tables put tables in binary instead of calculating them at startup [disable]
+   --enable-big-endian       force byte order to big-endian [autodetect]
++  --enable-realtime      enable realtime scheduling setting in mplayer [autodetected]
+   --enable-debug[=1-3]      compile-in debugging information [disable]
+   --enable-profile          compile-in profiling information [disable]
+   --disable-sighandler      disable sighandler for crashes [enable]
+@@ -850,6 +851,7 @@
+ _inet6=auto
+ _sctp=auto
+ _gethostbyname2=auto
++_realtime=auto
+ _ftp=auto
+ _musepack=no
+ _vstream=auto
+@@ -1368,6 +1370,9 @@
+   --enable-fribidi)     _fribidi=yes    ;;
+   --disable-fribidi)    _fribidi=no     ;;
+ 
++  --enable-realtime)    _realtime=yes   ;;
++  --disable-realtime)   _realtime=no    ;;
++  
+   --enable-enca)        _enca=yes       ;;
+   --disable-enca)       _enca=no        ;;
+ 
+@@ -3976,6 +3981,31 @@
+ fi
+ echores "$_iconv"
+ 
++echocheck "realtime scheduler"
++if test "$_realtime" = no; then
++  def_realtime='#undef HAVE_REALTIME'
++  echores "no"
++else
++  if linux ; then
++    cat > $TMPC << EOF
++#include <sched.h>
++int main(void) { struct sched_param sparam; 
++sparam.sched_priority = sched_get_priority_max(SCHED_RR); 
++sched_setscheduler(0, SCHED_RR, &sparam);
++return 0; }
++EOF
++    if cc_check || test "$_realtime" = yes && test "$_realtime" != no ; then
++      def_realtime='#define HAVE_REALTIME 1'
++      echores "yes (with linux sched_setscheduler)"
++    else
++      def_realtime='#undef HAVE_REALTIME'
++      echores "no"
++    fi
++  else
++    def_realtime='#undef HAVE_REALTIME'
++    echores "no (not implemented for this OS)"
++  fi
++fi
+ 
+ echocheck "soundcard.h"
+ _soundcard_h=no
+@@ -9094,6 +9124,7 @@
+ $def_png
+ $def_pnm
+ $def_quartz
++$def_realtime
+ $def_s3fb
+ $def_sdl
+ $def_sdl_sdl_h
+--- cfg-mplayer.h.orig	2013-10-14 11:41:38.751406730 +0100
++++ cfg-mplayer.h	2013-10-14 11:34:03.714249634 +0100
+@@ -269,6 +269,8 @@
+ 
+     {"benchmark", &benchmark, CONF_TYPE_FLAG, 0, 0, 1, NULL},
+ 
++    {"realtime", &realtime, CONF_TYPE_FLAG, 0, 0, 1, NULL},
++
+ #ifdef CONFIG_NETWORKING
+     {"udp-slave", &udp_slave, CONF_TYPE_FLAG, 0, 0, 1, NULL},
+     {"udp-master", &udp_master, CONF_TYPE_FLAG, 0, 0, 1, NULL},
+--- Makefile~	2013-10-14 11:10:59.000000000 +0100
++++ Makefile	2013-10-14 12:00:50.840727362 +0100
+@@ -449,6 +449,7 @@
+               libmpdemux/yuv4mpeg_ratio.c       \
+               osdep/$(GETCH)                    \
+               osdep/$(TIMER)                    \
++              osdep/realtime-linux.c		\
+               stream/open.c                     \
+               stream/stream.c                   \
+               stream/stream_bd.c                \
+--- /dev/null	2013-10-12 09:40:01.693101302 +0100
++++ osdep/realtime.h	2013-10-14 11:57:58.753910781 +0100
+@@ -0,0 +1,6 @@
++#ifndef REALTIME_H_
++#define REALTIME_H_ 1
++
++extern void set_realtime(void);
++
++#endif
+--- /dev/null	2013-10-12 09:40:01.693101302 +0100
++++ osdep/realtime-linux.c	2013-10-14 14:37:58.400112904 +0100
+@@ -0,0 +1,26 @@
++#include "../config.h"
++
++#ifdef HAVE_REALTIME
++#include <sched.h>
++#include <linux/sched.h>
++#include <sys/types.h>
++#include <unistd.h>
++#include "../mp_msg.h"
++
++void set_realtime(void)
++{
++  int pid = (int) getpid(), err;
++  struct sched_param sparam;
++  int policy = SCHED_FIFO;
++  policy |= SCHED_RESET_ON_FORK;
++
++  //sparam.sched_priority = sched_get_priority_max(policy);
++
++  sparam.sched_priority = 10;
++  err = sched_setscheduler(pid, policy, &sparam);
++  if (err == 0)
++    mp_msg(MSGT_CPLAYER, MSGL_INFO, "Set SCHED_FIFO priority %d for pid %d! :-D\n", sparam.sched_priority, pid);
++  else
++    mp_msg(MSGT_CPLAYER, MSGL_ERR, "Failed to aquire realtime priority!\n");
++}
++#endif
+--- mplayer.c.orig	2013-10-14 16:10:29.169781973 +0100
++++ mplayer.c	2013-10-14 16:10:36.552691286 +0100
+@@ -115,6 +115,7 @@
+ #include "mplayer.h"
+ #include "osdep/getch2.h"
+ #include "osdep/timer.h"
++#include "osdep/realtime.h"
+ #include "parser-cfg.h"
+ #include "parser-mpcmd.h"
+ #include "path.h"
+@@ -148,6 +149,7 @@
+ char *heartbeat_cmd;
+ float heartbeat_interval = 30.0;
+ static int max_framesize;
++static int realtime = 0;
+ 
+ int noconsolecontrols;
+ //**************************************************************************//
+@@ -3229,6 +3231,12 @@
+     mpctx->sh_video = NULL;
+ 
+     current_module = "open_stream";
++#ifdef HAVE_REALTIME
++    if(realtime) {
++      mp_msg(MSGT_CPLAYER,MSGL_INFO,"Trying to set realtime priority...\n");
++      set_realtime();
++    }
++#endif 
+     mpctx->stream  = open_stream(filename, 0, &mpctx->file_format);
+     if (!mpctx->stream) { // error...
+         mpctx->eof = libmpdemux_was_interrupted(PT_NEXT_ENTRY);
