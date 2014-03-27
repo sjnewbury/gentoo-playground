@@ -30,7 +30,7 @@ RDEPEND=">=app-admin/eselect-opengl-1.0.8
 	>=x11-libs/libxkbfile-1.0.4
 	>=x11-libs/libxshmfence-1.0.0
 	>=x11-libs/pixman-0.27.2
-	>=x11-libs/xtrans-1.2.2
+	>=x11-libs/xtrans-1.3.3
 	>=x11-misc/xbitmaps-1.0.1
 	>=x11-misc/xkeyboard-config-2.4.1-r3
 	dmx? (
@@ -66,7 +66,7 @@ DEPEND="${RDEPEND}
 	>=x11-proto/compositeproto-0.4
 	>=x11-proto/damageproto-1.1
 	>=x11-proto/fixesproto-5.0
-	>=x11-proto/fontsproto-2.0.2
+	>=x11-proto/fontsproto-2.1.3
 	>=x11-proto/glproto-1.4.16
 	>=x11-proto/inputproto-2.2.99.1
 	>=x11-proto/kbproto-1.0.3
@@ -84,7 +84,7 @@ DEPEND="${RDEPEND}
 	>=x11-proto/xf86rushproto-1.1.2
 	>=x11-proto/xf86vidmodeproto-2.2.99.1
 	>=x11-proto/xineramaproto-1.1.3
-	>=x11-proto/xproto-7.0.22
+	>=x11-proto/xproto-7.0.26
 	dmx? (
 		>=x11-proto/dmxproto-2.2.99.1
 		doc? (
@@ -177,7 +177,7 @@ src_configure() {
 	append-cppflags "-I${T}/mesa-symlinks"
 
 	# fix build (check to see if fixed)
-	append-cppflags "-DXTRANS_SEND_FDS"
+	#append-cppflags "-DXTRANS_SEND_FDS"
 
 	xorg-2_src_configure
 }

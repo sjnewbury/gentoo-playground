@@ -1,0 +1,12 @@
+--- utils/idmapd/idmapd.c~	2013-11-05 20:41:27.000000000 +0000
++++ utils/idmapd/idmapd.c	2014-03-25 07:23:42.893496157 +0000
+@@ -718,8 +718,8 @@
+ 		xlog_warn("ReOpening %s", ic->ic_path);
+ 
+ 	if ((fd = open(ic->ic_path, O_RDWR, 0)) != -1) {
+-		if ((ic->ic_event.ev_flags & EVLIST_INIT))
++		if (event_initialized(&ic->ic_event))
+			event_del(&ic->ic_event);
+ 		if (ic->ic_fd != -1)
+ 			close(ic->ic_fd);
+ 

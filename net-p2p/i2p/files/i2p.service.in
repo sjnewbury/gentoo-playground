@@ -8,7 +8,7 @@ Environment="PIDDIR=%I2PPIDDIR%" "I2P=%I2PDIR%"
 PIDFile=%I2PPIDDIR%/i2p.pid
 User=i2p
 Group=i2p
-ExecStart=%I2PDIR%/i2psvc "%I2PCONFDIR%/wrapper.config" wrapper.daemonize=FALSE wrapper.pidfile="%I2PPIDDIR%/i2p.pid"
+ExecStart=%I2PDIR%/i2psvc %I2PCONFDIR%/wrapper.config wrapper.daemonize=FALSE wrapper.pidfile=%I2PPIDDIR%/i2p.pid
 
 [Install]
 WantedBy=multi-user.target
