@@ -6,6 +6,9 @@ EAPI="5"
 GCONF_DEBUG="no"
 GNOME2_LA_PUNT="yes"
 
+# Change back to master when webkit2 support lands there
+EGIT_BRANCH=wip-webkit2
+
 inherit eutils flag-o-matic readme.gentoo gnome2 #autotools
 if [[ ${PV} = 9999 ]]; then
 	inherit gnome2-live
@@ -50,7 +53,7 @@ COMMON_DEPEND="
 	>=x11-misc/shared-mime-info-0.22
 	>=x11-themes/gnome-icon-theme-2.30.2.1
 	>=dev-libs/libgdata-0.10:=
-	>=net-libs/webkit-gtk-2.2.0:3
+	>=net-libs/webkit-gtk-2.5.3:4
 
 	x11-libs/libSM
 	x11-libs/libICE
@@ -111,6 +114,10 @@ src_prepare() {
 	ELTCONF="--reverse-deps"
 
 	DOCS="AUTHORS ChangeLog* HACKING MAINTAINERS NEWS* README"
+
+	# Until we're back on master...
+	sed -e 's/gnome-icon-theme/adwaita-icon-theme/g' \
+		-i configure.ac
 
 	#eautoreconf # See https://bugzilla.gnome.org/701904
 
