@@ -1,0 +1,67 @@
+diff --git a/media/media_ozone_platform_wayland.cc b/media/media_ozone_platform_wayland.cc
+index 5c06bfd..e746901 100644
+--- a/media/media_ozone_platform_wayland.cc
++++ b/media/media_ozone_platform_wayland.cc
+@@ -6,7 +6,7 @@
+ 
+ #include "media/video/video_decode_accelerator.h"
+ #include "media/ozone/media_ozone_platform.h"
+-//#include "ozone/media/vaapi_video_decode_accelerator.h"
++#include "ozone/media/vaapi_video_decode_accelerator.h"
+ 
+ namespace media {
+ 
+@@ -21,10 +21,7 @@ class MediaOzonePlatformWayland : public MediaOzonePlatform {
+   // MediaOzonePlatform:
+   virtual media::VideoDecodeAccelerator* CreateVideoDecodeAccelerator(
+       const base::Callback<bool(void)>& make_context_current) OVERRIDE {
+-    // Temporarily disable the support till
+-    // https://github.com/01org/ozone-wayland/issues/240 is resolved.
+-    //return new VaapiVideoDecodeAccelerator(make_context_current);
+-    return NULL;
++    return new VaapiVideoDecodeAccelerator(make_context_current);
+   }
+ 
+  private:
+diff --git a/media/video.gypi b/media/video.gypi
+index 935b628..9f0ad74 100644
+--- a/media/video.gypi
++++ b/media/video.gypi
+@@ -6,15 +6,15 @@
+   'sources': [
+     'media_ozone_platform_wayland.cc',
+     'media_ozone_platform_wayland.h',
+-    #'h264_dpb.cc',
+-    #'h264_dpb.h',
+-    #'va_surface.h',
+-    #'vaapi_h264_decoder.cc',
+-    #'vaapi_h264_decoder.h',
+-    #'vaapi_video_decode_accelerator.cc',
+-    #'vaapi_video_decode_accelerator.h',
+-    #'vaapi_wrapper.cc',
+-    #'vaapi_wrapper.h',
++    'h264_dpb.cc',
++    'h264_dpb.h',
++    'va_surface.h',
++    'vaapi_h264_decoder.cc',
++    'vaapi_h264_decoder.h',
++    'vaapi_video_decode_accelerator.cc',
++    'vaapi_video_decode_accelerator.h',
++    'vaapi_wrapper.cc',
++    'vaapi_wrapper.h',
+   ],
+   'variables': {
+     'extra_header': 'media/va_wayland_stub_header.fragment',
+@@ -26,8 +26,12 @@
+     'intermediate_dir': '<(INTERMEDIATE_DIR)',
+     'output_root': '<(SHARED_INTERMEDIATE_DIR)/va',
+   },
++  'dependencies': [
++    '<(DEPTH)/ui/gl/gl.gyp:gl',
++  ],
+   'include_dirs': [
+     '<(DEPTH)/third_party/libva',
++    '<(DEPTH)/third_party/mesa/src/include',
+     '<(output_root)',
+     '<(SHARED_INTERMEDIATE_DIR)/ui/gl',
+   ],

@@ -1,0 +1,11 @@
+--- configure.ac~	2014-07-16 18:32:49.000000000 +0100
++++ configure.ac	2014-07-16 18:38:08.650489577 +0100
+@@ -195,7 +195,7 @@
+ 	AC_DEFINE(USE_SDL, 1, [define to use SDL])
+ 	WINDOW_CFLAGS="$SDL2_CFLAGS"
+ 	AC_SUBST(WINDOW_CFLAGS)
+-	WINDOW_LIBS="$SDL2_LIBS"
++	WINDOW_LIBS="$SDL2_LIBS -lGL -lGLU"
+ 	AC_SUBST(WINDOW_LIBS)
+ 	WINDOW_TYPE=SDL2
+ elif test "x$HAVE_SDL" = xyes -a "x$enable_sdl" != xno ; then

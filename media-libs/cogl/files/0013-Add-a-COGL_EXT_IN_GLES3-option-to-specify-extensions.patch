@@ -1,0 +1,268 @@
+From eb7c37812a82ede1e683346c188678da24dd507a Mon Sep 17 00:00:00 2001
+From: Neil Roberts <neil@linux.intel.com>
+Date: Tue, 1 Apr 2014 14:54:38 +0100
+Subject: [PATCH 13/14] Add a COGL_EXT_IN_GLES3 option to specify extensions
+ that are in GLES3
+
+Some features that were previously available as an extension in GLES2
+are now in core in GLES3 so we should be able to specify that with the
+gles_availability mask of COGL_EXT_BEGIN so that GL implementations
+advertising GLES3 don't have to additionally advertise the extension
+for us to take advantage of it.
+
+Reviewed-by: Robert Bragg <robert.bragg@intel.com>
+(cherry picked from commit 4d892cd97558da61ba526f947ac0555ebab632d2)
+---
+ cogl/cogl-feature-private.c            | 28 ++++++++++++++++++++----
+ cogl/cogl-feature-private.h            |  3 ++-
+ cogl/driver/gl/cogl-util-gl-private.h  | 11 ++++++++++
+ cogl/driver/gl/cogl-util-gl.c          | 33 ++++++++++++++++++++++++++++
+ cogl/driver/gl/gl/cogl-driver-gl.c     | 39 ++++------------------------------
+ cogl/driver/gl/gles/cogl-driver-gles.c | 30 ++++++++++++++++++++++++--
+ 6 files changed, 102 insertions(+), 42 deletions(-)
+
+diff --git a/cogl/cogl-feature-private.c b/cogl/cogl-feature-private.c
+index 67d304a..7c160c3 100644
+--- a/cogl/cogl-feature-private.c
++++ b/cogl/cogl-feature-private.c
+@@ -53,18 +53,38 @@ _cogl_feature_check (CoglRenderer *renderer,
+ {
+   const char *suffix = NULL;
+   int func_num;
++  CoglExtGlesAvailability gles_availability = 0;
+   CoglBool in_core;
+ 
++  switch (driver)
++    {
++    case COGL_DRIVER_GLES1:
++      gles_availability = COGL_EXT_IN_GLES;
++      break;
++    case COGL_DRIVER_GLES2:
++      gles_availability = COGL_EXT_IN_GLES2;
++
++      if (COGL_CHECK_GL_VERSION (gl_major, gl_minor, 3, 0))
++        gles_availability |= COGL_EXT_IN_GLES3;
++      break;
++    case COGL_DRIVER_ANY:
++      g_assert_not_reached ();
++    case COGL_DRIVER_WEBGL:
++      /* FIXME: WebGL should probably have its own COGL_EXT_IN_WEBGL flag */
++      break;
++    case COGL_DRIVER_NOP:
++    case COGL_DRIVER_GL:
++    case COGL_DRIVER_GL3:
++      break;
++    }
++
+   /* First check whether the functions should be directly provided by
+      GL */
+   if (((driver == COGL_DRIVER_GL ||
+         driver == COGL_DRIVER_GL3) &&
+        COGL_CHECK_GL_VERSION (gl_major, gl_minor,
+                               data->min_gl_major, data->min_gl_minor)) ||
+-      (driver == COGL_DRIVER_GLES1 &&
+-       (data->gles_availability & COGL_EXT_IN_GLES)) ||
+-      (driver == COGL_DRIVER_GLES2 &&
+-       (data->gles_availability & COGL_EXT_IN_GLES2)))
++      (data->gles_availability & gles_availability))
+     {
+       suffix = "";
+       in_core = TRUE;
+diff --git a/cogl/cogl-feature-private.h b/cogl/cogl-feature-private.h
+index 02714b7..a342d23 100644
+--- a/cogl/cogl-feature-private.h
++++ b/cogl/cogl-feature-private.h
+@@ -42,7 +42,8 @@
+ typedef enum
+ {
+   COGL_EXT_IN_GLES = (1 << 0),
+-  COGL_EXT_IN_GLES2 = (1 << 1)
++  COGL_EXT_IN_GLES2 = (1 << 1),
++  COGL_EXT_IN_GLES3 = (1 << 2)
+ } CoglExtGlesAvailability;
+ 
+ typedef struct _CoglFeatureFunction CoglFeatureFunction;
+diff --git a/cogl/driver/gl/cogl-util-gl-private.h b/cogl/driver/gl/cogl-util-gl-private.h
+index 8ef26e6..dcc61c0 100644
+--- a/cogl/driver/gl/cogl-util-gl-private.h
++++ b/cogl/driver/gl/cogl-util-gl-private.h
+@@ -79,4 +79,15 @@ _cogl_gl_util_get_texture_target_string (CoglTextureType texture_type,
+                                          const char **target_string_out,
+                                          const char **swizzle_out);
+ 
++/* Parses a GL version number stored in a string. @version_string must
++ * point to the beginning of the version number (ie, it can't point to
++ * the "OpenGL ES" part on GLES). The version number can be followed
++ * by the end of the string, a space or a full stop. Anything else
++ * will be treated as invalid. Returns TRUE and sets major_out and
++ * minor_out if it is succesfully parsed or FALSE otherwise. */
++CoglBool
++_cogl_gl_util_parse_gl_version (const char *version_string,
++                                int *major_out,
++                                int *minor_out);
++
+ #endif /* _COGL_UTIL_GL_PRIVATE_H_ */
+diff --git a/cogl/driver/gl/cogl-util-gl.c b/cogl/driver/gl/cogl-util-gl.c
+index e1df485..814621a 100644
+--- a/cogl/driver/gl/cogl-util-gl.c
++++ b/cogl/driver/gl/cogl-util-gl.c
+@@ -146,3 +146,36 @@ _cogl_gl_util_get_texture_target_string (CoglTextureType texture_type,
+   if (swizzle_out)
+     *swizzle_out = tex_coord_swizzle;
+ }
++
++CoglBool
++_cogl_gl_util_parse_gl_version (const char *version_string,
++                                int *major_out,
++                                int *minor_out)
++{
++  const char *major_end, *minor_end;
++  int major = 0, minor = 0;
++
++  /* Extract the major number */
++  for (major_end = version_string; *major_end >= '0'
++         && *major_end <= '9'; major_end++)
++    major = (major * 10) + *major_end - '0';
++  /* If there were no digits or the major number isn't followed by a
++     dot then it is invalid */
++  if (major_end == version_string || *major_end != '.')
++    return FALSE;
++
++  /* Extract the minor number */
++  for (minor_end = major_end + 1; *minor_end >= '0'
++         && *minor_end <= '9'; minor_end++)
++    minor = (minor * 10) + *minor_end - '0';
++  /* If there were no digits or there is an unexpected character then
++     it is invalid */
++  if (minor_end == major_end + 1
++      || (*minor_end && *minor_end != ' ' && *minor_end != '.'))
++    return FALSE;
++
++  *major_out = major;
++  *minor_out = minor;
++
++  return TRUE;
++}
+diff --git a/cogl/driver/gl/gl/cogl-driver-gl.c b/cogl/driver/gl/gl/cogl-driver-gl.c
+index b4de51b..0bcb9ce 100644
+--- a/cogl/driver/gl/gl/cogl-driver-gl.c
++++ b/cogl/driver/gl/gl/cogl-driver-gl.c
+@@ -290,39 +290,6 @@ _cogl_driver_pixel_format_to_gl (CoglContext *context,
+ }
+ 
+ static CoglBool
+-parse_gl_version (const char *version_string,
+-                  int *major_out,
+-                  int *minor_out)
+-{
+-  const char *major_end, *minor_end;
+-  int major = 0, minor = 0;
+-
+-  /* Extract the major number */
+-  for (major_end = version_string; *major_end >= '0'
+-	 && *major_end <= '9'; major_end++)
+-    major = (major * 10) + *major_end - '0';
+-  /* If there were no digits or the major number isn't followed by a
+-     dot then it is invalid */
+-  if (major_end == version_string || *major_end != '.')
+-    return FALSE;
+-
+-  /* Extract the minor number */
+-  for (minor_end = major_end + 1; *minor_end >= '0'
+-	 && *minor_end <= '9'; minor_end++)
+-    minor = (minor * 10) + *minor_end - '0';
+-  /* If there were no digits or there is an unexpected character then
+-     it is invalid */
+-  if (minor_end == major_end + 1
+-      || (*minor_end && *minor_end != ' ' && *minor_end != '.'))
+-    return FALSE;
+-
+-  *major_out = major;
+-  *minor_out = minor;
+-
+-  return TRUE;
+-}
+-
+-static CoglBool
+ _cogl_get_gl_version (CoglContext *ctx,
+                       int *major_out,
+                       int *minor_out)
+@@ -333,7 +300,7 @@ _cogl_get_gl_version (CoglContext *ctx,
+   if ((version_string = _cogl_context_get_gl_version (ctx)) == NULL)
+     return FALSE;
+ 
+-  return parse_gl_version (version_string, major_out, minor_out);
++  return _cogl_gl_util_parse_gl_version (version_string, major_out, minor_out);
+ }
+ 
+ static CoglBool
+@@ -444,7 +411,9 @@ _cogl_driver_update_features (CoglContext *ctx,
+     {
+       const char *glsl_version =
+         (char *)ctx->glGetString (GL_SHADING_LANGUAGE_VERSION);
+-      parse_gl_version (glsl_version, &ctx->glsl_major, &ctx->glsl_minor);
++      _cogl_gl_util_parse_gl_version (glsl_version,
++                                      &ctx->glsl_major,
++                                      &ctx->glsl_minor);
+     }
+ 
+   if (COGL_CHECK_GL_VERSION (ctx->glsl_major, ctx->glsl_minor, 1, 2))
+diff --git a/cogl/driver/gl/gles/cogl-driver-gles.c b/cogl/driver/gl/gles/cogl-driver-gles.c
+index 989862f..f144ba3 100644
+--- a/cogl/driver/gl/gles/cogl-driver-gles.c
++++ b/cogl/driver/gl/gles/cogl-driver-gles.c
+@@ -220,6 +220,25 @@ _cogl_driver_pixel_format_to_gl (CoglContext *context,
+ }
+ 
+ static CoglBool
++_cogl_get_gl_version (CoglContext *ctx,
++                      int *major_out,
++                      int *minor_out)
++{
++  const char *version_string;
++
++  /* Get the OpenGL version number */
++  if ((version_string = _cogl_context_get_gl_version (ctx)) == NULL)
++    return FALSE;
++
++  if (!g_str_has_prefix (version_string, "OpenGL ES "))
++    return FALSE;
++
++  return _cogl_gl_util_parse_gl_version (version_string + 10,
++                                         major_out,
++                                         minor_out);
++}
++
++static CoglBool
+ _cogl_driver_update_features (CoglContext *context,
+                               CoglError **error)
+ {
+@@ -227,6 +246,7 @@ _cogl_driver_update_features (CoglContext *context,
+     [COGL_FLAGS_N_LONGS_FOR_SIZE (COGL_N_PRIVATE_FEATURES)] = { 0 };
+   CoglFeatureFlags flags = 0;
+   char **gl_extensions;
++  int gl_major, gl_minor;
+   int i;
+ 
+   /* We have to special case getting the pointer to the glGetString
+@@ -263,9 +283,15 @@ _cogl_driver_update_features (CoglContext *context,
+ 
+   _cogl_gpu_info_init (context, &context->gpu);
+ 
++  if (!_cogl_get_gl_version (context, &gl_major, &gl_minor))
++    {
++      gl_major = 1;
++      gl_minor = 1;
++    }
++
+   _cogl_feature_check_ext_functions (context,
+-                                     -1 /* GL major version */,
+-                                     -1 /* GL minor version */,
++                                     gl_major,
++                                     gl_minor,
+                                      gl_extensions);
+ 
+ #ifdef HAVE_COGL_GLES
+-- 
+2.0.0
+

@@ -2,10 +2,10 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/games-strategy/ufo-ai/ufo-ai-2.4.ebuild,v 1.4 2012/11/04 06:02:12 mr_bones_ Exp $
 
-EAPI=3
-PYTHON_DEPEND="2"
+EAPI=5
+PYTHON_COMPAT=( pypy python{2_6,2_7} )
 
-inherit eutils python flag-o-matic games git-2
+inherit eutils python-any-r1 flag-o-matic games git-2
 
 MY_P=${P/o-a/oa}
 
@@ -49,21 +49,26 @@ DEPEND="!dedicated? (
 		media-libs/openal
 		x11-libs/gtkglext
 		x11-libs/gtksourceview:2.0
-	)"
+	)
+	${PYTHON_REQUIRED_USE}
+"
 
 #S=${WORKDIR}/${MY_P}-source
 
+pkg_setup() {
+	python-any-r1_pkg_setup
+}
 
 src_prepare() {
 	epatch "${FILESDIR}"/${PN}-bfd-package.patch
 
 
 	if has_version '>=sys-libs/zlib-1.2.5.1-r1' ; then
-		sed -i -e '1i#define OF(x) x' src/common/ioapi.h || die
+		sed -i -e '1i#define OF(x) x' src/common/ioapi.h || die "sed 1 failed"
 	fi
 
 	# System version of lua is just called lua
-	sed -i -e 's/lua5.1/lua/g' build/default.mk
+	sed -i -e 's/lua5.1/lua/g' build/default.mk || die "sed 2 failed"
 
 	if ! use compile-maps; then
 		einfo "Looking for existing installation..."
@@ -83,8 +88,10 @@ EOT
 				ewarn "Failed to access existing maps! Probably access permissions.  Will download a new set."
 			fi
 
+		else
+			einfo "Nope."
 		fi
-		python contrib/map-get/update.py
+		${PYTHON} contrib/map-get/update.py
 		if [[ "$?" -ne 0 ]]; then
 			ewarn "Update failed! Forcing map compilation! (this will be SLOW)"
 			FORCE_COMPILE=1
@@ -92,7 +99,7 @@ EOT
 	fi
 
 	# don't try to use the system mini-xml
-	sed -i -e '/mxml/d' configure || die
+	sed -i -e '/mxml/d' configure || die sed 3 failed
 
 }
 
@@ -116,24 +123,27 @@ src_configure() {
 	fi
 
 	echo "./configure ${myconf}"
-	./configure ${myconf} || die
+	./configure ${myconf} || die "configure script failed"
 }
 
 src_compile() {
-	emake || die
+	# Build ufo2map first otherwise parallel make fails
+	emake ufo2map
+
+	emake
 
 	# Compile maps or pre-compiled
 	if ( use compile-maps || [[ -n $FORCE_COMPILE ]] ); then
-		emake maps || die
+		emake maps
 	else
 		einfo "Using pre-compiled maps"
 	fi
 
-	emake lang || die
-	emake pk3 || die
+	emake lang
+	emake pk3
 
 	if use editor; then
-		emake uforadiant || die
+		emake uforadiant
 	fi
 }
 
@@ -147,7 +157,7 @@ src_install() {
 	fi
 
 	if use editor; then
-		dobin ufo2map ufomodel || die
+		dobin ufo2map ufomodel
 	fi
 
 	# install data
@@ -173,8 +183,4 @@ src_install() {
 	# Allow "other" users to read compiled maps
 	find "${ED}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -name '*.bsp' -exec chmod o+r '{}' \;
 
-}
-
-pkg_setup() {
-	python_set_active_version 2
 }

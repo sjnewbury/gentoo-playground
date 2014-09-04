@@ -1,0 +1,74 @@
+--- configure.ac~	2014-07-08 12:08:15.000000000 +0100
++++ configure.ac	2014-07-08 12:27:02.620098714 +0100
+@@ -541,7 +541,6 @@
+ PKG_CHECK_MODULES(E, [
+   evas >= ${efl_version}
+   ecore >= ${efl_version}
+-  ecore-x >= ${efl_version}
+   ecore-evas >= ${efl_version}
+   ecore-input >= ${efl_version}
+   ecore-input-evas >= ${efl_version}
+@@ -559,6 +558,7 @@
+   eo >= ${efl_version}
+   elementary >= ${efl_version}
+   emotion >= ${efl_version}
++  $x11_backend
+   $eeze_mount
+   $udisks_mount
+   $device_backend
+@@ -566,7 +566,6 @@
+ requirements_e="\
+ evas >= ${efl_version} \
+ ecore >= ${efl_version} \
+-ecore-x >= ${efl_version} \
+ ecore-evas >= ${efl_version} \
+ ecore-con >= ${efl_version} \
+ ecore-ipc >= ${efl_version} \
+@@ -582,6 +581,7 @@
+ eo >= ${efl_version} \
+ elementary >= ${efl_version} \
+ emotion >= ${efl_version} \
++$x11_backend \
+ $udisks_mount \
+ $eeze_mount \
+ $device_backend"
+@@ -830,6 +830,7 @@
+     ])
+ else
+   have_wayland=no
++  x11_backend="ecore-x >= ${efl_version}"
+ fi
+ 
+ if test "x${have_wayland}" = "xyes"; then
+@@ -859,12 +859,7 @@
+ AM_CONDITIONAL([HAVE_WAYLAND_CLIENTS], [test "x${have_wayland_clients}" = "xyes"])
+ AM_CONDITIONAL([HAVE_WAYLAND_EGL], [test "x${have_wayland_egl}" = "xyes"])
+ 
+-PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}])
+-if test -n "$ECORE_X_CFLAGS" ; then
+-   ecore_x=true
+-else
+-   ecore_x=false
+-fi
++PKG_CHECK_MODULES([ECORE_X], [ecore-x >= ${efl_version}], [ecore_x=true], [ecore_x=false])
+ 
+ if test "x${ecore_x}" = "xtrue" && test -n "$WAYLAND_CFLAGS" ; then
+    wl_x11=true
+--- src/bin/e_main.c~	2014-07-08 17:34:52.000000000 +0100
++++ src/bin/e_main.c	2014-07-08 17:40:37.892484837 +0100
+@@ -431,6 +431,7 @@
+    ecore_evas_app_comp_sync_set(0);
+ 
+    TS("Ecore_Evas Engine Check");
++#ifndef HAVE_WAYLAND_ONLY
+    if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_XCB))
+      {
+         if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_XLIB))
+@@ -441,6 +442,7 @@
+              _e_main_shutdown(-1);
+           }
+      }
++#endif
+    if (!ecore_evas_engine_type_supported_get(ECORE_EVAS_ENGINE_SOFTWARE_BUFFER))
+      {
+         e_error_message_show(_("Enlightenment found ecore_evas doesn't support the Software Buffer\n"

@@ -1,0 +1,10 @@
+--- ui/ozone/public/surface_ozone_egl.h~	2014-07-22 14:03:06.000000000 +0100
++++ ui/ozone/public/surface_ozone_egl.h	2014-07-31 07:42:41.840641426 +0100
+@@ -7,6 +7,7 @@
+ 
+ #include "base/basictypes.h"
+ #include "base/memory/scoped_ptr.h"
++#include "base/memory/ref_counted.h"
+ #include "ui/gfx/overlay_transform.h"
+ #include "ui/ozone/ozone_base_export.h"
+ 

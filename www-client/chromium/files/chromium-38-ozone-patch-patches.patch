@@ -1,0 +1,46 @@
+--- ozone/patches/0001-browser-Support-Desktop-Aura-creation-on-Ozone.patch.orig	2014-07-31 06:37:49.591785729 +0100
++++ ozone/patches/0001-browser-Support-Desktop-Aura-creation-on-Ozone.patch	2014-07-31 06:37:53.974287435 +0100
+@@ -134,15 +134,15 @@
+ index 60c64dd..63b4c84 100644
+ --- a/chrome/chrome_browser_ui.gypi
+ +++ b/chrome/chrome_browser_ui.gypi
+-@@ -1905,6 +1905,8 @@
+-         'browser/ui/views/frame/desktop_browser_frame_aura.cc',
+-         'browser/ui/views/frame/desktop_browser_frame_aura.h',
+-         'browser/ui/views/frame/browser_desktop_window_tree_host.h',
+-+        'browser/ui/views/frame/browser_desktop_root_window_host_ozone.cc',
+-+        'browser/ui/views/frame/browser_desktop_root_window_host_ozone.h',
+-         'browser/ui/views/frame/browser_desktop_window_tree_host_win.cc',
+-         'browser/ui/views/frame/browser_desktop_window_tree_host_win.h',
+-         'browser/ui/views/frame/browser_desktop_window_tree_host_x11.cc',
++@@ -1286,6 +1286,8 @@
++       'browser/ui/views/color_chooser_dialog.cc',
++       'browser/ui/views/color_chooser_dialog.h',
++       'browser/ui/views/frame/browser_desktop_window_tree_host.h',
+++      'browser/ui/views/frame/browser_desktop_root_window_host_ozone.cc',
+++      'browser/ui/views/frame/browser_desktop_root_window_host_ozone.h',
++       'browser/ui/views/frame/browser_desktop_window_tree_host_win.cc',
++       'browser/ui/views/frame/browser_desktop_window_tree_host_win.h',
++       'browser/ui/views/frame/browser_frame_ashwin.cc',
+ -- 
+ 1.7.9.5
+ 
+--- ozone/patches/0003-Add-support-to-provide-external-ozone-files-in-views.patch.orig	2014-07-31 06:47:25.410660155 +0100
++++ ozone/patches/0003-Add-support-to-provide-external-ozone-files-in-views.patch	2014-07-31 06:48:35.492671754 +0100
+@@ -18,11 +18,11 @@
+    'variables': {
+      'chromium_code': 1,
+ +    'external_ozone_views_files': [],
+-   },
+-   'target_defaults': {
+-     'conditions': [
+-@@ -496,6 +497,9 @@
+-           ],
++     # Sources lists shared with GN build.
++     'views_sources': [
++       'accessibility/native_view_accessibility.cc',
++@@ -647,6 +648,9 @@
++           'msvs_disabled_warnings': [ 4267, ],
+          }],
+          ['use_ozone==1', {
+ +          'sources': [

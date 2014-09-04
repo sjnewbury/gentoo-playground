@@ -5,11 +5,9 @@
 EAPI=5
 
 EGIT_REPO_URI=git://gitorious.org/vaapi/gstreamer-vaapi.git
-EGIT_BOOTSTRAP="echo 'EXTRA_DIST =' > gtk-doc.make; eautoreconf"
 
-inherit autotools autotools-utils git-2
+inherit autotools autotools-utils git-r3
 
-MY_PN="gstreamer-vaapi"
 DESCRIPTION="GStreamer VA-API plugins"
 HOMEPAGE="http://www.splitted-desktop.com/~gbeauchesne/gstreamer-vaapi/"
 SRC_URI=""
@@ -33,9 +31,16 @@ RDEPEND="${DEPEND}"
 
 DOCS=(AUTHORS README NEWS)
 
-S="${WORKDIR}/${MY_PN}-${PV}"
+pkg_setup() {
+	# http://bugs.gentoo.org/show_bug.cgi?id=384585
+	addpredict /usr/share/snmp/mibs/.index
+	addpredict /var/lib/net-snmp/mib_indexes
+}
 
-EGIT_HAS_SUBMODULES=1
+src_prepare() {
+	echo 'EXTRA_DIST =' > "${S}"/gtk-doc.make
+	eautoreconf
+}
 
 src_configure() {
 	local myeconfargs=(

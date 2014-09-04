@@ -5,7 +5,8 @@
 EAPI="5"
 
 GCC_FILESDIR="${PORTDIR}/sys-devel/gcc/files"
-gcc_LIVE_BRANCH="master"
+gcc_LIVE_BRANCH="gcc-4_9-branch"
+#gcc_LIVE_BRANCH=master
 
 inherit multilib toolchain
 

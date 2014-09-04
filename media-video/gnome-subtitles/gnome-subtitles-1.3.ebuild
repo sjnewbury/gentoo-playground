@@ -31,3 +31,8 @@ DEPEND="${RDEPEND}
 	app-text/gnome-doc-utils"
 
 DOCS="AUTHORS ChangeLog NEWS README"
+
+src_compile() {
+	# Racy with parallel build
+	emake -j1
+}

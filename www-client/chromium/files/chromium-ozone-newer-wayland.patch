@@ -1,0 +1,16 @@
+--- wayland/wayland.gyp~	2014-06-27 08:23:34.000000000 +0100
++++ wayland/wayland.gyp	2014-06-27 15:16:20.542222553 +0100
+@@ -29,10 +29,10 @@
+         'MESA_VERSION': '9.1.3',
+         'wayland_packages': [
+           'egl >= <(MESA_VERSION)',
+-          'wayland-client = <(WAYLAND_VERSION)',
+-          'wayland-cursor = <(WAYLAND_VERSION)',
++          'wayland-client >= <(WAYLAND_VERSION)',
++          'wayland-cursor >= <(WAYLAND_VERSION)',
+           'wayland-egl >= <(MESA_VERSION)',
+-          'weston = <(WAYLAND_VERSION)',
++          'weston >= <(WAYLAND_VERSION)',
+           'xkbcommon',
+         ],
+       },

@@ -1,0 +1,959 @@
+diff -urN tuned-2.3.0.orig/experiments/kwin-stop/xlib-example.py tuned-2.3.0/experiments/kwin-stop/xlib-example.py
+--- tuned-2.3.0.orig/experiments/kwin-stop/xlib-example.py	2013-10-10 16:04:27.000000000 +0100
++++ tuned-2.3.0/experiments/kwin-stop/xlib-example.py	2014-04-12 10:14:02.848786069 +0100
+@@ -38,8 +38,8 @@
+ 							else:
+ 								if not win in showed:
+ 									showed.append(win)
+-				print "Showed:", showed
+-				print "Minimized:", hidden
++				print("Showed:", showed)
++				print("Minimized:", hidden)
+ 
+ if __name__ == '__main__':
+ 	loop()
+diff -urN tuned-2.3.0.orig/experiments/powertop2tuned.py tuned-2.3.0/experiments/powertop2tuned.py
+--- tuned-2.3.0.orig/experiments/powertop2tuned.py	2013-10-10 16:04:27.000000000 +0100
++++ tuned-2.3.0/experiments/powertop2tuned.py	2014-04-12 10:14:02.849786059 +0100
+@@ -25,8 +25,8 @@
+ import argparse
+ import codecs
+ from subprocess import *
+-from HTMLParser import HTMLParser
+-from htmlentitydefs import name2codepoint
++from html.parser import HTMLParser
++from html.entities import name2codepoint
+ 
+ SCRIPT_SH = """#!/bin/sh
+ 
+@@ -140,7 +140,7 @@
+ 
+ 	def handle_entityref(self, name):
+ 		if self.inScript:
+-			self.currentScript += unichr(name2codepoint[name])
++			self.currentScript += chr(name2codepoint[name])
+ 
+ 	def handle_data(self, data):
+ 		prefix = self.prefix
+@@ -178,23 +178,23 @@
+ 	def checkPrivs(self):
+ 		myuid = os.geteuid()
+ 		if myuid != 0:
+-			print >> sys.stderr, 'Run this program as root'
++			print('Run this program as root', file=sys.stderr)
+ 			return False
+ 		return True
+ 
+ 	def generateHTML(self):
+-		print "Running PowerTOP, please wait..."
++		print("Running PowerTOP, please wait...")
+ 		environment = os.environ.copy()
+ 		environment["LC_ALL"] = "C"
+ 		try:
+ 			proc = Popen(["/usr/sbin/powertop", "--html=/tmp/powertop", "--time=1"], stdout=PIPE, stderr=PIPE, env=environment)
+ 			output = proc.communicate()[1]
+ 		except (OSError, IOError):
+-			print >> sys.stderr, 'Unable to execute PowerTOP, is PowerTOP installed?'
++			print('Unable to execute PowerTOP, is PowerTOP installed?', file=sys.stderr)
+ 			return -2
+ 
+ 		if proc.returncode != 0:
+-			print >> sys.stderr, 'PowerTOP returned error code: %d' % proc.returncode
++			print('PowerTOP returned error code: %d' % proc.returncode, file=sys.stderr)
+ 			return -2
+ 
+ 		prefix = "PowerTOP outputing using base filename "
+@@ -225,24 +225,24 @@
+ 		return parser.getParsedData(), parser.getPlugins()
+ 
+ 	def generateShellScript(self, data):
+-		print "Generating shell script", os.path.join(self.output, "script.sh")
++		print("Generating shell script", os.path.join(self.output, "script.sh"))
+ 		f = codecs.open(os.path.join(self.output, "script.sh"), "w", "utf-8")
+ 		f.write(SCRIPT_SH % (data, ""))
+-		os.fchmod(f.fileno(), 0755)
++		os.fchmod(f.fileno(), 0o755)
+ 		f.close()
+ 		return True
+ 
+ 	def generateTunedConf(self, profile, plugins):
+-		print "Generating Tuned config file", os.path.join(self.output, "tuned.conf")
++		print("Generating Tuned config file", os.path.join(self.output, "tuned.conf"))
+ 		f = codecs.open(os.path.join(self.output, "tuned.conf"), "w", "utf-8")
+ 		f.write(TUNED_CONF_PROLOG)
+ 		if profile is not None:
+ 			if self.profile_name == profile:
+-				print >> sys.stderr, 'New profile has same name as active profile, not including active profile (avoiding circular deps).'
++				print('New profile has same name as active profile, not including active profile (avoiding circular deps).', file=sys.stderr)
+ 			else:
+ 				f.write(TUNED_CONF_INCLUDE % ("include=" + profile))
+ 
+-		for plugin in plugins.values():
++		for plugin in list(plugins.values()):
+ 			f.write(plugin + "\n")
+ 
+ 		f.write(TUNED_CONF_EPILOG)
+@@ -266,7 +266,7 @@
+ 			os.unlink(self.name)
+ 
+ 		if len(data) == 0 and len(plugins) == 0:
+-			print >> sys.stderr, 'Your Powertop version is incompatible (maybe too old) or the generated HTML output is malformed'
++			print('Your Powertop version is incompatible (maybe too old) or the generated HTML output is malformed', file=sys.stderr)
+ 			return self.PARSING_ERROR
+ 
+ 		if new_profile is False:
+@@ -289,9 +289,9 @@
+ 
+ if __name__ == "__main__":
+ 	parser = argparse.ArgumentParser(description='Creates Tuned profile from Powertop HTML output.')
+-	parser.add_argument('profile', metavar='profile_name', type=unicode, nargs='?', help='Name for the profile to be written.')
+-	parser.add_argument('-i', '--input', metavar='input_html', type=unicode, help='Path to Powertop HTML report. If not given, it is generated automatically.')
+-	parser.add_argument('-o', '--output', metavar='output_directory', type=unicode, help='Directory where the profile will be written, default is /etc/tuned/profile_name directory.')
++	parser.add_argument('profile', metavar='profile_name', type=str, nargs='?', help='Name for the profile to be written.')
++	parser.add_argument('-i', '--input', metavar='input_html', type=str, help='Path to Powertop HTML report. If not given, it is generated automatically.')
++	parser.add_argument('-o', '--output', metavar='output_directory', type=str, help='Directory where the profile will be written, default is /etc/tuned/profile_name directory.')
+ 	parser.add_argument('-n', '--new-profile', action='store_true', help='Creates new profile, otherwise it merges (include) your current profile.')
+ 	parser.add_argument('-m', '--merge-profile', action = 'store', help = 'Merges (includes) the specified profile (can be suppressed by -n option).')
+ 	parser.add_argument('-f', '--force', action='store_true', help='Overwrites the output directory if it already exists.')
+@@ -300,7 +300,7 @@
+ 	args = vars(args)
+ 
+ 	if not args['profile'] and not args['output']:
+-		print >> sys.stderr, 'You have to specify the profile_name or output directory using the --output argument.'
++		print('You have to specify the profile_name or output directory using the --output argument.', file=sys.stderr)
+ 		parser.print_help()
+ 		sys.exit(-1)
+ 
+@@ -314,7 +314,7 @@
+ 		args['input'] = ''
+ 
+ 	if os.path.exists(args['output']) and not args['force']:
+-		print >> sys.stderr, 'Output directory already exists, use --force to overwrite it.'
++		print('Output directory already exists, use --force to overwrite it.', file=sys.stderr)
+ 		sys.exit(-1)
+ 
+ 	p = PowertopProfile(args['output'], args['profile'], args['input'])
+diff -urN tuned-2.3.0.orig/libexec/pmqos-static.py tuned-2.3.0/libexec/pmqos-static.py
+--- tuned-2.3.0.orig/libexec/pmqos-static.py	2013-10-16 09:44:32.000000000 +0100
++++ tuned-2.3.0/libexec/pmqos-static.py	2014-04-12 10:14:02.849786059 +0100
+@@ -47,7 +47,7 @@
+ 	os.dup2(s_err.fileno(), sys.stderr.fileno())
+ 
+ def write_pidfile():
+-	f = os.open(PIDFILE, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0644)
++	f = os.open(PIDFILE, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o644)
+ 	os.write(f, "%d" % os.getpid())
+ 	os.close(f)
+ 
+@@ -82,14 +82,14 @@
+ 		daemonize()
+ 		write_pidfile()
+ 		signal.signal(signal.SIGTERM, sigterm_handler)
+-	except Exception, e:
+-		print >>sys.stderr, "Cannot daemonize (%s)." % e
++	except Exception as e:
++		print("Cannot daemonize (%s)." % e, file=sys.stderr)
+ 		return False
+ 
+ 	global pmqos_fds
+ 	pmqos_fds = []
+ 
+-	for (name, value) in options.items():
++	for (name, value) in list(options.items()):
+ 		try:
+ 			new_fd = set_pmqos(name, value)
+ 			pmqos_fds.append(new_fd)
+@@ -106,20 +106,20 @@
+ 	try:
+ 		with open(PIDFILE, "r") as pidfile:
+ 			daemon_pid = int(pidfile.read())
+-	except IOError, e:
+-		if not force: print >>sys.stderr, "Cannot open PID file (%s)." % e
++	except IOError as e:
++		if not force: print("Cannot open PID file (%s)." % e, file=sys.stderr)
+ 		return False
+ 
+ 	try:
+ 		os.kill(daemon_pid, signal.SIGTERM)
+-	except OSError, e:
+-		if not force: print >>sys.stderr, "Cannot terminate the daemon (%s)." % e
++	except OSError as e:
++		if not force: print("Cannot terminate the daemon (%s)." % e, file=sys.stderr)
+ 		return False
+ 
+ 	try:
+ 		os.unlink(PIDFILE)
+-	except OSError, e:
+-		if not force: print >>sys.stderr, "Cannot delete the PID file (%s)." % e
++	except OSError as e:
++		if not force: print("Cannot delete the PID file (%s)." % e, file=sys.stderr)
+ 		return False
+ 
+ 	return True
+@@ -143,14 +143,14 @@
+ 		if name in ALLOWED_INTERFACES and len(value) > 0:
+ 			options[name] = value
+ 		else:
+-			print >>sys.stderr, "Invalid option (%s)." % option
++			print("Invalid option (%s)." % option, file=sys.stderr)
+ 
+ 
+ 	if disable:
+ 		sys.exit(0 if kill_daemon() else 1)
+ 
+ 	if len(options) == 0:
+-		print >>sys.stderr, "No options set. Not starting."
++		print("No options set. Not starting.", file=sys.stderr)
+ 		sys.exit(1)
+ 
+ 	kill_daemon(True)
+diff -urN tuned-2.3.0.orig/tuned/admin/__init__.py tuned-2.3.0/tuned/admin/__init__.py
+--- tuned-2.3.0.orig/tuned/admin/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/admin/__init__.py	2014-04-12 10:14:02.850786049 +0100
+@@ -1,3 +1,3 @@
+-from admin import *
+-from exceptions import *
+-from dbus_controller import *
++from .admin import *
++from .exceptions import *
++from .dbus_controller import *
+diff -urN tuned-2.3.0.orig/tuned/admin/admin.py tuned-2.3.0/tuned/admin/admin.py
+--- tuned-2.3.0.orig/tuned/admin/admin.py	2013-11-06 08:18:24.000000000 +0000
++++ tuned-2.3.0/tuned/admin/admin.py	2014-04-12 10:14:02.851786039 +0100
+@@ -1,6 +1,6 @@
+ import tuned.utils.commands
+ from tuned.profiles import Locator as profiles_locator
+-from exceptions import TunedAdminDBusException
++from .exceptions import TunedAdminDBusException
+ import tuned.consts as consts
+ import sys
+ 
+@@ -9,18 +9,18 @@
+ 		self._controller = controller
+ 
+ 	def _error(self, message):
+-		print >>sys.stderr, message
++		print(message, file=sys.stderr)
+ 
+ 	def list(self, dbus_warn = True):
+ 		try:
+ 			profile_names = self._controller.profiles()
+ 		except TunedAdminDBusException as e:
+ 			if dbus_warn:
+-				print >> sys.stderr, e
++				print(e, file=sys.stderr)
+ 			profile_names = profiles_locator(consts.LOAD_DIRECTORIES).get_known_names()
+-		print "Available profiles:"
++		print("Available profiles:")
+ 		for profile in profile_names:
+-			print "- %s" % profile
++			print("- %s" % profile)
+ 		self.active(False)
+ 
+ 	def active(self, dbus_warn = True):
+@@ -28,13 +28,13 @@
+ 			profile_name = self._controller.active_profile()
+ 		except TunedAdminDBusException as e:
+ 			if dbus_warn:
+-				print >> sys.stderr, e
++				print(e, file=sys.stderr)
+ 			profile_name = tuned.utils.commands.read_file(consts.ACTIVE_PROFILE_FILE, None)
+ 		if profile_name is not None and profile_name != "":
+-			print "Current active profile: %s" % profile_name
++			print("Current active profile: %s" % profile_name)
+ 			return True
+ 		else:
+-			print "No current active profile."
++			print("No current active profile.")
+ 			return False
+ 
+ 	def profile(self, profiles, dbus_warn = True):
+@@ -47,7 +47,7 @@
+ 		except TunedAdminDBusException as e:
+ 			fallback = True
+ 			if dbus_warn:
+-				print >> sys.stderr, e
++				print(e, file=sys.stderr)
+ 			if profile_name in profiles_locator(consts.LOAD_DIRECTORIES).get_known_names():
+ 				ret = tuned.utils.commands.write_to_file(consts.ACTIVE_PROFILE_FILE, profile_name)
+ 			else:
+@@ -55,7 +55,7 @@
+ 				self._error("Requested profile '%s' doesn't exist." % profile_name)
+ 		if ret:
+ 			if fallback:
+-				print "You need to (re)start the tuned daemon by hand for changes to apply."
++				print("You need to (re)start the tuned daemon by hand for changes to apply.")
+ 			else:
+ 				if not self._controller.is_running() and not self._controller.start():
+ 					self._error("Cannot enable the tuning.")
+@@ -70,9 +70,9 @@
+ 			profile = self._controller.recommend_profile()
+ 		except TunedAdminDBusException as e:
+ 			if dbus_warn:
+-				print >> sys.stderr, e
++				print(e, file=sys.stderr)
+ 			profile = tuned.utils.commands.recommend_profile()
+-		print profile
++		print(profile)
+ 
+ 	def off(self):
+ 		result = self._controller.off()
+diff -urN tuned-2.3.0.orig/tuned/admin/dbus_controller.py tuned-2.3.0/tuned/admin/dbus_controller.py
+--- tuned-2.3.0.orig/tuned/admin/dbus_controller.py	2013-11-06 07:59:44.000000000 +0000
++++ tuned-2.3.0/tuned/admin/dbus_controller.py	2014-04-12 10:14:02.851786039 +0100
+@@ -1,6 +1,6 @@
+ import dbus
+ import dbus.exceptions
+-from exceptions import TunedAdminDBusException
++from .exceptions import TunedAdminDBusException
+ 
+ __all__ = ["DBusController"]
+ 
+diff -urN tuned-2.3.0.orig/tuned/daemon/__init__.py tuned-2.3.0/tuned/daemon/__init__.py
+--- tuned-2.3.0.orig/tuned/daemon/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/daemon/__init__.py	2014-04-12 10:14:02.852786029 +0100
+@@ -1,3 +1,3 @@
+-from application import *
+-from controller import *
+-from daemon import *
++from .application import *
++from .controller import *
++from .daemon import *
+diff -urN tuned-2.3.0.orig/tuned/daemon/application.py tuned-2.3.0/tuned/daemon/application.py
+--- tuned-2.3.0.orig/tuned/daemon/application.py	2013-10-16 15:35:57.000000000 +0100
++++ tuned-2.3.0/tuned/daemon/application.py	2014-04-12 10:14:54.275270208 +0100
+@@ -3,8 +3,8 @@
+ from configobj import ConfigObj
+ from validate import Validator
+ import tuned.logs
+-import controller
+-import daemon
++from . import controller
++from . import daemon
+ import signal
+ import os
+ import sys
+@@ -100,8 +100,8 @@
+ 			if not os.path.exists(dir_name):
+ 				os.makedirs(dir_name)
+ 
+-			fd = os.open(self._pid_file, os.O_CREAT|os.O_TRUNC|os.O_WRONLY , 0644)
+-			os.write(fd, "%d" % os.getpid())
++			fd = os.open(self._pid_file, os.O_CREAT|os.O_TRUNC|os.O_WRONLY , 0o644)
++			os.write(fd, bytes("%d" % os.getpid(), 'UTF-8'))
+ 			os.close(fd)
+ 		except (OSError,IOError) as error:
+ 			log.critical("cannot write the PID to %s: %s" % (self._pid_file, str(error)))
+diff -urN tuned-2.3.0.orig/tuned/exports/__init__.py tuned-2.3.0/tuned/exports/__init__.py
+--- tuned-2.3.0.orig/tuned/exports/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/exports/__init__.py	2014-04-12 10:14:02.853786019 +0100
+@@ -1,6 +1,6 @@
+-import interfaces
+-import controller
+-import dbus_exporter as dbus
++from . import interfaces
++from . import controller
++from . import dbus_exporter as dbus
+ 
+ def export(*args, **kwargs):
+ 	"""Decorator, use to mark exportable methods."""
+diff -urN tuned-2.3.0.orig/tuned/exports/controller.py tuned-2.3.0/tuned/exports/controller.py
+--- tuned-2.3.0.orig/tuned/exports/controller.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/exports/controller.py	2014-04-12 10:14:02.854786009 +0100
+@@ -1,4 +1,4 @@
+-import interfaces
++from . import interfaces
+ import inspect
+ import tuned.patterns
+ 
+diff -urN tuned-2.3.0.orig/tuned/exports/dbus_exporter.py tuned-2.3.0/tuned/exports/dbus_exporter.py
+--- tuned-2.3.0.orig/tuned/exports/dbus_exporter.py	2013-11-05 15:53:20.000000000 +0000
++++ tuned-2.3.0/tuned/exports/dbus_exporter.py	2014-04-12 10:14:02.855785999 +0100
+@@ -1,4 +1,4 @@
+-import interfaces
++from . import interfaces
+ import decorator
+ import dbus.service
+ import dbus.mainloop.glib
+@@ -58,7 +58,7 @@
+ 		def wrapper(wrapped, owner, *args, **kwargs):
+ 			return method(*args, **kwargs)
+ 
+-		wrapper = decorator.decorator(wrapper, method.im_func)
++		wrapper = decorator.decorator(wrapper, method.__func__)
+ 		wrapper = dbus.service.method(self._interface_name, in_signature, out_signature)(wrapper)
+ 
+ 		self._dbus_methods[method_name] = wrapper
+diff -urN tuned-2.3.0.orig/tuned/hardware/__init__.py tuned-2.3.0/tuned/hardware/__init__.py
+--- tuned-2.3.0.orig/tuned/hardware/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/hardware/__init__.py	2014-04-12 10:14:02.855785999 +0100
+@@ -1,2 +1,2 @@
+-from inventory import *
+-from device_matcher import *
++from .inventory import *
++from .device_matcher import *
+diff -urN tuned-2.3.0.orig/tuned/hardware/device_matcher.py tuned-2.3.0/tuned/hardware/device_matcher.py
+--- tuned-2.3.0.orig/tuned/hardware/device_matcher.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/hardware/device_matcher.py	2014-04-12 10:14:02.856785989 +0100
+@@ -19,10 +19,10 @@
+ 		which matches all devices is added. The device matches if and only
+ 		if it matches some positive rule, but no negative rule.
+ 		"""
+-		if isinstance(rules, basestring):
++		if isinstance(rules, str):
+ 			rules = re.split(r"\s|,\s*", rules)
+ 
+-		positive_rules = filter(lambda rule: not rule.startswith("!"), rules)
++		positive_rules = [rule for rule in rules if not rule.startswith("!")]
+ 		negative_rules = [rule[1:] for rule in rules if rule not in positive_rules]
+ 
+ 		if len(positive_rules) == 0:
+diff -urN tuned-2.3.0.orig/tuned/monitors/__init__.py tuned-2.3.0/tuned/monitors/__init__.py
+--- tuned-2.3.0.orig/tuned/monitors/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/monitors/__init__.py	2014-04-12 10:14:02.856785989 +0100
+@@ -1,2 +1,2 @@
+-from base import *
+-from repository import *
++from .base import *
++from .repository import *
+diff -urN tuned-2.3.0.orig/tuned/monitors/base.py tuned-2.3.0/tuned/monitors/base.py
+--- tuned-2.3.0.orig/tuned/monitors/base.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/monitors/base.py	2014-04-12 10:14:02.857785979 +0100
+@@ -99,19 +99,19 @@
+ 		self._refresh_updating_devices()
+ 
+ 	def add_device(self, device):
+-		assert isinstance(device, basestring)
++		assert isinstance(device, str)
+ 		if device in self._available_devices:
+ 			self._devices.add(device)
+ 			self._updating_devices.add(device)
+ 
+ 	def remove_device(self, device):
+-		assert isinstance(device, basestring)
++		assert isinstance(device, str)
+ 		if device in self._devices:
+ 			self._devices.remove(device)
+ 			self._updating_devices.remove(device)
+ 
+ 	def get_load(self):
+-		return dict(filter(lambda (dev, load): dev in self._devices, self._load.items()))
++		return dict([dev_load for dev_load in list(self._load.items()) if dev_load[0] in self._devices])
+ 
+ 	def get_device_load(self, device):
+ 		return self._load.get(device, None)
+diff -urN tuned-2.3.0.orig/tuned/monitors/monitor_disk.py tuned-2.3.0/tuned/monitors/monitor_disk.py
+--- tuned-2.3.0.orig/tuned/monitors/monitor_disk.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/monitors/monitor_disk.py	2014-04-12 10:14:02.857785979 +0100
+@@ -32,4 +32,4 @@
+ 	@classmethod
+ 	def _update_disk(cls, dev):
+ 		with open("/sys/block/" + dev + "/stat") as statfile:
+-			cls._load[dev] = map(int, statfile.read().split())
++			cls._load[dev] = list(map(int, statfile.read().split()))
+diff -urN tuned-2.3.0.orig/tuned/plugins/__init__.py tuned-2.3.0/tuned/plugins/__init__.py
+--- tuned-2.3.0.orig/tuned/plugins/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/__init__.py	2014-04-12 10:14:02.858785969 +0100
+@@ -1,2 +1,2 @@
+-from repository import *
+-import instance
++from .repository import *
++from . import instance
+diff -urN tuned-2.3.0.orig/tuned/plugins/base.py tuned-2.3.0/tuned/plugins/base.py
+--- tuned-2.3.0.orig/tuned/plugins/base.py	2013-10-15 12:02:02.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/base.py	2014-04-12 10:14:02.859785959 +0100
+@@ -96,13 +96,13 @@
+ 
+ 	def initialize_instances(self):
+ 		"""Initialize all created instances."""
+-		for (instance_name, instance) in self._instances.items():
++		for (instance_name, instance) in list(self._instances.items()):
+ 			log.debug("initializing instance %s (%s)" % (instance_name, self.name))
+ 			self._instance_init(instance)
+ 
+ 	def destroy_instances(self):
+ 		"""Destroy all instances."""
+-		for instance in self._instances.values():
++		for instance in list(self._instances.values()):
+ 			log.debug("destroying instance %s (%s)" % (instance.name, self.name))
+ 			self._destroy_instance(instance)
+ 		self._instances.clear()
+@@ -137,7 +137,7 @@
+ 			return
+ 
+ 		log.debug("assigning devices to all instances")
+-		for instance_name, instance in reversed(self._instances.items()):
++		for instance_name, instance in reversed(list(self._instances.items())):
+ 			to_assign = self._get_matching_devices(instance, self._free_devices)
+ 			instance.active = len(to_assign) > 0
+ 			if not instance.active:
+@@ -211,7 +211,7 @@
+ 		self._cleanup_all_non_device_commands(instance)
+ 
+ 	def _instance_apply_dynamic(self, instance, device):
+-		for option in filter(lambda opt: self._storage_get(instance, self._commands[opt], device) is None, self._options_used_by_dynamic):
++		for option in [opt for opt in self._options_used_by_dynamic if self._storage_get(instance, self._commands[opt], device) is None]:
+ 			self._save_current_value(instance, self._commands[option], device)
+ 
+ 		self._instance_update_dynamic(instance, device)
+@@ -263,13 +263,13 @@
+ 			self._commands[command_name] = info
+ 
+ 		# sort commands by priority
+-		self._commands = collections.OrderedDict(sorted(self._commands.iteritems(), key=lambda (name, info): info["priority"]))
++		self._commands = collections.OrderedDict(sorted(iter(self._commands.items()), key=lambda name_info: name_info[1]["priority"]))
+ 
+ 	def _check_commands(self):
+ 		"""
+ 		Check if all commands are defined correctly.
+ 		"""
+-		for command_name, command in self._commands.iteritems():
++		for command_name, command in self._commands.items():
+ 			# do not check custom commands
+ 			if command.get("custom", False):
+ 				continue
+@@ -304,13 +304,13 @@
+ 	#
+ 
+ 	def _execute_all_non_device_commands(self, instance):
+-		for command in filter(lambda command: not command["per_device"], self._commands.values()):
++		for command in [command for command in list(self._commands.values()) if not command["per_device"]]:
+ 			new_value = instance.options.get(command["name"], None)
+ 			if new_value is not None:
+ 				self._execute_non_device_command(instance, command, new_value)
+ 
+ 	def _execute_all_device_commands(self, instance, devices):
+-		for command in filter(lambda command: command["per_device"], self._commands.values()):
++		for command in [command for command in list(self._commands.values()) if command["per_device"]]:
+ 			new_value = instance.options.get(command["name"], None)
+ 			if new_value is None:
+ 				continue
+@@ -340,12 +340,12 @@
+ 			command["set"](new_value)
+ 
+ 	def _cleanup_all_non_device_commands(self, instance):
+-		for command in filter(lambda command: not command["per_device"], self._commands.values()):
++		for command in [command for command in list(self._commands.values()) if not command["per_device"]]:
+ 			if (instance.options.get(command["name"], None) is not None) or (command["name"] in self._options_used_by_dynamic):
+ 				self._cleanup_non_device_command(instance, command)
+ 
+ 	def _cleanup_all_device_commands(self, instance, devices):
+-		for command in filter(lambda command: command["per_device"], self._commands.values()):
++		for command in [command for command in list(self._commands.values()) if command["per_device"]]:
+ 			if (instance.options.get(command["name"], None) is not None) or (command["name"] in self._options_used_by_dynamic):
+ 				for device in devices:
+ 					self._cleanup_device_command(instance, command, device)
+diff -urN tuned-2.3.0.orig/tuned/plugins/hotplug.py tuned-2.3.0/tuned/plugins/hotplug.py
+--- tuned-2.3.0.orig/tuned/plugins/hotplug.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/hotplug.py	2014-04-12 10:14:02.859785959 +0100
+@@ -1,4 +1,4 @@
+-import base
++from . import base
+ import tuned.logs
+ 
+ log = tuned.logs.get()
+@@ -37,7 +37,7 @@
+ 
+ 		self._devices.add(device_name)
+ 
+-		for instance_name, instance in reversed(self._instances.items()):
++		for instance_name, instance in reversed(list(self._instances.items())):
+ 			if self._device_matcher.match(instance.devices_expression, device_name):
+ 				log.info("instance %s: adding new device %s" % (instance_name, device_name))
+ 				self._assigned_devices.add(device_name)
+@@ -53,7 +53,7 @@
+ 		if device_name not in self._devices:
+ 			return
+ 
+-		for instance in self._instances.values():
++		for instance in list(self._instances.values()):
+ 			if device_name in instance.devices:
+ 				self._removed_device_unapply_tuning(instance, device_name)
+ 				instance.devices.remove(device_name)
+diff -urN tuned-2.3.0.orig/tuned/plugins/instance/__init__.py tuned-2.3.0/tuned/plugins/instance/__init__.py
+--- tuned-2.3.0.orig/tuned/plugins/instance/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/instance/__init__.py	2014-04-12 10:14:02.860785949 +0100
+@@ -1,2 +1,2 @@
+-from instance import Instance
+-from factory import Factory
++from .instance import Instance
++from .factory import Factory
+diff -urN tuned-2.3.0.orig/tuned/plugins/instance/factory.py tuned-2.3.0/tuned/plugins/instance/factory.py
+--- tuned-2.3.0.orig/tuned/plugins/instance/factory.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/instance/factory.py	2014-04-12 10:14:02.860785949 +0100
+@@ -1,4 +1,4 @@
+-from instance import Instance
++from .instance import Instance
+ 
+ class Factory(object):
+ 	def create(self, *args, **kwargs):
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_audio.py tuned-2.3.0/tuned/plugins/plugin_audio.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_audio.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_audio.py	2014-04-12 10:14:02.861785938 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ import tuned.utils.commands
+ 
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_cpu.py tuned-2.3.0/tuned/plugins/plugin_cpu.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_cpu.py	2013-11-05 21:55:05.000000000 +0000
++++ tuned-2.3.0/tuned/plugins/plugin_cpu.py	2014-04-12 10:14:02.862785928 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ import tuned.utils.commands
+ 
+@@ -76,7 +76,7 @@
+ 		instance._has_dynamic_tuning = False
+ 
+ 		# only the first instance of the plugin can control the latency
+-		if self._instances.values()[0] == instance:
++		if list(self._instances.values())[0] == instance:
+ 			instance._first_instance = True
+ 			self._cpu_latency_fd = os.open("/dev/cpu_dma_latency", os.O_WRONLY)
+ 			self._latency = None
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_disk.py tuned-2.3.0/tuned/plugins/plugin_disk.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_disk.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_disk.py	2014-04-12 10:14:02.862785928 +0100
+@@ -1,5 +1,5 @@
+-import hotplug
+-from decorators import *
++from . import hotplug
++from .decorators import *
+ import tuned.logs
+ import tuned.utils.commands
+ import os
+@@ -137,12 +137,12 @@
+ 		instance._stats[device]["new"] = new_load
+ 
+ 		# load difference
+-		diff = map(lambda (new, old): new - old, zip(new_load, old_load))
++		diff = [new_old[0] - new_old[1] for new_old in zip(new_load, old_load)]
+ 		instance._stats[device]["diff"] = diff
+ 
+ 		# adapt maximum expected load if the difference is higer
+ 		old_max_load = instance._stats[device]["max"]
+-		max_load = map(lambda pair: max(pair), zip(old_max_load, diff))
++		max_load = [max(pair) for pair in zip(old_max_load, diff)]
+ 		instance._stats[device]["max"] = max_load
+ 
+ 		# read/write ratio
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_eeepc_she.py tuned-2.3.0/tuned/plugins/plugin_eeepc_she.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_eeepc_she.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_eeepc_she.py	2014-04-12 10:14:02.863785918 +0100
+@@ -1,5 +1,5 @@
+-import base
+-import exceptions
++from . import base
++from . import exceptions
+ import tuned.logs
+ import tuned.utils.commands
+ import os
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_mounts.py tuned-2.3.0/tuned/plugins/plugin_mounts.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_mounts.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_mounts.py	2014-04-12 10:14:02.864785908 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ from subprocess import Popen,PIPE
+ import tuned.logs
+ import tuned.utils.commands
+@@ -22,7 +22,7 @@
+ 		current_disk = None
+ 
+ 		stdout, stderr = Popen(["/usr/bin/lsblk", "-rno", "TYPE,RM,KNAME,FSTYPE,MOUNTPOINT"], stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
+-		for columns in map(lambda line: line.split(), stdout.splitlines()):
++		for columns in [line.split() for line in stdout.splitlines()]:
+ 			device_type, device_removable, device_name = columns[:3]
+ 			filesystem = columns[3] if len(columns) > 3 else None
+ 			mountpoint = columns[4] if len(columns) > 4 else None
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_net.py tuned-2.3.0/tuned/plugins/plugin_net.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_net.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_net.py	2014-04-12 10:14:02.864785908 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ from tuned.utils.nettool import ethcard
+ import os
+@@ -48,7 +48,7 @@
+ 		self._instance_update_dynamic(instance, device)
+ 
+ 	def _instance_update_dynamic(self, instance, device):
+-		load = map(lambda value: int(value), instance._load_monitor.get_device_load(device))
++		load = [int(value) for value in instance._load_monitor.get_device_load(device)]
+ 		if load is None:
+ 			return
+ 
+@@ -88,12 +88,12 @@
+ 		instance._stats[device]["new"] = new_load
+ 
+ 		# load difference
+-		diff = map(lambda (new, old): new - old, zip(new_load, old_load))
++		diff = [new_old[0] - new_old[1] for new_old in zip(new_load, old_load)]
+ 		instance._stats[device]["diff"] = diff
+ 
+ 		# adapt maximum expected load if the difference is higer
+ 		old_max_load = instance._stats[device]["max"]
+-		max_load = map(lambda pair: max(pair), zip(old_max_load, diff))
++		max_load = [max(pair) for pair in zip(old_max_load, diff)]
+ 		instance._stats[device]["max"] = max_load
+ 
+ 		# read/write ratio
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_script.py tuned-2.3.0/tuned/plugins/plugin_script.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_script.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_script.py	2014-04-12 10:14:02.865785898 +0100
+@@ -1,4 +1,4 @@
+-import base
++from . import base
+ import tuned.logs
+ import os
+ from subprocess import Popen, PIPE
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_sysctl.py tuned-2.3.0/tuned/plugins/plugin_sysctl.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_sysctl.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_sysctl.py	2014-04-12 10:14:02.865785898 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ from subprocess import *
+ 
+@@ -36,7 +36,7 @@
+ 		self._storage.unset(self._sysctl_storage_key(instance))
+ 
+ 	def _instance_apply_static(self, instance):
+-		for option, value in instance._sysctl.iteritems():
++		for option, value in instance._sysctl.items():
+ 			original_value = self._read_sysctl(option)
+ 			if original_value != None:
+ 				instance._sysctl_original[option] = original_value
+@@ -45,7 +45,7 @@
+ 		self._storage.set("options", instance._sysctl_original)
+ 
+ 	def _instance_unapply_static(self, instance):
+-		for option, value in instance._sysctl_original.iteritems():
++		for option, value in instance._sysctl_original.items():
+ 			self._write_sysctl(option, value)
+ 
+ 	def _execute_sysctl(self, arguments):
+@@ -56,7 +56,7 @@
+ 	def _read_sysctl(self, option):
+ 		retcode, stdout = self._execute_sysctl(["-e", option])
+ 		if retcode == 0:
+-			parts = map(lambda value: value.strip(), stdout.split("=", 1))
++			parts = [value.strip() for value in stdout.split("=", 1)]
+ 			if len(parts) == 2:
+ 				option, value = parts
+ 				return value
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_sysfs.py tuned-2.3.0/tuned/plugins/plugin_sysfs.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_sysfs.py	2013-11-05 19:26:51.000000000 +0000
++++ tuned-2.3.0/tuned/plugins/plugin_sysfs.py	2014-04-12 10:14:02.866785888 +0100
+@@ -1,7 +1,7 @@
+-import base
++from . import base
+ import re
+ import os.path
+-from decorators import *
++from .decorators import *
+ import tuned.logs
+ from subprocess import *
+ import tuned.utils.commands
+@@ -23,14 +23,14 @@
+ 		instance._has_dynamic_tuning = False
+ 		instance._has_static_tuning = True
+ 
+-		instance._sysfs = dict(map(lambda (key, value): (os.path.normpath(key), value), instance.options.items()))
++		instance._sysfs = dict([(os.path.normpath(key_value[0]), key_value[1]) for key_value in list(instance.options.items())])
+ 		instance._sysfs_original = {}
+ 
+ 	def _instance_cleanup(self, instance):
+ 		pass
+ 
+ 	def _instance_apply_static(self, instance):
+-		for key, value in instance._sysfs.iteritems():
++		for key, value in instance._sysfs.items():
+ 			if self._check_sysfs(key):
+ 				instance._sysfs_original[key] = self._read_sysfs(key)
+ 				self._write_sysfs(key, value)
+@@ -38,7 +38,7 @@
+ 				log.error("rejecting write to '%s' (not inside /sys)" % key)
+ 
+ 	def _instance_unapply_static(self, instance):
+-		for key, value in instance._sysfs_original.iteritems():
++		for key, value in instance._sysfs_original.items():
+ 			self._write_sysfs(key, value)
+ 
+ 	def _check_sysfs(self, sysfs_file):
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_usb.py tuned-2.3.0/tuned/plugins/plugin_usb.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_usb.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_usb.py	2014-04-12 10:14:02.866785888 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ import tuned.utils.commands
+ import glob
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_video.py tuned-2.3.0/tuned/plugins/plugin_video.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_video.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_video.py	2014-04-12 10:14:02.867785878 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ from tuned.utils.commands import *
+ import os
+diff -urN tuned-2.3.0.orig/tuned/plugins/plugin_vm.py tuned-2.3.0/tuned/plugins/plugin_vm.py
+--- tuned-2.3.0.orig/tuned/plugins/plugin_vm.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/plugins/plugin_vm.py	2014-04-12 10:14:02.867785878 +0100
+@@ -1,5 +1,5 @@
+-import base
+-from decorators import *
++from . import base
++from .decorators import *
+ import tuned.logs
+ 
+ import os
+diff -urN tuned-2.3.0.orig/tuned/profiles/loader.py tuned-2.3.0/tuned/profiles/loader.py
+--- tuned-2.3.0.orig/tuned/profiles/loader.py	2013-11-06 11:41:41.000000000 +0000
++++ tuned-2.3.0/tuned/profiles/loader.py	2014-04-12 10:14:02.868785868 +0100
+@@ -36,7 +36,7 @@
+ 		if type(profile_names) is not list:
+ 			profile_names = profile_names.split()
+ 
+-		profile_names = filter(self.safe_name, profile_names)
++		profile_names = list(filter(self.safe_name, profile_names))
+ 		if len(profile_names) == 0:
+ 			raise InvalidProfileException("No profile or invalid profiles were specified.")
+ 
+@@ -78,9 +78,9 @@
+ 			raise InvalidProfileException("Cannot parse '%s'." % file_name, e)
+ 
+ 		config = collections.OrderedDict()
+-		for section in config_obj.keys():
++		for section in list(config_obj.keys()):
+ 			config[section] = collections.OrderedDict()
+-			for option in config_obj[section].keys():
++			for option in list(config_obj[section].keys()):
+ 				config[section][option] = config_obj[section][option]
+ 
+ 		# TODO: HACK, this needs to be solved in a better way (better config parser)
+diff -urN tuned-2.3.0.orig/tuned/profiles/merger.py tuned-2.3.0/tuned/profiles/merger.py
+--- tuned-2.3.0.orig/tuned/profiles/merger.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/profiles/merger.py	2014-04-12 10:14:02.868785868 +0100
+@@ -1,4 +1,5 @@
+ import collections
++from functools import reduce
+ 
+ class Merger(object):
+ 	"""
+@@ -25,7 +26,7 @@
+ 
+ 		profile_a.options.update(profile_b.options)
+ 
+-		for unit_name, unit in profile_b.units.items():
++		for unit_name, unit in list(profile_b.units.items()):
+ 			if unit.replace or unit_name not in profile_a.units:
+ 				profile_a.units[unit_name] = unit
+ 			else:
+diff -urN tuned-2.3.0.orig/tuned/storage/factory.py tuned-2.3.0/tuned/storage/factory.py
+--- tuned-2.3.0.orig/tuned/storage/factory.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/storage/factory.py	2014-04-12 10:14:02.869785858 +0100
+@@ -1,5 +1,5 @@
+-import interfaces
+-import storage
++from . import interfaces
++from . import storage
+ 
+ class Factory(interfaces.Factory):
+ 	__slots__ = ["_storage_provider"]
+diff -urN tuned-2.3.0.orig/tuned/storage/pickle_provider.py tuned-2.3.0/tuned/storage/pickle_provider.py
+--- tuned-2.3.0.orig/tuned/storage/pickle_provider.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/storage/pickle_provider.py	2014-04-12 10:14:02.869785858 +0100
+@@ -1,4 +1,4 @@
+-import interfaces
++from . import interfaces
+ import tuned.logs
+ import pickle
+ import os
+diff -urN tuned-2.3.0.orig/tuned/units/__init__.py tuned-2.3.0/tuned/units/__init__.py
+--- tuned-2.3.0.orig/tuned/units/__init__.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/units/__init__.py	2014-04-12 10:14:02.869785858 +0100
+@@ -1 +1 @@
+-from manager import *
++from .manager import *
+diff -urN tuned-2.3.0.orig/tuned/units/manager.py tuned-2.3.0/tuned/units/manager.py
+--- tuned-2.3.0.orig/tuned/units/manager.py	2013-10-10 16:04:28.000000000 +0100
++++ tuned-2.3.0/tuned/units/manager.py	2014-04-12 10:14:02.870785848 +0100
+@@ -31,7 +31,7 @@
+ 		# group instances by plugin
+ 
+ 		instances_by_plugin = {}
+-		for instance_name, instance_info in instances_config.items():
++		for instance_name, instance_info in list(instances_config.items()):
+ 			if not instance_info.enabled:
+ 				log.debug("skipping disabled instance '%s'" % instance_name)
+ 				continue
+@@ -40,7 +40,7 @@
+ 
+ 		# create all plugin instances at once
+ 
+-		for plugin_name, instances_info in instances_by_plugin.items():
++		for plugin_name, instances_info in list(instances_by_plugin.items()):
+ 			try:
+ 				plugin = self._plugins_repository.create(plugin_name)
+ 				self._plugins.append(plugin)
+diff -urN tuned-2.3.0.orig/tuned/utils/commands.py tuned-2.3.0/tuned/utils/commands.py
+--- tuned-2.3.0.orig/tuned/utils/commands.py	2013-11-06 11:07:26.000000000 +0000
++++ tuned-2.3.0/tuned/utils/commands.py	2014-04-12 10:14:02.870785848 +0100
+@@ -70,9 +70,9 @@
+ 	profile = consts.DEFAULT_PROFILE
+ 	for f in consts.LOAD_DIRECTORIES:
+ 		config = ConfigObj(os.path.join(f, consts.AUTODETECT_FILE))
+-		for section in reversed(config.keys()):
++		for section in reversed(list(config.keys())):
+ 			match1 = match2 = True
+-			for option in config[section].keys():
++			for option in list(config[section].keys()):
+ 				value = config[section][option]
+ 				if value == "":
+ 					value = r"^$"
+diff -urN tuned-2.3.0.orig/tuned-adm.py tuned-2.3.0/tuned-adm.py
+--- tuned-2.3.0.orig/tuned-adm.py	2013-11-06 15:36:23.000000000 +0000
++++ tuned-2.3.0/tuned-adm.py	2014-04-12 10:14:02.871785838 +0100
+@@ -63,7 +63,7 @@
+ 		result = action(**options)
+ 	except tuned.admin.TunedAdminException as e:
+ 		if not debug:
+-			print >>sys.stderr, e
++			print(e, file=sys.stderr)
+ 		else:
+ 			traceback.print_exc()
+ 		sys.exit(2)
+diff -urN tuned-2.3.0.orig/tuned.py tuned-2.3.0/tuned.py
+--- tuned-2.3.0.orig/tuned.py	2013-11-06 15:36:23.000000000 +0000
++++ tuned-2.3.0/tuned.py	2014-04-12 10:14:02.871785838 +0100
+@@ -30,7 +30,7 @@
+ import tuned.version as ver
+ 
+ def error(message):
+-	print >>sys.stderr, message
++	print(message, file=sys.stderr)
+ 
+ if __name__ == "__main__":
+ 	parser = argparse.ArgumentParser(description = "Daemon for monitoring and adaptive tuning of system devices.")

@@ -29,9 +29,8 @@ RDEPEND="dev-libs/libpthread-stubs
 	video_cards_intel? ( >=x11-libs/libpciaccess-0.10 )"
 DEPEND="${RDEPEND}"
 
-PATCHES=(
-	"${FILESDIR}"/${PN}-2.4.28-solaris.patch
-)
+#PATCHES=(
+#)
 
 src_prepare() {
 	if [[ ${PV} = 9999* ]]; then

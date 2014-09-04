@@ -10,10 +10,10 @@ EGIT_REPO_URI="git://anongit.freedesktop.org/git/xorg/xserver"
 
 DESCRIPTION="X.Org X servers"
 SLOT="0/${PV}"
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux"
+KEYWORDS=""
 
 IUSE_SERVERS="dmx kdrive xnest xorg xvfb"
-IUSE="${IUSE_SERVERS} ipv6 minimal nptl selinux +suid tslib +udev"
+IUSE="${IUSE_SERVERS} ipv6 minimal nptl selinux -suid tslib +udev wayland glamor"
 
 RDEPEND=">=app-admin/eselect-opengl-1.0.8
 	dev-libs/openssl
@@ -50,6 +50,7 @@ RDEPEND=">=app-admin/eselect-opengl-1.0.8
 		>=x11-libs/libXext-1.0.5
 		x11-libs/libXv
 	)
+	wayland? ( dev-libs/wayland media-libs/libepoxy )
 	!minimal? (
 		>=x11-libs/libX11-1.1.5
 		>=x11-libs/libXext-1.0.5
@@ -70,7 +71,7 @@ DEPEND="${RDEPEND}
 	>=x11-proto/glproto-1.4.16
 	>=x11-proto/inputproto-2.2.99.1
 	>=x11-proto/kbproto-1.0.3
-	>=x11-proto/presentproto-1.0.0
+	>=x11-proto/presentproto-1.0
 	>=x11-proto/randrproto-1.4.0
 	>=x11-proto/recordproto-1.13.99.1
 	>=x11-proto/renderproto-0.11
@@ -98,7 +99,7 @@ DEPEND="${RDEPEND}
 	!minimal? (
 		>=x11-proto/xf86driproto-2.1.0
 		>=x11-proto/dri2proto-2.8
-		>=x11-proto/dri3proto-1.0.0
+		>=x11-proto/dri3proto-1.0
 	)"
 
 PDEPEND="
@@ -106,7 +107,8 @@ PDEPEND="
 
 REQUIRED_USE="!minimal? (
 		|| ( ${IUSE_SERVERS} )
-	)"
+	)
+	wayland? ( glamor )"
 
 #UPSTREAMED_PATCHES=(
 #	"${WORKDIR}/patches/"
@@ -116,7 +118,6 @@ PATCHES=(
 	"${UPSTREAMED_PATCHES[@]}"
 	"${FILESDIR}/default-dpi.patch"
 	"${FILESDIR}/edid-size-troubles.patch"
-	"${FILESDIR}/match-pcibusid-for-extra-seats.patch"
 	"${FILESDIR}/support-seat-option-in-server-layout.patch"
 )
 
@@ -146,10 +147,13 @@ src_configure() {
 		$(use_enable !minimal install-libxf86config)
 		$(use_enable !minimal dri)
 		$(use_enable !minimal dri2)
+		$(use_enable !minimal dri3)
 		$(use_enable !minimal glx)
 		$(use_enable xnest)
 		$(use_enable xorg)
 		$(use_enable xvfb)
+		$(use_enable wayland xwayland)
+		$(use_enable glamor glamor)
 		$(use_enable nptl glx-tls)
 		$(use_enable udev config-udev)
 		$(use_with doc doxygen)
@@ -188,6 +192,13 @@ src_install() {
 	dynamic_libgl_install
 
 	server_based_install
+
+	# dix-config.h is included by various headers (FIXME)
+	# but installing the real thing does't work
+	touch "${ED}"/usr/include/xorg/dix-config.h
+	#sed "${AUTOTOOLS_BUILD_DIR}"/include/dix-config.h \
+	#	-e '/PACKAGE/s/\(.*\)/\/\* \1 \*\//' \
+	#	>${ED}/usr/include/xorg/dix-config.h || die
 
 	if ! use minimal &&	use xorg; then
 		# Install xorg.conf.example into docs
@@ -239,7 +250,7 @@ dynamic_libgl_install() {
 	ebegin "Moving GL files for dynamic switching"
 		dodir /usr/$(get_libdir)/opengl/xorg-x11/extensions
 		local x=""
-		for x in "${ED}"/usr/$(get_libdir)/xorg/modules/extensions/lib{glx,dri,dri2}*; do
+		for x in "${ED}"/usr/$(get_libdir)/xorg/modules/extensions/lib{glx,dri,dri2,dri3}*; do
 			if [ -f ${x} -o -L ${x} ]; then
 				mv -f ${x} "${ED}"/usr/$(get_libdir)/opengl/xorg-x11/extensions
 			fi

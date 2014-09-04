@@ -1,0 +1,59 @@
+From 5556241b67a58b1d28997e752ecf45244f6003d1 Mon Sep 17 00:00:00 2001
+From: Felix Riemann <friemann@gnome.org>
+Date: Sat, 12 Apr 2014 00:26:00 +0200
+Subject: [PATCH 11/14] atlas-texture: Keep reference on potential destination
+ atlas
+
+When a new CoglAtlasTexture tries to fit into an existing CoglAtlas
+it should make sure the atlas stays valid while it expands.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=728064
+
+Reviewed-by: Neil Roberts <neil@linux.intel.com>
+(cherry picked from commit 2eec9758f67e9073371c2edd63379324849373c4)
+---
+ cogl/cogl-atlas-texture.c | 28 +++++++++++++++++++---------
+ 1 file changed, 19 insertions(+), 9 deletions(-)
+
+diff --git a/cogl/cogl-atlas-texture.c b/cogl/cogl-atlas-texture.c
+index beaaf24..1c8b569 100644
+--- a/cogl/cogl-atlas-texture.c
++++ b/cogl/cogl-atlas-texture.c
+@@ -746,15 +746,25 @@ allocate_space (CoglAtlasTexture *atlas_tex,
+ 
+   /* Look for an existing atlas that can hold the texture */
+   for (l = ctx->atlases; l; l = l->next)
+-    /* Try to make some space in the atlas for the texture */
+-    if (_cogl_atlas_reserve_space (atlas = l->data,
+-                                   /* Add two pixels for the border */
+-                                   width + 2, height + 2,
+-                                   atlas_tex))
+-      {
+-        cogl_object_ref (atlas);
+-        break;
+-      }
++    {
++      /* We need to take a reference on the atlas before trying to
++       * reserve space because in some circumstances atlas migration
++       * can cause the atlas to be freed */
++      atlas = cogl_object_ref (l->data);
++      /* Try to make some space in the atlas for the texture */
++      if (_cogl_atlas_reserve_space (atlas,
++                                     /* Add two pixels for the border */
++                                     width + 2, height + 2,
++                                     atlas_tex))
++        {
++          /* keep the atlas reference */
++          break;
++        }
++      else
++        {
++          cogl_object_unref (atlas);
++        }
++    }
+ 
+   /* If we couldn't find a suitable atlas then start another */
+   if (l == NULL)
+-- 
+2.0.0
+
