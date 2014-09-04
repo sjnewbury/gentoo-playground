@@ -9,6 +9,7 @@ PYTHON_COMPAT=( python{2_7,3_2,3_3,3_4} pypy )
 #if LIVE
 EGIT_REPO_URI="git://github.com/g2p/bedup.git
 	https://github.com/g2p/bedup.git"
+EGIT_BRANCH=wip/dedup-syscall
 inherit git-r3
 #endif
 
