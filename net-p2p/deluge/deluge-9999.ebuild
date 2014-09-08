@@ -3,9 +3,9 @@
 # $Header: /var/cvsroot/gentoo-x86/net-p2p/deluge/deluge-9999.ebuild,v 1.34 2013/08/03 09:45:41 mgorny Exp $
 
 EAPI="5"
-PYTHON_COMPAT=( python{2_6,2_7} pypy pypy2_0 )
+PYTHON_COMPAT=( python{2_6,2_7} )
 
-inherit distutils-r1 git-r3 systemd
+inherit eutils distutils-r1 git-r3 systemd
 
 EGIT_REPO_URI="git://deluge-torrent.org/${PN}.git
 	http://git.deluge-torrent.org/${PN}/"
@@ -51,7 +51,7 @@ python_install() {
 }
 
 pkg_postinst() {
-	distutils_pkg_postinst
+	#distutils_pkg_postinst
 	elog
 	elog "If after upgrading it doesn't work, please remove the"
 	elog "'~/.config/deluge' directory and try again, but make a backup"
