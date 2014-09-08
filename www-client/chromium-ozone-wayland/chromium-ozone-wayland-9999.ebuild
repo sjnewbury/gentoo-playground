@@ -90,6 +90,7 @@ DEPEND="${RDEPEND}
 # For nvidia-drivers blocker, see bug #413637 .
 RDEPEND+="
 	!=www-client/chromium-9999*
+	!<www-plugins/chrome-binary-plugins-37
 	x11-misc/xdg-utils
 	virtual/opengl
 	virtual/ttf-fonts
@@ -215,19 +216,20 @@ src_prepare() {
 	#	touch out/Release/gen/sdk/toolchain/linux_x86_newlib/stamp.untar || die
 	# fi
 
-	# Ozone-Wayland patches
+	# Upstream Ozone-Wayland patches
 	EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" \
 				epatch "${S}"/ozone/patches/00* || die
 
+	
 	# jump now to WebRTC dir and apply the needed patches there
-	cd third_party/webrtc/
-	EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" \
-				epatch "${S}"/ozone/patches/100* || die
+	#cd third_party/webrtc/
+	#EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" \
+	#			epatch "${S}"/ozone/patches/100* || die
 
 
 	# Gentoo Chromium patches
 	cd "${S}"
-	epatch "${FILESDIR}/chromium-system-jinja-r6.patch"
+	epatch "${FILESDIR}/chromium-system-jinja-r7.patch"
 
 	# Remove any lingering nacl toolchain files.
 	rm -rf native_client/toolchain/linux_x86_newlib
@@ -265,6 +267,7 @@ src_prepare() {
 		'third_party/cacheinvalidation' \
 		'third_party/cld_2' \
 		'third_party/cros_system_api' \
+		'third_party/cython/python_flags.py' \
 		'third_party/dom_distiller_js' \
 		'third_party/dom_distiller_js/package/proto_gen/third_party/dom_distiller_js' \
 		'third_party/ffmpeg' \
