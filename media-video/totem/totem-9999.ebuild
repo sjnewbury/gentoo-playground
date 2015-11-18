@@ -56,8 +56,8 @@ RDEPEND="
 
 	>=media-libs/grilo-0.2.9:0.2[playlist]
 	media-plugins/grilo-plugins:0.2
-	media-libs/gstreamer:1.0
-	media-libs/gst-plugins-base:1.0[X,introspection?,pango]
+	>=media-libs/gstreamer-1.3.1:1.0
+	>=media-libs/gst-plugins-base-1.4.2:1.0[X,introspection?,pango]
 	media-libs/gst-plugins-good:1.0
 	media-plugins/gst-plugins-taglib:1.0
 	media-plugins/gst-plugins-meta:1.0

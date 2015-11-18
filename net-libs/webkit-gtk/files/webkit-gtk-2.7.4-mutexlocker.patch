@@ -1,0 +1,229 @@
+--- Source/WebCore/platform/graphics/gstreamer/WebKitWebSourceGStreamer.cpp.orig	2015-04-08 16:41:39.719742201 +0100
++++ Source/WebCore/platform/graphics/gstreamer/WebKitWebSourceGStreamer.cpp	2015-04-08 16:43:07.050596203 +0100
+@@ -338,7 +338,7 @@
+     WebKitWebSrc* src = WEBKIT_WEB_SRC(object);
+     WebKitWebSrcPrivate* priv = src->priv;
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     switch (propID) {
+     case PROP_IRADIO_NAME:
+         g_value_set_string(value, priv->iradioName);
+@@ -378,7 +378,7 @@
+ 
+     ASSERT(isMainThread());
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+ 
+     bool seeking = priv->seekSource.isActive();
+ 
+@@ -436,7 +436,7 @@
+ 
+     ASSERT(isMainThread());
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+ 
+     priv->pendingStart = FALSE;
+     priv->didPassAccessControlCheck = false;
+@@ -539,7 +539,7 @@
+         return ret;
+     }
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     switch (transition) {
+     case GST_STATE_CHANGE_READY_TO_PAUSED:
+         GST_DEBUG_OBJECT(src, "READY->PAUSED");
+@@ -576,7 +576,7 @@
+         gst_query_parse_duration(query, &format, NULL);
+ 
+         GST_DEBUG_OBJECT(src, "duration query in format %s", gst_format_get_name(format));
+-        GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++        WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+         if (format == GST_FORMAT_BYTES && src->priv->size > 0) {
+             gst_query_set_duration(query, format, src->priv->size);
+             result = TRUE;
+@@ -584,7 +584,7 @@
+         break;
+     }
+     case GST_QUERY_URI: {
+-        GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++        WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+         gst_query_set_uri(query, src->priv->uri);
+         result = TRUE;
+         break;
+@@ -634,7 +634,7 @@
+     WebKitWebSrc* src = WEBKIT_WEB_SRC(handler);
+     gchar* ret;
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     ret = g_strdup(src->priv->uri);
+     return ret;
+ }
+@@ -649,7 +649,7 @@
+         return FALSE;
+     }
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+ 
+     g_free(priv->uri);
+     priv->uri = 0;
+@@ -685,7 +685,7 @@
+ 
+     ASSERT(isMainThread());
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     priv->paused = FALSE;
+     locker.unlock();
+ 
+@@ -702,7 +702,7 @@
+ 
+     GST_DEBUG_OBJECT(src, "Need more data: %u", length);
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     if (priv->needDataSource.isScheduled() || !priv->paused)
+         return;
+ 
+@@ -717,7 +717,7 @@
+ 
+     ASSERT(isMainThread());
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     priv->paused = TRUE;
+     locker.unlock();
+ 
+@@ -734,7 +734,7 @@
+ 
+     GST_DEBUG_OBJECT(src, "Have enough data");
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     if (priv->enoughDataSource.isScheduled() || priv->paused)
+         return;
+ 
+@@ -757,7 +757,7 @@
+     WebKitWebSrcPrivate* priv = src->priv;
+ 
+     GST_DEBUG_OBJECT(src, "Seeking to offset: %" G_GUINT64_FORMAT, offset);
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     if (offset == priv->offset && priv->requestedOffset == priv->offset)
+         return TRUE;
+ 
+@@ -776,7 +776,7 @@
+ void webKitWebSrcSetMediaPlayer(WebKitWebSrc* src, WebCore::MediaPlayer* player)
+ {
+     ASSERT(player);
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     src->priv->player = player;
+ }
+ 
+@@ -806,7 +806,7 @@
+ 
+     mapGstBuffer(buffer);
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     priv->buffer = adoptGRef(buffer);
+     locker.unlock();
+ 
+@@ -828,7 +828,7 @@
+         return;
+     }
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+ 
+     if (priv->seekSource.isActive()) {
+         GST_DEBUG_OBJECT(src, "Seek in progress, ignoring response");
+@@ -925,7 +925,7 @@
+     WebKitWebSrc* src = WEBKIT_WEB_SRC(m_src);
+     WebKitWebSrcPrivate* priv = src->priv;
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+ 
+     GST_LOG_OBJECT(src, "Have %lld bytes of data", priv->buffer ? static_cast<long long>(gst_buffer_get_size(priv->buffer.get())) : length);
+ 
+@@ -994,7 +994,7 @@
+ 
+     GST_DEBUG_OBJECT(src, "Have EOS");
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     if (!priv->seekSource.isActive()) {
+         locker.unlock();
+         gst_app_src_end_of_stream(priv->appsrc);
+@@ -1131,7 +1131,7 @@
+ 
+     GST_ERROR_OBJECT(src, "Request was blocked");
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     uri.reset(g_strdup(src->priv->uri));
+     locker.unlock();
+ 
+@@ -1145,7 +1145,7 @@
+ 
+     GST_ERROR_OBJECT(src, "Cannot show URL");
+ 
+-    GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(src));
++    WebCore::GMutexLocker locker(*GST_OBJECT_GET_LOCK(src));
+     uri.reset(g_strdup(src->priv->uri));
+     locker.unlock();
+ 
+--- Source/WebCore/platform/graphics/gstreamer/VideoSinkGStreamer.cpp.orig	2015-04-08 16:41:39.720742313 +0100
++++ Source/WebCore/platform/graphics/gstreamer/VideoSinkGStreamer.cpp	2015-04-08 16:43:52.420715554 +0100
+@@ -117,7 +117,7 @@
+ {
+     WebKitVideoSinkPrivate* priv = sink->priv;
+ 
+-    GMutexLocker<GMutex> lock(priv->sampleMutex);
++    WebCore::GMutexLocker lock(priv->sampleMutex);
+     GstSample* sample = priv->sample;
+     priv->sample = 0;
+ 
+@@ -136,7 +136,7 @@
+     WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(baseSink);
+     WebKitVideoSinkPrivate* priv = sink->priv;
+ 
+-    GMutexLocker<GMutex> lock(priv->sampleMutex);
++    WebCore::GMutexLocker lock(priv->sampleMutex);
+ 
+     if (priv->unlocked)
+         return GST_FLOW_OK;
+@@ -234,7 +234,7 @@
+ 
+ static void unlockSampleMutex(WebKitVideoSinkPrivate* priv)
+ {
+-    GMutexLocker<GMutex> lock(priv->sampleMutex);
++    WebCore::GMutexLocker lock(priv->sampleMutex);
+ 
+     if (priv->sample) {
+         gst_sample_unref(priv->sample);
+@@ -260,7 +260,7 @@
+     WebKitVideoSinkPrivate* priv = WEBKIT_VIDEO_SINK(baseSink)->priv;
+ 
+     {
+-        GMutexLocker<GMutex> lock(priv->sampleMutex);
++        WebCore::GMutexLocker lock(priv->sampleMutex);
+         priv->unlocked = false;
+     }
+ 
+@@ -285,7 +285,7 @@
+ {
+     WebKitVideoSinkPrivate* priv = WEBKIT_VIDEO_SINK(baseSink)->priv;
+ 
+-    GMutexLocker<GMutex> lock(priv->sampleMutex);
++    WebCore::GMutexLocker lock(priv->sampleMutex);
+     priv->unlocked = false;
+     return TRUE;
+ }

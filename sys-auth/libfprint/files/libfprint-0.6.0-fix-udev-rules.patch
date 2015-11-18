@@ -1,0 +1,11 @@
+--- libfprint/fprint-list-udev-rules.c~	2015-10-04 10:26:26.000000000 +0100
++++ libfprint/fprint-list-udev-rules.c	2015-10-04 10:37:36.028202756 +0100
+@@ -74,7 +74,7 @@
+ 	if (num_printed == 0)
+ 	    printf ("# %s\n", driver->full_name);
+ 
+-	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n, MODE=\"0666\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
++	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\", MODE=\"0666\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
+ 	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n", driver->id_table[i].vendor, driver->id_table[i].product, driver->full_name);
+ 	num_printed++;
+     }

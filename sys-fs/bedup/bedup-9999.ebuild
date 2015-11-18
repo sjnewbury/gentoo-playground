@@ -4,7 +4,8 @@
 
 EAPI=5
 
-PYTHON_COMPAT=( python{2_7,3_2,3_3,3_4} pypy )
+PYTHON_COMPAT=( python{3_3,3_4} pypy3 )
+# pypy unsupported for now ;-(
 
 #if LIVE
 EGIT_REPO_URI="git://github.com/g2p/bedup.git
@@ -25,9 +26,10 @@ KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 # we need btrfs-progs with includes installed.
-DEPEND=">=dev-python/cffi-0.5:=[${PYTHON_USEDEP}]
+DEPEND="$(python_gen_cond_dep 'dev-python/cffi:=[${PYTHON_USEDEP}]' 'python*')
 	>=sys-fs/btrfs-progs-0.20_rc1_p358"
 RDEPEND="${DEPEND}
+	dev-python/mako[${PYTHON_USEDEP}]
 	dev-python/alembic[${PYTHON_USEDEP}]
 	dev-python/contextlib2[${PYTHON_USEDEP}]
 	dev-python/pyxdg[${PYTHON_USEDEP}]
@@ -37,3 +39,8 @@ RDEPEND="${DEPEND}
 SRC_URI=
 KEYWORDS=
 #endif
+
+#src_prepare() {
+#	default
+#	epatch "${FILESDIR}/SQLAlchemy-0.9-compat.patch"
+#}

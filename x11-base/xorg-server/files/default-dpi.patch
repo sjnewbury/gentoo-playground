@@ -87,30 +87,20 @@
                  mmWidth = width * 25.4 / DEFAULT_DPI;
                  mmHeight = height * 25.4 / DEFAULT_DPI;
              }
---- ./hw/xfree86/common/xf86Config.c.orig	2013-10-03 06:26:55.846066095 +0100
-+++ ./hw/xfree86/common/xf86Config.c	2013-10-03 06:28:55.337708060 +0100
-@@ -702,6 +702,7 @@
-     FLAG_DRI2,
+--- ./hw/xfree86/common/xf86Config.c.orig	2015-08-25 23:33:55.698946167 +0100
++++ ./hw/xfree86/common/xf86Config.c	2015-08-25 23:54:11.962375877 +0100
+@@ -704,6 +704,7 @@
      FLAG_USE_SIGIO,
      FLAG_AUTO_ADD_GPU,
+     FLAG_MAX_CLIENTS,
 +    FLAG_DEFAULT_DPI,
  } FlagValues;
  
  /**
-@@ -761,6 +762,8 @@
-      {0}, FALSE},
-     {FLAG_AUTO_ADD_GPU, "AutoAddGPU", OPTV_BOOLEAN,
-      {0}, FALSE},
-+    { FLAG_DEFAULT_DPI,	"DefaultDPI", OPTV_STRING,
-+     {0}, FALSE },
-     {-1, NULL, OPTV_NONE,
-      {0}, FALSE},
- };
-@@ -913,6 +916,15 @@
+@@ -909,6 +910,14 @@
          }
      }
  
-+
 +    xf86Info.defaultDPI = DEFAULT_DPI;
 +    if ((s = xf86GetOptValString(FlagOptions, FLAG_DEFAULT_DPI))) {
 +	if (!xf86NameCmp(s, "auto")) {
@@ -122,3 +112,12 @@
  #ifdef RANDR
      xf86Info.disableRandR = FALSE;
      xf86Info.randRFrom = X_DEFAULT;
+@@ -1419,6 +1428,8 @@
+      {0}, FALSE},
+     {LAYOUT_SINGLECARD, "SingleCard", OPTV_BOOLEAN,
+      {0}, FALSE},
++    { FLAG_DEFAULT_DPI,	"DefaultDPI", OPTV_STRING,
++     {0}, FALSE },
+     {-1, NULL, OPTV_NONE,
+      {0}, FALSE},
+ };

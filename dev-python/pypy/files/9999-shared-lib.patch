@@ -1,0 +1,11 @@
+--- rpython/translator/platform/posix.py.orig	2015-09-25 18:30:15.078967684 +0100
++++ rpython/translator/platform/posix.py	2015-09-25 18:33:44.704012643 +0100
+@@ -14,7 +14,7 @@
+     relevant_environ = ('CPATH', 'LIBRARY_PATH', 'C_INCLUDE_PATH')
+ 
+     DEFAULT_CC = 'gcc'
+-    rpath_flags = ['-Wl,-rpath=\'$$ORIGIN/\'']
++    rpath_flags = ['-Wl,-rpath,\'$$ORIGIN\'']
+ 
+     def __init__(self, cc=None):
+         self.cc = cc or os.environ.get('CC', self.DEFAULT_CC)

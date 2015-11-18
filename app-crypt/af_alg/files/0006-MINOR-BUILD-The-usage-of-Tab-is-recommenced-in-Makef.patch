@@ -1,0 +1,69 @@
+From 2ab31bfd855454f71899eb8c009bbe66f181419e Mon Sep 17 00:00:00 2001
+From: Bertrand Jacquin <bertrand@jacquin.bzh>
+Date: Fri, 10 Jan 2014 21:52:20 +0100
+Subject: [PATCH 6/6] MINOR/BUILD: The usage of Tab is recommenced in Makefiles
+
+---
+ Makefile | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index d0504d6..6cade4f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -52,7 +52,7 @@ ifeq ($(V),)
+  Q	= @
+ 
+  qcmd	= @printf "  %-8s %s\n" "$(1)" "$(2)";
+-endif   # $(V)
++endif	# $(V)
+ 
+ all:	shared
+ 
+@@ -60,7 +60,7 @@ shared:	$(NAME).so
+ strip:	$(NAME).so.strip
+ dist:	$(NAME)-$(VERSION).txz
+ 
+-%.o:    %.c
++%.o:	%.c
+ 	$(call qcmd,CC,$@)
+ 	$(Q)$(CC) -c $(SPEC_CFLAGS) $(CFLAGS) -o $@ $<
+ 
+@@ -68,7 +68,7 @@ $(NAME).so:	$(SRC:c=o)
+ 	$(call qcmd,CC,$@)
+ 	$(Q)$(CC) -shared -o $@ $^ $(SPEC_LDFLAGS) $(LDFLAGS)
+ 
+-$(NAME).so.strip:       $(NAME).so
++$(NAME).so.strip:	$(NAME).so
+ 	$(call qcmd,STRIP,$@)
+ 	$(Q)$(STRIP) $(STRIP_FLAGS) -o $@ $<
+ 
+@@ -86,14 +86,14 @@ $(DESTDIR)$(DOCDIR)/%:	%
+ 	$(call qcmd,INSTALL,$@)
+ 	$(Q)$(INSTALL) -D -m $(MODE) $< $@
+ 
+-$(NAME)-$(VERSION).tar: $(SRC) $(DOC_FILES) Makefile
++$(NAME)-$(VERSION).tar:	$(SRC) $(DOC_FILES) Makefile
+ 	$(call qcmd,TAR,$@)
+ 	$(Q)$(TAR) cf $@ \
+ 		--transform "s,^,$(NAME)-$(VERSION)/," \
+ 		--force-local --numeric-owner \
+ 		$^
+ 
+-%.txz:  %.tar
++%.txz:	%.tar
+ 	$(call qcmd,XZ,$@)
+ 	$(Q)$(XZ) -c > $@ < $<
+ 
+@@ -103,7 +103,7 @@ clean:
+ 	$(call qcmd,RM,$(NAME).so)
+ 	$(Q)$(RM) $(NAME).so $(NAME).so.strip
+ 
+-dist-clean: clean
++dist-clean:	clean
+ 	$(call qcmd,RM,$(NAME)-$(VERSION).tar)
+ 	$(Q)$(RM) $(NAME)-$(VERSION).tar
+ 	$(call qcmd,RM,$(NAME)-$(VERSION).txz)
+-- 
+1.8.3.2
+

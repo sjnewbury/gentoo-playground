@@ -16,7 +16,7 @@ SRC_URI="http://www.webkitgtk.org/releases/${MY_P}.tar.xz"
 LICENSE="LGPL-2+ BSD"
 SLOT="4/37" # soname version of libwebkit2gtk-4.0
 KEYWORDS=""
-IUSE="aqua debug +egl +geoloc gles2 +gstreamer +introspection +jit libsecret +opengl spell wayland +webgl +X ftl-jit indexeddb"
+IUSE="aqua debug +egl +geoloc gles2 +gstreamer +introspection +jit libsecret +opengl spell wayland +webgl +X ftl-jit indexeddb gtk2plugin"
 # bugs 372493, 416331
 REQUIRED_USE="
 	geoloc? ( introspection )
@@ -49,7 +49,7 @@ RDEPEND="
 	>=x11-libs/pango-1.30.0.0
 	x11-libs/libXrender
 	x11-libs/libXt
-	>=x11-libs/gtk+-2.24.10:2
+	gtk2plugin? ( >=x11-libs/gtk+-2.24.10:2 )
 
 	egl? ( media-libs/mesa[egl] )
 	geoloc? ( >=app-misc/geoclue-2.1.5:2.0 )
@@ -183,6 +183,7 @@ src_configure() {
  		$(cmake-utils_use gles2 WTF_USE_GLES2)
  		$(cmake-utils_use egl WTF_USE_EGL)
  		$(cmake-utils_use opengl WTF_USE_GLX)
+ 		$(cmake-utils_use_enable gtk2plugin PLUGIN_PROCESS_GTK2)
 		";
     cmake-utils_src_configure
 }

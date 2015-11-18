@@ -24,7 +24,7 @@ RDEPEND="${PYTHON_DEPS}
 	x11-libs/gdk-pixbuf:2[introspection]
 	x11-libs/gtk+:3[introspection]
 	x11-libs/pango[introspection]
-	games-util/qqwing
+	dev-libs/qqwing
 "
 DEPEND="${RDEPEND}
 	app-text/yelp-tools

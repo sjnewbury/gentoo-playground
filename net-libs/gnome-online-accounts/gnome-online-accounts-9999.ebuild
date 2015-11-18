@@ -66,6 +66,14 @@ if [[ ${PV} = 9999 ]]; then
 		doc? ( >=dev-util/gtk-doc-1.3 )"
 fi
 
+src_prepare() {
+	default
+	pushd telepathy-account-widgets || die "telepathy-account-widgets missing"
+	eautoreconf
+	popd
+	eautoreconf
+}
+
 src_configure() {
 	# TODO: Give users a way to set the G/Y!/FB/Twitter/Windows Live secrets
 	# Twitter/Y! disabled per upstream recommendation, bug #497168

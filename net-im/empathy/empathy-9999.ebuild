@@ -103,6 +103,14 @@ pkg_setup() {
 	python-any-r1_pkg_setup
 }
 
+src_prepare() {
+	default
+	gnome2_src_prepare
+	pushd telepathy-account-widgets
+	eautoreconf
+	popd
+}
+
 src_configure() {
 	local myconf=""
 	[[ ${PV} = 9999 ]] || myconf="${myconf} ITSTOOL=$(type -P true)"
@@ -112,7 +120,6 @@ src_configure() {
 		--disable-coding-style-checks \
 		--disable-static \
 		--disable-ubuntu-online-accounts \
-		--enable-gst-1.0 \
 		$(use_enable debug) \
 		$(use_enable geoloc geocode) \
 		$(use_enable geoloc location) \

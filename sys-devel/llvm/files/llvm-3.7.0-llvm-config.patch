@@ -1,0 +1,40 @@
+--- llvm-3.7.0.src/utils/llvm-build/llvmbuild/main.py~	2014-11-19 03:34:20.000000000 +0000
++++ llvm-3.7.0.src/utils/llvm-build/llvmbuild/main.py	2015-11-08 16:30:56.122717070 +0000
+@@ -413,7 +413,7 @@
+             if library_name is None:
+                 library_name_as_cstr = '0'
+             else:
+-                library_name_as_cstr = '"lib%s.a"' % library_name
++                library_name_as_cstr = '"lib%s.so"' % library_name
+             f.write('  { "%s", %s, %d, { %s } },\n' % (
+                 name, library_name_as_cstr, is_installed,
+                 ', '.join('"%s"' % dep
+--- llvm-3.7.0.src/tools/llvm-config/CMakeLists.txt~	2015-11-10 10:51:44.000000000 +0000
++++ llvm-3.7.0.src/tools/llvm-config/CMakeLists.txt	2015-11-10 11:03:12.436524648 +0000
+@@ -22,8 +22,11 @@
+ set(LLVM_SRC_ROOT ${LLVM_MAIN_SRC_DIR})
+ set(LLVM_OBJ_ROOT ${LLVM_BINARY_DIR})
+ set(LLVM_CPPFLAGS "${CMAKE_CPP_FLAGS} ${CMAKE_CPP_FLAGS_${uppercase_CMAKE_BUILD_TYPE}} ${LLVM_DEFINITIONS}")
+-set(LLVM_CFLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${uppercase_CMAKE_BUILD_TYPE}} ${LLVM_DEFINITIONS}")
+-set(LLVM_CXXFLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${uppercase_CMAKE_BUILD_TYPE}} ${COMPILE_FLAGS} ${LLVM_DEFINITIONS}")
++# Just use CMAKE_CPP_FLAGS for CFLAGS and CXXFLAGS, otherwise compiler
++# specific flags will be set when we don't know what compiler will be used
++# with external project utilising llvm-config.  C++ Standard is required.
++set(LLVM_CFLAGS "${CMAKE_CPP_FLAGS} ${CMAKE_C_FLAGS_${uppercase_CMAKE_BUILD_TYPE}} ${LLVM_DEFINITIONS}")
++set(LLVM_CXXFLAGS "${CMAKE_CPP_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS_${uppercase_CMAKE_BUILD_TYPE}} ${LLVM_DEFINITIONS}")
+ # Use the C++ link flags, since they should be a superset of C link flags.
+ set(LLVM_LDFLAGS "${CMAKE_CXX_LINK_FLAGS}")
+ set(LLVM_BUILDMODE ${CMAKE_BUILD_TYPE})
+--- llvm-3.7.0.src/tools/llvm-config/llvm-config.cpp~	2015-07-14 16:10:34.000000000 +0100
++++ llvm-3.7.0.src/tools/llvm-config/llvm-config.cpp	2015-11-10 11:09:56.899410231 +0000
+@@ -360,8 +360,8 @@
+           OS << ActiveLibDir << '/' << Lib;
+         } else if (PrintLibs) {
+           // If this is a typical library name, include it using -l.
+-          if (Lib.startswith("lib") && Lib.endswith(".a")) {
+-            OS << "-l" << Lib.slice(3, Lib.size()-2);
++          if (Lib.startswith("lib") && Lib.endswith(".so")) {
++            OS << "-l" << Lib.slice(3, Lib.size()-3);
+             continue;
+           }
+ 

@@ -123,7 +123,7 @@ expand_iuse "${IUSE_ENLIGHTENMENT_MODULES}" "enlightenment_modules_"
 src_prepare() {
 	#remove useless startup checks since we know we have the deps
 	epatch "${FILESDIR}/quickstart.diff" || die
-	epatch "${FILESDIR}/wayland-only.patch" || die
+	#epatch "${FILESDIR}/wayland-only.patch" || die
 
 	efl_src_prepare
 }

@@ -1,0 +1,18 @@
+--- src/output/PulseOutputPlugin.cxx~	2014-02-24 20:23:49.000000000 +0000
++++ src/output/PulseOutputPlugin.cxx	2014-10-13 00:56:45.235598490 +0100
+@@ -525,10 +525,14 @@
+ pulse_output_setup_stream(PulseOutput *po, const pa_sample_spec *ss,
+ 			  Error &error)
+ {
++	pa_channel_map cmap;
++
+ 	assert(po != nullptr);
+ 	assert(po->context != nullptr);
+ 
+-	po->stream = pa_stream_new(po->context, po->name, ss, nullptr);
++	pa_channel_map_init_auto(&cmap, ss->channels, PA_CHANNEL_MAP_WAVEEX);
++
++	po->stream = pa_stream_new(po->context, po->name, ss, &cmap);
+ 	if (po->stream == nullptr) {
+ 		SetError(error, po->context, "pa_stream_new() has failed");
+ 		return false;

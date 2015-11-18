@@ -1,0 +1,70 @@
+# Copyright 1999-2014 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: /var/cvsroot/gentoo-x86/net-p2p/deluge/deluge-9999.ebuild,v 1.35 2014/08/10 20:36:34 slyfox Exp $
+
+EAPI="5"
+PYTHON_COMPAT=( python2_7 )
+
+inherit eutils distutils-r1 git-r3
+
+EGIT_REPO_URI="git://deluge-torrent.org/${PN}.git
+	http://git.deluge-torrent.org/${PN}/"
+
+DESCRIPTION="BitTorrent client with a client/server model"
+HOMEPAGE="http://deluge-torrent.org/"
+SRC_URI=""
+
+LICENSE="GPL-2"
+SLOT="0"
+KEYWORDS=""
+IUSE="geoip gtk libnotify setproctitle webinterface"
+
+DEPEND=">=net-libs/rb_libtorrent-1[python,${PYTHON_USEDEP}]
+	dev-python/setuptools"
+RDEPEND="${DEPEND}
+	${PYTHON_DEPS}
+	dev-python/chardet[${PYTHON_USEDEP}]
+	dev-python/pyopenssl[${PYTHON_USEDEP}]
+	dev-python/pyxdg[${PYTHON_USEDEP}]
+	dev-python/simplejson[${PYTHON_USEDEP}]
+	||	(	(
+				>=dev-python/twisted-core-8.1[${PYTHON_USEDEP}]
+				>=dev-python/twisted-web-8.1[${PYTHON_USEDEP}]
+			)
+			>=dev-python/twisted-15.4[${PYTHON_USEDEP}]
+		)
+	geoip? ( dev-libs/geoip )
+	gtk? (
+		dev-python/pygame[${PYTHON_USEDEP}]
+		dev-python/pygobject:2
+		>=dev-python/pygtk-2.12[${PYTHON_USEDEP}]
+		gnome-base/librsvg
+		libnotify? ( dev-python/notify-python[${PYTHON_USEDEP}] )
+	)
+	setproctitle? ( dev-python/setproctitle )
+	webinterface? ( dev-python/mako )"
+
+python_test() {
+	esetup.py test
+}
+
+python_install_all() {
+	distutils-r1_python_install_all
+	newinitd "${FILESDIR}"/deluged.init deluged
+	newconfd "${FILESDIR}"/deluged.conf deluged
+}
+
+pkg_postinst() {
+	elog
+	elog "If after upgrading it doesn't work, please remove the"
+	elog "'~/.config/deluge' directory and try again, but make a backup"
+	elog "first!"
+	elog
+	elog "To start the daemon either run 'deluged' as user"
+	elog "or modify /etc/conf.d/deluged and run"
+	elog "/etc/init.d/deluged start as root"
+	elog "You can still use deluge the old way"
+	elog
+	elog "For more information look at http://dev.deluge-torrent.org/wiki/Faq"
+	elog
+}

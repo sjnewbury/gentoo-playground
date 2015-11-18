@@ -1,0 +1,15 @@
+--- src/main.c~	2014-04-24 04:38:08.000000000 +0100
++++ src/main.c	2014-11-26 07:45:18.982584030 +0000
+@@ -732,6 +732,12 @@
+     GFile *file;
+ #endif
+ 
++#ifdef GTK3_ENABLED
++    /* We can not support wayland (or broadway?) due
++       to the way mplayer is embedded */
++    gdk_set_allowed_backends ("x11,quartz,win32");
++#endif
++
+ #ifdef ENABLE_NLS
+     bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");

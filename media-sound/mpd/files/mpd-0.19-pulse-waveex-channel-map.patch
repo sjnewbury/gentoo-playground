@@ -1,0 +1,46 @@
+From 11a5a79730ce1bfbc7cfbe4c63897c8a7b058c49 Mon Sep 17 00:00:00 2001
+From: Steven Newbury <steve@snewbury.org.uk>
+Date: Thu, 16 Oct 2014 23:06:27 +0100
+Subject: [PATCH] Set pulseaudio channel map to WAVE-EX
+
+Pulseaudio expects clients to specify their channel-map if the
+default (ALSA) map does not route the audio to the expected speakers.
+
+Many Google results suggest dealing with this by re-routing the audio
+channels with the appropriate ALSA plugin, but this will then simply
+break any clients which expect the default ALSA mapping.
+
+Virtually all media files and codecs, certainly flac, dca, a52, and of
+course anything based on Microsoft's WAVEFORMAT_EXTENSIBLE specification,
+assume the layout in the table here:
+http://en.wikipedia.org/wiki/Surround_sound#Standard_speaker_channels
+
+Fortunately, pulseaudio directly addresses this with a built-in channel
+map for WAVE-EX which can be set automatically in the stream sample-spec.
+---
+ src/output/plugins/PulseOutputPlugin.cxx | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/output/plugins/PulseOutputPlugin.cxx b/src/output/plugins/PulseOutputPlugin.cxx
+index 120bad0..0d79af7 100644
+--- a/src/output/plugins/PulseOutputPlugin.cxx
++++ b/src/output/plugins/PulseOutputPlugin.cxx
+@@ -520,10 +520,14 @@ static bool
+ pulse_output_setup_stream(PulseOutput *po, const pa_sample_spec *ss,
+ 			  Error &error)
+ {
++	pa_channel_map chan_map;
++
+ 	assert(po != nullptr);
+ 	assert(po->context != nullptr);
+ 
+-	po->stream = pa_stream_new(po->context, po->name, ss, nullptr);
++	/* WAVE-EX is been adopted as the speaker map for most media files */
++	pa_channel_map_init_auto(&chan_map, ss->channels, PA_CHANNEL_MAP_WAVEEX);
++	po->stream = pa_stream_new(po->context, po->name, ss, &chan_map);
+ 	if (po->stream == nullptr) {
+ 		SetError(error, po->context, "pa_stream_new() has failed");
+ 		return false;
+-- 
+2.1.2
+

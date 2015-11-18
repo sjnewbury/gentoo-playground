@@ -1,0 +1,42 @@
+--- clutter-gtk/gtk-clutter-util.c~	2014-08-28 15:44:44.000000000 +0100
++++ clutter-gtk/gtk-clutter-util.c	2014-11-25 22:10:05.879118861 +0000
+@@ -65,6 +65,21 @@
+ 
+   display = gdk_display_get_default ();
+ 
++#if defined(GDK_WINDOWING_WAYLAND) && defined(CLUTTER_WINDOWING_WAYLAND)
++  /* use WAYLAND backend on Wayland by default */
++  //if (g_getenv ("WAYLAND_DISPLAY") != NULL)
++      clutter_set_windowing_backend (CLUTTER_WINDOWING_X11);
++
++  if (clutter_check_windowing_backend (CLUTTER_WINDOWING_WAYLAND) &&
++      GDK_IS_WAYLAND_DISPLAY (display))
++    {
++      /* let GTK+ be in charge of the event handling */
++      clutter_wayland_disable_event_retrieval ();
++
++      clutter_wayland_set_display (gdk_wayland_display_get_wl_display (display));
++    }
++  else
++#endif
+ #if defined(CLUTTER_WINDOWING_GDK)
+   if (clutter_check_windowing_backend (CLUTTER_WINDOWING_GDK))
+     {
+@@ -99,17 +114,6 @@
+     }
+   else
+ #endif
+-#if defined(GDK_WINDOWING_WAYLAND) && defined(CLUTTER_WINDOWING_WAYLAND)
+-  if (clutter_check_windowing_backend (CLUTTER_WINDOWING_WAYLAND) &&
+-      GDK_IS_WAYLAND_DISPLAY (display))
+-    {
+-      /* let GTK+ be in charge of the event handling */
+-      clutter_wayland_disable_event_retrieval ();
+-
+-      clutter_wayland_set_display (gdk_wayland_display_get_wl_display (display));
+-    }
+-  else
+-#endif
+     g_error ("*** Unsupported backend.");
+ 
+   /* We disable clutter accessibility support in order to not

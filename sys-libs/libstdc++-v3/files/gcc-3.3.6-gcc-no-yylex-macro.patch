@@ -1,0 +1,28 @@
+diff -urpN gcc-3.3.6.orig/gcc/c-parse.in gcc-3.3.6/gcc/c-parse.in
+--- gcc-3.3.6.orig/gcc/c-parse.in	2014-05-05 19:53:52.351816030 -0700
++++ gcc-3.3.6/gcc/c-parse.in	2014-05-05 19:55:14.846979709 -0700
+@@ -652,7 +652,7 @@ primary:
+ 	IDENTIFIER
+ 		{
+ 		  if (yychar == YYEMPTY)
+-		    yychar = YYLEX;
++		    yychar = yylex ();
+ 		  $$ = build_external_ref ($1, yychar == '(');
+ 		}
+ 	| CONSTANT
+@@ -2241,13 +2241,13 @@ do_stmt_start:
+    first token on the next line.  */
+ save_filename:
+ 		{ if (yychar == YYEMPTY)
+-		    yychar = YYLEX;
++		    yychar = yylex ();
+ 		  $$ = input_filename; }
+ 	;
+ 
+ save_lineno:
+ 		{ if (yychar == YYEMPTY)
+-		    yychar = YYLEX;
++		    yychar = yylex ();
+ 		  $$ = lineno; }
+ 	;
+ 

@@ -12,12 +12,13 @@ inherit cmake-utils check-reqs eutils flag-o-matic pax-utils python-any-r1 toolc
 DESCRIPTION="Open source web browser engine"
 HOMEPAGE="http://www.webkitgtk.org/"
 #SRC_URI="http://www.webkitgtk.org/releases/${MY_P}.tar.xz"
-EGIT_REPO_URI="git://git.webkit.org/WebKit.git"
+EGIT_REPO_URI=git://git.webkit.org/WebKit.git
+#EGIT_REPO_URI="https://github.com/WebKitForWayland/webkit.git"
 
 LICENSE="LGPL-2+ BSD"
-SLOT="3/25" # soname version of libwebkit2gtk-3.0
-KEYWORDS=""
-IUSE="aqua debug +egl +geoloc gles2 +gstreamer +introspection +jit libsecret +opengl spell wayland +webgl +X ftl-jit indexeddb"
+SLOT="4" # soname version of libwebkit2gtk-3.0
+KEYWORDS=
+IUSE="aqua debug +egl +geoloc gles2 +gstreamer +introspection +jit libsecret +opengl glx spell wayland +webgl +X ftl-jit indexeddb gtk2plugin inspector experimental"
 # bugs 372493, 416331
 REQUIRED_USE="
 	geoloc? ( introspection )
@@ -29,6 +30,7 @@ REQUIRED_USE="
 	ftl-jit? ( jit )
 	introspection
 "
+
 # cmake build defaults to using introspection, just force useflag on for now
 # use sqlite, svg by default
 # Aqua support in gtk3 is untested
@@ -48,9 +50,8 @@ RDEPEND="
 	>=net-libs/libsoup-2.42.0:2.4[introspection?]
 	dev-db/sqlite:3=
 	>=x11-libs/pango-1.30.0.0
-	x11-libs/libXrender
-	x11-libs/libXt
-	>=x11-libs/gtk+-2.24.10:2
+    X? ( x11-libs/libXrender x11-libs/libXt )
+	gtk2plugin? ( >=x11-libs/gtk+-2.24.10:2 )
 
 	egl? ( media-libs/mesa[egl] )
 	geoloc? ( >=app-misc/geoclue-2.1.5:2.0 )
@@ -64,9 +65,8 @@ RDEPEND="
 	spell? ( >=app-text/enchant-0.22:= )
 	wayland? ( >=x11-libs/gtk+-3.10:3[wayland] )
 	webgl? (
-		x11-libs/cairo[opengl]
-		x11-libs/libXcomposite
-		x11-libs/libXdamage )
+		|| ( x11-libs/cairo[opengl] x11-libs/cairo[gles2] ) 
+		X? ( x11-libs/libXcomposite x11-libs/libXdamage ) )
 	ftl-jit? ( sys-devel/llvm sys-libs/libcxxabi )
 "
 
@@ -137,6 +137,12 @@ pkg_setup() {
 	[[ ${MERGE_TYPE} = "binary" ]] || python-any-r1_pkg_setup
 }
 
+src_prepare() {
+    cmake-utils_src_prepare
+#    epatch -p1 "${FILESDIR}"/wayland/*.patch
+#    epatch "${FILESDIR}"/disable-gtk-glx.patch
+}
+
 src_configure() {
     local mycmakeargs="
 		-DPORT=GTK
@@ -153,9 +159,10 @@ src_configure() {
     if ! use ia64; then
         append-ldflags "-Wl,--no-keep-memory";
     fi;
-    if ! $(tc-getLD) --version | grep -q "GNU gold"; then
-        append-ldflags "-Wl,--reduce-memory-overheads";
-    fi;
+    # FIXME: WebKit is currently auto defaulting to gold so this fails atm
+    #if ! $(tc-getLD) --version | grep -q "GNU gold"; then
+    #    append-ldflags "-Wl,--reduce-memory-overheads";
+    #fi;
     if has_version "virtual/rubygems[ruby_targets_ruby21]"; then
         export RUBY="$(type -P ruby21)";
     else
@@ -165,6 +172,19 @@ src_configure() {
             export RUBY="$(type -P ruby19)";
         fi;
     fi;
+
+
+    if use experimental; then
+        mycmakeargs+=" -DENABLE_CSP_NEXT=ON"
+        if (use gles2 || use opengl); then
+            mycmakeargs+=" -DENABLE_CSS_COMPOSITING=ON
+                    -DENABLE_THREADED_COMPOSITOR=ON
+		    -DENABLE_CSS_SHAPES=ON"
+        fi
+    fi
+
+    [ "${PV}" == 9999 ] && mycmakeargs+=" -DDEVELOPER_MODE=ON"
+    
     mycmakeargs+="
 		$(cmake-utils_use_enable aqua QUARTZ_TARGET)
 		$(cmake-utils_use debug DEBUG )
@@ -176,13 +196,15 @@ src_configure() {
  		$(cmake-utils_use_enable libsecret CREDENTIAL_STORAGE)
  		$(cmake-utils_use_enable spell SPELLCHECK)
  		$(cmake-utils_use_enable webgl WEBGL)
- 		$(cmake-utils_use_enable webgl ACCELERATED_COMPOSITING)
  		$(cmake-utils_use_enable wayland WAYLAND_TARGET)
  		$(cmake-utils_use_enable X X11_TARGET)
  		$(cmake-utils_use_enable indexeddb INDEXED_DATABASE)
  		$(cmake-utils_use gles2 WTF_USE_GLES2)
  		$(cmake-utils_use egl WTF_USE_EGL)
- 		$(cmake-utils_use opengl WTF_USE_GLX)
+ 		$(cmake-utils_use opengl WTF_USE_OPENGL)
+ 		$(cmake-utils_use glx WTF_USE_GLX)
+ 		$(cmake-utils_use_enable gtk2plugin PLUGIN_PROCESS_GTK2)
+ 		$(cmake-utils_use_enable inspector INSPECTOR)
 		";
     cmake-utils_src_configure
 }

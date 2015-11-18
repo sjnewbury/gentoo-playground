@@ -82,6 +82,11 @@ src_unpack() {
 	else
 		rm -rf "${S}"/data/font-*.pk3dir || die
 	fi
+	cd "${S}"
+	local new_commit_id=$(
+		git rev-parse --verify HEAD
+	)
+	export EGIT_VERSION=${new_commit_id}
 }
 
 src_prepare() {

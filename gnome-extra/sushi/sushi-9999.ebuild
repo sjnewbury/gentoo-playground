@@ -40,7 +40,7 @@ COMMON_DEPEND="
 	media-libs/gst-plugins-base:1.0[introspection]
 	media-libs/clutter-gst:2.0[introspection]
 	media-libs/musicbrainz:5
-	net-libs/webkit-gtk:3[introspection]
+	net-libs/webkit-gtk:4[introspection]
 	x11-libs/gtksourceview:3.0[introspection]
 	x11-libs/libX11
 

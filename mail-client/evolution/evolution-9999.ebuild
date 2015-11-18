@@ -7,7 +7,7 @@ GCONF_DEBUG="no"
 GNOME2_LA_PUNT="yes"
 
 # Change back to master when webkit2 support lands there
-EGIT_BRANCH=wip-webkit2
+EGIT_BRANCH=wip/webkit2
 
 inherit eutils flag-o-matic readme.gentoo gnome2 #autotools
 if [[ ${PV} = 9999 ]]; then
@@ -43,6 +43,7 @@ COMMON_DEPEND="
 	>=gnome-base/gnome-desktop-2.91.3:3=
 	>=gnome-base/gsettings-desktop-schemas-2.91.92
 	>=media-libs/libcanberra-0.25[gtk3]
+	gnome-extra/gnome-autoar
 	>=x11-libs/libnotify-0.7:=
 	>=gnome-extra/evolution-data-server-${PV}:=[weather?]
 	>=gnome-extra/gtkhtml-4.5.2:4.0
@@ -75,6 +76,7 @@ COMMON_DEPEND="
 		>=dev-libs/nss-3.11:= )
 	weather? ( >=dev-libs/libgweather-3.8:2= )
 "
+
 DEPEND="${COMMON_DEPEND}
 	app-text/docbook-xml-dtd:4.1.2
 	dev-util/gtk-doc-am
@@ -138,6 +140,7 @@ src_configure() {
 		--disable-image-inline \
 		--disable-pst-import \
 		--enable-canberra \
+		--enable-autoar \
 		$(use_enable bogofilter) \
 		$(use_enable highlight text-highlight) \
 		$(use_enable map contact-maps) \

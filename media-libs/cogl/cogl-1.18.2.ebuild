@@ -47,7 +47,7 @@ DEPEND="${COMMON_DEPEND}
 	sys-devel/gettext
 	virtual/pkgconfig
 	test? (
-		app-admin/eselect-opengl
+		app-eselect/eselect-opengl
 		media-libs/mesa[classic] )
 "
 

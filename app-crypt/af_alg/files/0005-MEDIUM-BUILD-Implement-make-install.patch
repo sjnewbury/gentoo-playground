@@ -1,0 +1,56 @@
+From 700c3a032dc85628cb13c555631da24d59bf4260 Mon Sep 17 00:00:00 2001
+From: Bertrand Jacquin <bertrand@jacquin.bzh>
+Date: Fri, 10 Jan 2014 21:49:42 +0100
+Subject: [PATCH 5/6] MEDIUM/BUILD: Implement 'make install'
+
+---
+ Makefile | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index c24c858..d0504d6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -36,11 +36,18 @@ CC	?= cc
+ STRIP	?= strip
+ STRIP_FLAGS	?= --strip-unneeded -R .comment -R .GCC.command.line -R .note.gnu.build-id
+ 
++INSTALL	?= install
++
+ TAR	= tar
+ XZ	= xz
+ 
+ RM	?= rm -f
+ 
++DESTDIR	?=
++PREFIX	?= /usr/local
++LIBDIR	?= $(PREFIX)/lib/engines
++DOCDIR	?= $(PREFIX)/share/doc/$(NAME)
++
+ ifeq ($(V),)
+  Q	= @
+ 
+@@ -65,6 +72,20 @@ $(NAME).so.strip:       $(NAME).so
+ 	$(call qcmd,STRIP,$@)
+ 	$(Q)$(STRIP) $(STRIP_FLAGS) -o $@ $<
+ 
++install:	install-lib
++install-lib:	$(DESTDIR)$(LIBDIR)/$(NAME).so
++install-doc:	$(DOC_FILES:%=$(DESTDIR)$(DOCDIR)/%)
++
++$(DESTDIR)$(LIBDIR)/$(NAME).so:	MODE = 0555
++$(DESTDIR)$(LIBDIR)/$(NAME).so:	$(NAME).so
++	$(call qcmd,INSTALL,$@)
++	$(Q)$(INSTALL) -D -m $(MODE) $< $@
++
++$(DESTDIR)$(DOCDIR)/%:	MODE = 0444
++$(DESTDIR)$(DOCDIR)/%:	%
++	$(call qcmd,INSTALL,$@)
++	$(Q)$(INSTALL) -D -m $(MODE) $< $@
++
+ $(NAME)-$(VERSION).tar: $(SRC) $(DOC_FILES) Makefile
+ 	$(call qcmd,TAR,$@)
+ 	$(Q)$(TAR) cf $@ \
+-- 
+1.8.3.2
+

@@ -1,0 +1,315 @@
+From 571b7536faf3f8156c7e9ea895ee9bb8847be7cb Mon Sep 17 00:00:00 2001
+From: Peter Meerwald <pmeerw@pmeerw.net>
+Date: Mon, 4 Aug 2014 05:40:14 -0700
+Subject: [PATCH 2/2] resampler: Add optional libavresample resampler
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+see https://libav.org/doxygen/master/group__lavr.html
+
+Signed-off-by: Peter Meerwald <pmeerw@pmeerw.net>
+Signed-off-by: poljar (Damir Jelić) <poljarinho@gmail.com>
+---
+ configure.ac                   |  17 +++++
+ src/Makefile.am                |   6 ++
+ src/pulsecore/resampler.c      |  14 +++-
+ src/pulsecore/resampler.h      |   2 +
+ src/pulsecore/resampler/lavr.c | 160 +++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 198 insertions(+), 1 deletion(-)
+ create mode 100644 src/pulsecore/resampler/lavr.c
+
+diff --git a/configure.ac b/configure.ac
+index a6c6dd7..25bd263 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1138,6 +1138,21 @@ AS_IF([test "x$enable_soxr" = "xyes" && test "x$HAVE_SOXR" = "x0"],
+ AM_CONDITIONAL([HAVE_SOXR], [test "x$HAVE_SOXR" = x1])
+ AS_IF([test "x$HAVE_SOXR" = "x1"], AC_DEFINE([HAVE_SOXR], 1, [Have soxr]))
+ 
++#### libavresample support (optional) ####
++
++AC_ARG_ENABLE([libavresample],
++   AS_HELP_STRING([--disable-libavresample],[Disable optional libavresample support]))
++
++AS_IF([test "x$enable_libavresample" != "xno"],
++    [PKG_CHECK_MODULES(LIBAVRESAMPLE, libavresample, HAVE_LIBAVRESAMPLE=1, HAVE_LIBAVRESAMPLE=0)],
++    HAVE_LIBAVRESAMPLE=0)
++
++AS_IF([test "x$enable_libavresample" = "xyes" && test "x$HAVE_LIBAVRESAMPLE" = "x0"],
++    [AC_MSG_ERROR([*** libavresample not found])])
++
++AM_CONDITIONAL([HAVE_LIBAVRESAMPLE], [test "x$HAVE_LIBAVRESAMPLE" = x1])
++AS_IF([test "x$HAVE_LIBAVRESAMPLE" = "x1"], AC_DEFINE([HAVE_LIBAVRESAMPLE], 1, [Have libavresample]))
++
+ #### Xen support (optional) ####
+ 
+ AC_ARG_ENABLE([xen],
+@@ -1482,6 +1497,7 @@ AS_IF([test "x$HAVE_ORC" = "xyes"], ENABLE_ORC=yes, ENABLE_ORC=no)
+ AS_IF([test "x$HAVE_ADRIAN_EC" = "x1"], ENABLE_ADRIAN_EC=yes, ENABLE_ADRIAN_EC=no)
+ AS_IF([test "x$HAVE_SPEEX" = "x1"], ENABLE_SPEEX=yes, ENABLE_SPEEX=no)
+ AS_IF([test "x$HAVE_SOXR" = "x1"], ENABLE_SOXR=yes, ENABLE_SOXR=no)
++AS_IF([test "x$HAVE_LIBAVRESAMPLE" = "x1"], ENABLE_LIBAVRESAMPLE=yes, ENABLE_LIBAVRESAMPLE=no)
+ AS_IF([test "x$HAVE_WEBRTC" = "x1"], ENABLE_WEBRTC=yes, ENABLE_WEBRTC=no)
+ AS_IF([test "x$HAVE_TDB" = "x1"], ENABLE_TDB=yes, ENABLE_TDB=no)
+ AS_IF([test "x$HAVE_GDBM" = "x1"], ENABLE_GDBM=yes, ENABLE_GDBM=no)
+@@ -1541,6 +1557,7 @@ echo "
+     Enable Adrian echo canceller:  ${ENABLE_ADRIAN_EC}
+     Enable speex (resampler, AEC): ${ENABLE_SPEEX}
+     Enable soxr:                   ${ENABLE_SOXR}
++    Enable libavresample:          ${ENABLE_LIBAVRESAMPLE}
+     Enable WebRTC echo canceller:  ${ENABLE_WEBRTC}
+     Enable gcov coverage:          ${ENABLE_GCOV}
+     Enable unit tests:             ${ENABLE_TESTS}
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 8bb8a2d..99f8f3e 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -1010,6 +1010,12 @@ libpulsecore_@PA_MAJORMINOR@_la_CFLAGS += $(SOXR_CFLAGS)
+ libpulsecore_@PA_MAJORMINOR@_la_LIBADD += $(SOXR_LIBS)
+ endif
+ 
++if HAVE_LIBAVRESAMPLE
++libpulsecore_@PA_MAJORMINOR@_la_SOURCES += pulsecore/resampler/lavr.c
++libpulsecore_@PA_MAJORMINOR@_la_CFLAGS += $(LIBAVRESAMPLE_CFLAGS)
++libpulsecore_@PA_MAJORMINOR@_la_LIBADD += $(LIBAVRESAMPLE_LIBS)
++endif
++
+ # We split the foreign code off to not be annoyed by warnings we don't care about
+ noinst_LTLIBRARIES += libpulsecore-foreign.la
+ 
+diff --git a/src/pulsecore/resampler.c b/src/pulsecore/resampler.c
+index a97b529..610433d 100644
+--- a/src/pulsecore/resampler.c
++++ b/src/pulsecore/resampler.c
+@@ -116,6 +116,11 @@ static int (* const init_table[])(pa_resampler *r) = {
+ #else
+     [PA_RESAMPLER_SOXR]                    = NULL,
+ #endif
++#ifdef HAVE_LIBAVRESAMPLE
++    [PA_RESAMPLER_LAVR]                    = pa_resampler_lavr_init,
++#else
++    [PA_RESAMPLER_LAVR]                    = NULL,
++#endif
+ };
+ 
+ static pa_resample_method_t choose_auto_resampler(pa_resample_flags_t flags) {
+@@ -161,6 +166,7 @@ static pa_resample_method_t fix_method(
+             }
+                                      /* Else fall through */
+         case PA_RESAMPLER_SOXR:
++        case PA_RESAMPLER_LAVR:
+         case PA_RESAMPLER_FFMPEG:
+             if (flags & PA_RESAMPLER_VARIABLE_RATE) {
+                 pa_log_info("Resampler '%s' cannot do variable rate, reverting to resampler 'auto'.", pa_resample_method_to_string(method));
+@@ -608,7 +614,8 @@ static const char * const resample_methods[] = {
+     "auto",
+     "copy",
+     "peaks",
+-    "soxr"
++    "soxr",
++    "lavr"
+ };
+ 
+ const char *pa_resample_method_to_string(pa_resample_method_t m) {
+@@ -641,6 +648,11 @@ int pa_resample_method_supported(pa_resample_method_t m) {
+         return 0;
+ #endif
+ 
++#ifndef HAVE_LIBAVRESAMPLE
++    if (m == PA_RESAMPLER_LAVR)
++        return 0;
++#endif
++
+     return 1;
+ }
+ 
+diff --git a/src/pulsecore/resampler.h b/src/pulsecore/resampler.h
+index af53d78..42d3671 100644
+--- a/src/pulsecore/resampler.h
++++ b/src/pulsecore/resampler.h
+@@ -60,6 +60,7 @@ typedef enum pa_resample_method {
+     PA_RESAMPLER_COPY,
+     PA_RESAMPLER_PEAKS,
+     PA_RESAMPLER_SOXR,
++    PA_RESAMPLER_LAVR,
+     PA_RESAMPLER_MAX
+ } pa_resample_method_t;
+ 
+@@ -160,6 +161,7 @@ const pa_sample_spec* pa_resampler_output_sample_spec(pa_resampler *r);
+ 
+ /* Implementation specific init functions */
+ int pa_resampler_ffmpeg_init(pa_resampler *r);
++int pa_resampler_lavr_init(pa_resampler *r);
+ int pa_resampler_libsamplerate_init(pa_resampler *r);
+ int pa_resampler_peaks_init(pa_resampler *r);
+ int pa_resampler_speex_init(pa_resampler *r);
+diff --git a/src/pulsecore/resampler/lavr.c b/src/pulsecore/resampler/lavr.c
+new file mode 100644
+index 0000000..7236ca3
+--- /dev/null
++++ b/src/pulsecore/resampler/lavr.c
+@@ -0,0 +1,160 @@
++/***
++  This file is part of PulseAudio.
++
++  Copyright 2013 Damir Jelić
++
++  PulseAudio is free software; you can redistribute it and/or modify
++  it under the terms of the GNU Lesser General Public License as published
++  by the Free Software Foundation; either version 2.1 of the License,
++  or (at your option) any later version.
++
++  PulseAudio is distributed in the hope that it will be useful, but
++  WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
++  General Public License for more details.
++
++  You should have received a copy of the GNU Lesser General Public License
++  along with PulseAudio; if not, write to the Free Software
++  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
++  USA.
++***/
++
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
++#include <libavresample/avresample.h>
++#include <libavutil/opt.h>
++#include <libavutil/samplefmt.h>
++
++#include "pulsecore/resampler.h"
++
++static unsigned lavr_resample(pa_resampler *r, const pa_memchunk *input,
++                          unsigned in_n_frames, pa_memchunk *output,
++                          unsigned *out_n_frames) {
++    AVAudioResampleContext *state;
++    uint8_t *out;
++    uint8_t *in;
++    unsigned out_samples;
++
++    pa_assert(r);
++    pa_assert(input);
++    pa_assert(output);
++    pa_assert(out_n_frames);
++
++    state = r->impl.data;
++
++    out_samples = *out_n_frames;
++    in = pa_memblock_acquire_chunk(input);
++    out = pa_memblock_acquire_chunk(output);
++
++    out_samples = avresample_convert(state, &out, 0, out_samples, &in, 0, in_n_frames);
++
++    pa_memblock_release(input->memblock);
++    pa_memblock_release(output->memblock);
++
++    *out_n_frames = out_samples;
++
++    return 0;
++}
++
++static void lavr_udpate_rates(pa_resampler *r) {
++    AVAudioResampleContext *state;
++    pa_assert(r);
++
++    state = r->impl.data;
++
++    avresample_close(state);
++
++    av_opt_set_int(state, "in_sample_rate", r->i_ss.rate, 0);
++    av_opt_set_int(state, "out_sample_rate", r->o_ss.rate, 0);
++
++    avresample_open(state);
++}
++
++static void lavr_reset(pa_resampler *r) {
++    AVAudioResampleContext *state;
++    pa_assert(r);
++
++    state = r->impl.data;
++    avresample_close(state);
++    avresample_open(state);
++}
++
++static void lavr_free(pa_resampler *r) {
++    AVAudioResampleContext *state;
++    pa_assert(r);
++
++    state = r->impl.data;
++    avresample_free(&state);
++}
++
++int pa_resampler_lavr_init(pa_resampler *r) {
++    AVAudioResampleContext *state;
++    int channel_map;
++    int format;
++    pa_assert(r);
++
++    if (!(state = avresample_alloc_context()))
++        return -1;
++
++    pa_log_debug("%d", r->o_ss.channels);
++    switch (r->o_ss.channels) {
++        case 1:
++            channel_map = AV_CH_LAYOUT_MONO;
++            break;
++        case 2:
++            channel_map = AV_CH_LAYOUT_STEREO;
++            break;
++        case 3:
++            channel_map = AV_CH_LAYOUT_2POINT1;
++            break;
++        case 4:
++            channel_map = AV_CH_LAYOUT_4POINT0;
++            break;
++        case 5:
++            channel_map = AV_CH_LAYOUT_5POINT0;
++            break;
++        case 6:
++            channel_map = AV_CH_LAYOUT_5POINT1;
++            break;
++        case 7:
++            channel_map = AV_CH_LAYOUT_6POINT1;
++            break;
++        case 8:
++            channel_map = AV_CH_LAYOUT_7POINT1;
++            break;
++        default:
++            pa_assert_not_reached();
++    }
++
++    switch (r->work_format) {
++        case PA_SAMPLE_S16NE:
++            format = AV_SAMPLE_FMT_S16;
++            break;
++
++        case PA_SAMPLE_FLOAT32NE:
++            format = AV_SAMPLE_FMT_FLT;
++            break;
++
++        default:
++            pa_assert_not_reached();
++    }
++    av_opt_set_int(state, "in_channel_layout", channel_map, 0);
++    av_opt_set_int(state, "out_channel_layout", channel_map, 0);
++    av_opt_set_int(state, "in_sample_rate", r->i_ss.rate, 0);
++    av_opt_set_int(state, "out_sample_rate", r->o_ss.rate, 0);
++    av_opt_set_int(state, "in_sample_fmt", format, 0);
++    av_opt_set_int(state, "out_sample_fmt", format, 0);
++
++    if (avresample_open(state) < 0)
++        return -1;
++
++    r->impl.free = lavr_free;
++    r->impl.reset = lavr_reset;
++    r->impl.update_rates = lavr_udpate_rates;
++    r->impl.resample = lavr_resample;
++    r->impl.data = state;
++
++    return 0;
++}
+-- 
+2.1.0
+

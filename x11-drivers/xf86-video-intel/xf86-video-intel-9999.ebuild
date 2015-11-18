@@ -51,6 +51,9 @@ src_configure() {
 		$(use_enable udev)
 		$(use_enable xvmc)
 	)
+	use dri3 && XORG_CONFIGURE_OPTIONS+=(
+		--with-default-dri=3
+	)
 	xorg-2_src_configure
 }
 

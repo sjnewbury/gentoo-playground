@@ -1,0 +1,15 @@
+--- ui/Makefile.am.orig	2014-10-30 08:27:37.260190502 +0000
++++ ui/Makefile.am	2014-10-30 08:28:02.561844216 +0000
+@@ -20,9 +20,12 @@
+ # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ # USA
+ 
++# FIXME: The X11 dependency needs to be removed from the UI code
+ if ENABLE_GTK3
++if ENABLE_XIM
+ GTK3_UI = gtk3
+ endif
++endif
+ 
+ SUBDIRS = \
+ 	$(GTK3_UI) \

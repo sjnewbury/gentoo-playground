@@ -17,7 +17,7 @@ HOMEPAGE="http://projects.gnome.org/epiphany/"
 # TODO: coverage
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+jit +nss test"
+IUSE="+jit +nss test X"
 if [[ ${PV} = 9999 ]]; then
 	KEYWORDS=""
 else
@@ -33,7 +33,7 @@ COMMON_DEPEND="
 	>=dev-libs/libxslt-1.1.7
 	>=gnome-base/gsettings-desktop-schemas-0.0.1
 	>=net-dns/avahi-0.6.22[dbus]
-	>=net-libs/webkit-gtk-2.5.1:4[jit?]
+	>=net-libs/webkit-gtk-2.11.1:4[jit?,X?]
 	>=net-libs/libsoup-2.42.1:2.4
 	>=x11-libs/gtk+-3.11.6:3
 	>=x11-libs/libnotify-0.5.1:=
@@ -41,8 +41,10 @@ COMMON_DEPEND="
 
 	dev-db/sqlite:3
 	x11-libs/libwnck:3
-	x11-libs/libX11
-
+	X? (
+		x11-libs/gtk+[X] 
+		x11-libs/libX11
+	)
 	x11-themes/gnome-icon-theme
 	x11-themes/gnome-icon-theme-symbolic
 
@@ -68,11 +70,13 @@ fi
 RESTRICT="test"
 
 src_prepare() {
+	#epatch "${FILESDIR}"/"${PN}"-3.14-x11-optional.patch
+	#epatch "${FILESDIR}"/"${PN}"-3.14-get_dbus_con-no_error.patch
 	gnome2_src_prepare
 	#fix-up for git webkit-gtk
-	sed -i \
-		-e 's/WebKitDOMElementUnstable.h/webkitdom.h/g' \
-		embed/web-extension/ephy-web-overview.c || die
+	#sed -i \
+	#	-e 's/WebKitDOMElementUnstable.h/webkitdom.h/g' \
+	#	embed/web-extension/ephy-web-overview.c || die
 }
 
 src_configure() {
@@ -82,6 +86,7 @@ src_configure() {
 		--enable-shared \
 		--disable-static \
 		--with-distributor-name=Gentoo \
+		$(use_enable X x11) \
 		$(use_enable nss) \
 		$(use_enable test tests) \
 		${myconf}
@@ -102,7 +107,7 @@ src_test() {
 }
 
 src_install() {
-	DOCS="AUTHORS ChangeLog* HACKING MAINTAINERS NEWS README TODO"
+	DOCS="AUTHORS ChangeLog* HACKING NEWS README TODO"
 	gnome2_src_install
 	use jit && pax-mark m "${ED}usr/bin/epiphany"
 }

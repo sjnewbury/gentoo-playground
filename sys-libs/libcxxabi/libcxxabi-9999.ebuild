@@ -32,7 +32,7 @@ DEPEND="${RDEPEND}
         ~sys-libs/libcxx-${PV}
         sys-libs/libunwind
         sys-devel/clang
-        sys-devel/llvm[cmake]
+        >=sys-devel/llvm-3.5
         "
 
 multilib_src_configure() {
@@ -47,6 +47,9 @@ multilib_src_configure() {
 
 src_install() {
         cmake-multilib_src_install
+        rm -fr "${D}"/usr/include
         insinto /usr/include/"${PN}"
         doins -r include/*
+        insinto /usr/share/cmake/Modules
+        doins "${FILESDIR}"/FindLIBCXXABI.cmake
 }

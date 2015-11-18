@@ -1,0 +1,44 @@
+From b5d9e9503dd54aa7b8c4595d368a04cdab2d239b Mon Sep 17 00:00:00 2001
+From: Bertrand Jacquin <bertrand@jacquin.bzh>
+Date: Fri, 10 Jan 2014 21:35:44 +0100
+Subject: [PATCH 3/6] MINOR/BUILD: Comment some Makefile tips/usages
+
+---
+ Makefile | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index 4457218..47853b4 100644
+--- a/Makefile
++++ b/Makefile
+@@ -6,6 +6,7 @@
+ NAME	= libaf_alg
+ VERSION	= $(shell sh -c 'git describe --tags --dirty=-dev 2> /dev/null || echo 0')
+ 
++# List of sources to build
+ SRC	= \
+ 	e_af_alg.c \
+ 	ciphers.c \
+@@ -14,15 +15,19 @@ SRC	= \
+ EXTRA_FILES	= \
+ 	README
+ 
++# User defined CFLAGS
+ CFLAGS	?= \
+ 	-O3 \
+ 	-W -Wall -Werror
+ 
++# Forced CFLAGS
+ SPEC_CFLAGS	= \
+ 	-fPIC
+ 
++# User defined LDFLAGS
+ LDFLAGS	?=
+ 
++# Forced LDFLAGS
+ SPEC_LDFLAGS	= \
+ 	-lcrypto
+ 
+-- 
+1.8.3.2
+

@@ -1,0 +1,11 @@
+--- man/Makefile.am~	2015-01-20 05:00:27.000000000 +0000
++++ man/Makefile.am	2015-06-05 11:52:27.532361500 +0100
+@@ -9,7 +9,7 @@
+ 
+ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+ filenames.sed: filenames.sed.c
+-	$(AM_V_GEN)$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
++	$(AM_V_GEN)$(CPP) -P $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+ 	    $(AM_CPPFLAGS) $(CPPFLAGS) $(srcdir)/filenames.sed.c | \
+ 	    $(SED) -n -e '/s|__/ p' -e '/^\/__/ p' > $@
+ 

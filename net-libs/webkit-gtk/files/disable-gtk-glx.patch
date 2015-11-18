@@ -1,0 +1,11 @@
+--- Source/cmake/OptionsGTK.cmake.orig	2015-04-06 14:40:03.820187681 +0100
++++ Source/cmake/OptionsGTK.cmake	2015-04-06 14:41:07.788405554 +0100
+@@ -70,7 +70,7 @@
+     # variable won't be set thus the X11 linker flags won't be added and the build
+     # will fail.
+     find_package(X11 REQUIRED)
+-    if (OPENGL_FOUND)
++    if ((OPENGL_FOUND) AND (WTF_USE_GLX))
+         # We don't use find_package for GLX because it is part of -lGL, unlike EGL.
+         check_include_files("GL/glx.h" GLX_FOUND)
+     endif ()

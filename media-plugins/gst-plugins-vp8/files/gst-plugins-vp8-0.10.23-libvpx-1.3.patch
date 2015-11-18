@@ -1,0 +1,18 @@
+--- ext/vp8/gstvp8utils.h.orig	2015-04-08 09:16:19.198432474 +0100
++++ ext/vp8/gstvp8utils.h	2015-04-08 09:11:49.937050287 +0100
+@@ -22,14 +22,10 @@
+ 
+ #include <gst/gst.h>
+ #include <vpx/vpx_codec.h>
++#include <vpx/vpx_image.h>
+ 
+ G_BEGIN_DECLS
+ 
+-/* Some compatibility defines for older libvpx versions */
+-#ifndef VPX_IMG_FMT_I420
+-#define VPX_IMG_FMT_I420 IMG_FMT_I420
+-#endif
+-
+ #ifndef VPX_PLANE_Y
+ #define VPX_PLANE_Y PLANE_Y
+ #endif

@@ -1,0 +1,27 @@
+--- boomerang/CMakeLists.txt.orig	2015-08-31 17:50:54.412740520 +0100
++++ boomerang/CMakeLists.txt	2015-08-31 17:51:37.092693272 +0100
+@@ -141,8 +141,23 @@
+ 	${CMAKE_DL_LIBS}
+ )
+ 
++file(GLOB boomerang_INCLUDES
++	"include/*.h"
++)
++
++SET(boomerang_DYNLIBS
++	compiled/libBinaryFile.so
++	compiled/libDOS4GWBinaryFile.so
++	compiled/libElfBinaryFile.so
++	compiled/libExeBinaryFile.so
++	compiled/libHpSomBinaryFile.so
++	compiled/libIntelCoffFile.so
++	compiled/libPalmBinaryFile.so
++	compiled/libWin32BinaryFile.so
++)
+ install(TARGETS boomerang DESTINATION bin)
+-install(FILES  include/*.h DESTINATION include)
++install(FILES ${boomerang_DYNLIBS} DESTINATION ${CMAKE_INSTALL_LIBDIR})
++install(FILES ${boomerang_INCLUDES} DESTINATION include)
+ 
+ # this is put at the end so that first cmake configure will assume USE_GC NO, 
+ # and will not check for existence of Boehm GC

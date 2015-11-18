@@ -1,57 +1,67 @@
-# Copyright 1999-2013 Gentoo Foundation
+# Copyright 1999-2014 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/net-p2p/deluge/deluge-9999.ebuild,v 1.34 2013/08/03 09:45:41 mgorny Exp $
+# $Header: /var/cvsroot/gentoo-x86/net-p2p/deluge/deluge-9999.ebuild,v 1.35 2014/08/10 20:36:34 slyfox Exp $
 
-EAPI="5"
-PYTHON_COMPAT=( python{2_6,2_7} )
+EAPI="3"
+PYTHON_DEPEND="2:2.5"
 
-inherit eutils distutils-r1 git-r3 systemd
+inherit eutils distutils git-2
 
 EGIT_REPO_URI="git://deluge-torrent.org/${PN}.git
 	http://git.deluge-torrent.org/${PN}/"
 
-DESCRIPTION="BitTorrent client with a client/server model."
+DESCRIPTION="BitTorrent client with a client/server model"
 HOMEPAGE="http://deluge-torrent.org/"
 SRC_URI=""
 
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS=""
-IUSE="geoip gtk libnotify setproctitle sound webinterface"
+IUSE="geoip gtk libnotify setproctitle webinterface"
 
-DEPEND=">=net-libs/rb_libtorrent-0.14.9[python]
-	dev-python/setuptools
-	dev-util/intltool"
+DEPEND=">=net-libs/rb_libtorrent-1[python]
+	dev-python/setuptools"
 RDEPEND="${DEPEND}
-	dev-python/chardet[${PYTHON_USEDEP}]
-	dev-python/pyopenssl[${PYTHON_USEDEP}]
-	dev-python/pyxdg[${PYTHON_USEDEP}]
-	|| ( dev-lang/python:2.7 dev-lang/python:2.6 dev-python/simplejson[${PYTHON_USEDEP}] )
-	>=dev-python/twisted-core-8.1[${PYTHON_USEDEP}]
-	>=dev-python/twisted-web-8.1[${PYTHON_USEDEP}]
-	>=dev-python/feedparser-5[${PYTHON_USEDEP}]
+	dev-python/chardet
+	dev-python/pyopenssl
+	dev-python/pyxdg
+	|| ( dev-lang/python:2.7 dev-lang/python:2.6 dev-python/simplejson )
+	||	(	(
+				>=dev-python/twisted-core-8.1
+				>=dev-python/twisted-web-8.1
+			)
+			>=dev-python/twisted-15.4
+		)
 	geoip? ( dev-libs/geoip )
 	gtk? (
-		sound? ( dev-python/pygame[${PYTHON_USEDEP}] )
-		dev-python/pygame[${PYTHON_USEDEP}]
-		dev-python/pygobject:2[${PYTHON_USEDEP}]
-		>=dev-python/pygtk-2.12[${PYTHON_USEDEP}]
+		dev-python/pygame
+		dev-python/pygobject:2
+		>=dev-python/pygtk-2.12
 		gnome-base/librsvg
-		libnotify? ( dev-python/notify-python[${PYTHON_USEDEP}] )
+		libnotify? ( dev-python/notify-python )
 	)
-	setproctitle? ( dev-python/setproctitle[${PYTHON_USEDEP}] )
-	webinterface? ( dev-python/mako[${PYTHON_USEDEP}] )"
+	setproctitle? ( dev-python/setproctitle )
+	webinterface? ( dev-python/mako )"
 
-python_install() {
-	distutils-r1_python_install
+pkg_setup() {
+	python_set_active_version 2
+	python_pkg_setup
+}
+
+src_prepare() {
+	distutils_src_prepare
+	python_convert_shebangs -r 2 .
+#	epatch "${FILESDIR}/${PN}-1.3.5-disable_libtorrent_internal_copy.patch"
+}
+
+src_install() {
+	distutils_src_install
 	newinitd "${FILESDIR}"/deluged.init deluged
 	newconfd "${FILESDIR}"/deluged.conf deluged
-	systemd_dounit "${FILESDIR}"/deluged.service
-	systemd_dounit "${FILESDIR}"/deluge-web.service
 }
 
 pkg_postinst() {
-	#distutils_pkg_postinst
+	distutils_pkg_postinst
 	elog
 	elog "If after upgrading it doesn't work, please remove the"
 	elog "'~/.config/deluge' directory and try again, but make a backup"

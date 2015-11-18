@@ -9,7 +9,7 @@ CLUTTER_LA_PUNT="yes"
 # since clutter-project.org doesn't provide .xz tarballs
 inherit clutter gnome2 virtualx
 if [[ ${PV} = 9999 ]]; then
-	EGIT_BRANCH="clutter-1.20"
+#	EGIT_BRANCH="clutter-1.20"
 	inherit gnome2-live
 fi
 
@@ -70,6 +70,8 @@ src_prepare() {
 		-i tests/Makefile.am || die "am tests sed failed"
 
 	gnome2_src_prepare
+
+	epatch_user
 }
 
 src_configure() {

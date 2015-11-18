@@ -5,7 +5,7 @@
 EAPI="5"
 GCONF_DEBUG="no"
 GNOME2_LA_PUNT="yes"
-PYTHON_COMPAT=( python2_{6,7} )
+PYTHON_COMPAT=( python3_{3,4} )
 
 inherit autotools eutils gnome2 multilib pax-utils python-r1 systemd
 if [[ ${PV} = 9999 ]]; then
@@ -39,7 +39,7 @@ COMMON_DEPEND="
 	>=dev-libs/glib-2.39.1:2
 	>=dev-libs/gjs-1.39
 	>=dev-libs/gobject-introspection-0.10.1
-	>=x11-libs/gtk+-3.7.9:3[introspection]
+	>=x11-libs/gtk+-3.15.0:3[introspection]
 	>=media-libs/clutter-1.15.90:1.0[introspection]
 	>=dev-libs/json-glib-0.13.2
 	>=dev-libs/libcroco-0.6.8:0.6
@@ -54,7 +54,7 @@ COMMON_DEPEND="
 	>=sys-auth/polkit-0.100[introspection]
 	>=x11-libs/libXfixes-5.0
 	x11-libs/libXtst
-	>=x11-wm/mutter-3.12.1[introspection]
+	>=x11-wm/mutter-3.15.2[introspection]
 	>=x11-libs/startup-notification-0.11
 
 	${PYTHON_DEPS}

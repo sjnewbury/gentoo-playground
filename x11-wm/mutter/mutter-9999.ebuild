@@ -70,7 +70,10 @@ src_prepare() {
 #	DOCS="AUTHORS ChangeLog HACKING MAINTAINERS NEWS README *.txt doc/*.txt"
 
 	# Compat with Ubuntu metacity themes (e.g. x11-themes/light-themes)
-	epatch "${FILESDIR}/${PN}-3.2.1-ignore-shadow-and-padding.patch"
+#	epatch "${FILESDIR}/${PN}-3.2.1-ignore-shadow-and-padding.patch"
+	epatch "${FILESDIR}/${P}-clutter-1.22.patch"
+#	epatch "${FILESDIR}/wayland-viewport.patch"
+#	epatch "${FILESDIR}/wayland-viewport-fix.patch"
 
 	gnome2_src_prepare
 }

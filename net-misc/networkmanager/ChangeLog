@@ -1,6 +1,197 @@
 # ChangeLog for net-misc/networkmanager
-# Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
-# $Header: /var/cvsroot/gentoo-x86/net-misc/networkmanager/ChangeLog,v 1.194 2014/03/29 21:57:33 tetromino Exp $
+# Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
+# $Header: /var/cvsroot/gentoo-x86/net-misc/networkmanager/ChangeLog,v 1.233 2015/03/15 13:32:08 pacho Exp $
+
+  15 Mar 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  x86 stable, bug 534012
+
+  15 Mar 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  ppc64 stable, bug 534012
+
+  15 Mar 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  ppc stable, bug 534012
+
+  14 Mar 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  amd64 stable, bug 534012
+
+  03 Mar 2015; Yixun Lan <dlan@gentoo.org> networkmanager-1.0.0.ebuild:
+  add arm64 support, tested on A53 board
+
+  18 Feb 2015; Pacho Ramos <pacho@gentoo.org> metadata.xml,
+  networkmanager-1.0.0.ebuild:
+  Don't install empty /var/run (#539400 by Jan Vesely)
+
+  08 Feb 2015; Markus Meier <maekke@gentoo.org> networkmanager-1.0.0.ebuild:
+  arm stable, bug #536694
+
+  27 Jan 2015; Anthony G. Basile <blueness@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild, networkmanager-1.0.0.ebuild:
+  Keyword ~ppc ~ppc64, bug #523468
+
+  25 Jan 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  Add bug reference
+
+  25 Jan 2015; Rémi Cardona <remi@gentoo.org> networkmanager-1.0.0.ebuild,
+  +files/networkmanager-1.0.0-remove-bashisms.patch:
+  Fix build with /bin/sh != bash, see bug #536540.
+
+  23 Jan 2015; Pacho Ramos <pacho@gentoo.org> networkmanager-1.0.0.ebuild:
+  gdbus-codegen is using at build time (#537398 by Reuben Martin)
+
+*networkmanager-1.0.0 (10 Jan 2015)
+
+  10 Jan 2015; Pacho Ramos <pacho@gentoo.org>
+  +files/networkmanager-1.0.0-find-helpers.patch,
+  +files/networkmanager-1.0.0-lto-switch.patch, +networkmanager-1.0.0.ebuild:
+  Version bump
+
+  08 Jan 2015; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  net-dialup/rp-pppoe is needed by upstream to workaround a kernel problem
+  (#536002 by Malte Starostik)
+
+  01 Jan 2015; Markus Meier <maekke@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  arm stable, bug #529964
+
+  19 Dec 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  amd64 stable, bug 529964
+
+  18 Dec 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  x86 stable, bug 529964
+
+  15 Dec 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  NM shows lots of errors making nmcli neither unusable, bug #528748 (by Alex
+  Brandt), upstream bug #690457, add a warning then.
+
+  09 Dec 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  Readd upstream bug reference
+
+  01 Dec 2014; Pacho Ramos <pacho@gentoo.org>
+  -files/01-org.freedesktop.NetworkManager.settings.modify.system.pkla,
+  -files/10-openrc-status-r3,
+  -files/networkmanager-0.9.2.0-init-provide-net-r1.patch,
+  -files/networkmanager-0.9.2.0-pre-sleep.patch,
+  -files/networkmanager-0.9.4.0-dhclient-ipv6.patch,
+  -files/networkmanager-0.9.4.0-fix-quote-handling.patch,
+  -files/networkmanager-0.9.4.0-force-libnl1.1-r1.patch,
+  -files/networkmanager-0.9.4.0-ip_ppp.h.patch,
+  -files/networkmanager-0.9.4.0-ipv6-route.patch,
+  -files/networkmanager-0.9.4.0-libnm-glib-ensure_inited.patch,
+  -files/networkmanager-0.9.4.0-libnm-glib-init-gerror.patch,
+  -files/networkmanager-0.9.4.0-nl80211-encryption-caps.patch,
+  -files/networkmanager-0.9.4.0-wifi-kernel-api.patch,
+  -files/networkmanager-0.9.6.0-daemon-signals.patch,
+  -files/networkmanager-0.9.7.995-pre-sleep.patch,
+  -files/networkmanager-0.9.8.2-allow-new-dhcpcd.patch,
+  -networkmanager-0.9.10.0-r1.ebuild, -networkmanager-0.9.10.0.ebuild,
+  -networkmanager-0.9.6.4.ebuild, metadata.xml:
+  drop old
+
+  30 Nov 2014; Michał Górny <mgorny@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  Use python-any-r1 for the Python dep.
+
+  27 Nov 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  Make the messages a bit more clear
+
+  26 Nov 2014; Pacho Ramos <pacho@gentoo.org>
+  networkmanager-0.9.10.1_pre20141101.ebuild:
+  Update warning as it's now not systemd specific and having 'ifnet' is no
+  longer fatal
+
+*networkmanager-0.9.10.1_pre20141101 (01 Nov 2014)
+
+  01 Nov 2014; Pacho Ramos <pacho@gentoo.org>
+  +networkmanager-0.9.10.1_pre20141101.ebuild:
+  Add new snapshot including a ton of bugfixes, also this won't fail to start if
+  ifnet plugin is not found and, then, migration will be less painful.
+
+  31 Oct 2014; Pacho Ramos <pacho@gentoo.org> networkmanager-0.9.10.0-r1.ebuild:
+  Add reference to upstream bug report
+
+  23 Oct 2014; Markus Meier <maekke@gentoo.org>
+  networkmanager-0.9.10.0-r1.ebuild:
+  add ~arm, bug #523468
+
+  21 Oct 2014; Pacho Ramos <pacho@gentoo.org> networkmanager-0.9.10.0-r1.ebuild:
+  Fix the check for ifnet plugin in config
+
+  16 Oct 2014; Pacho Ramos <pacho@gentoo.org> networkmanager-0.9.10.0-r1.ebuild:
+  Add a comment with more information
+
+*networkmanager-0.9.10.0-r1 (13 Oct 2014)
+
+  13 Oct 2014; Pacho Ramos <pacho@gentoo.org>
+  +files/networkmanager-0.9.10.0-arpingpath.patch,
+  +networkmanager-0.9.10.0-r1.ebuild:
+  Ifnet plugin is now disabled because of it being unattended and unmaintained
+  for a long time, leading to some unfixed bugs and new problems appearing
+  (#443596, #458274, #493370, #498372, #523700). If some day somebody volunteers
+  for fixing/maintaining that plugin and forwarding all that fixes to upstream
+  it could be re-enabled of course. Append configure option regarding systemd
+  unit files install path only when systemd support is enabled to prevent
+  HAVE_SYSTEMD to be true (#524534 by Konstantin Ivanov). Ensure arping is found
+  (#523632 by Kobboi).
+
+  11 Oct 2014; Markus Meier <maekke@gentoo.org>
+  networkmanager-0.9.8.10-r1.ebuild:
+  arm stable, bug #512012
+
+  23 Sep 2014; Pacho Ramos <pacho@gentoo.org> networkmanager-0.9.10.0.ebuild:
+  x86 keyword, bug #523468
+
+*networkmanager-0.9.10.0 (22 Sep 2014)
+
+  22 Sep 2014; Pacho Ramos <pacho@gentoo.org> +networkmanager-0.9.10.0.ebuild,
+  -networkmanager-0.9.8.8.ebuild, metadata.xml:
+  Version bump, default to dhclient instead of dhcpcd (#493732), set proper pppd
+  plugindir (#519986 by Clemente Aguiar, Sergey Popov, Agostino Sarubbo and
+  others), remove wimax support (#522822 by Dion Moult), drop old.
+
+  21 Aug 2014; Agostino Sarubbo <ago@gentoo.org>
+  networkmanager-0.9.8.10-r1.ebuild:
+  Stable for ppc64, wrt bug #512012
+
+  28 Jul 2014; Agostino Sarubbo <ago@gentoo.org>
+  networkmanager-0.9.8.10-r1.ebuild:
+  Stable for ppc, wrt bug #512012
+
+  24 Jul 2014; Samuli Suominen <ssuominen@gentoo.org>
+  networkmanager-0.9.6.4.ebuild, networkmanager-0.9.8.10-r1.ebuild,
+  networkmanager-0.9.8.8.ebuild:
+  Pull in virtual/libgudev with := for automatic rebuild. Pull in virtual/udev
+  as a RDEPEND. Use get_udevdir instead of the deprecated udev_get_udevdir.
+
+  23 Jul 2014; Agostino Sarubbo <ago@gentoo.org>
+  networkmanager-0.9.8.10-r1.ebuild:
+  Stable for x86, wrt bug #512012
+
+  22 Jul 2014; Agostino Sarubbo <ago@gentoo.org>
+  networkmanager-0.9.8.10-r1.ebuild:
+  Stable for amd64, wrt bug #512912
+
+*networkmanager-0.9.8.10-r1 (16 Jun 2014)
+
+  16 Jun 2014; Maciej Mrozowski <reavertm@gentoo.org>
+  +files/networkmanager-0.9.8.9-fix-crash-on-wifi-rescan.patch,
+  +networkmanager-0.9.8.10-r1.ebuild, -networkmanager-0.9.8.10.ebuild:
+  Apply upstream patch for crash on Wifi re-scan.
+
+  31 May 2014; Samuli Suominen <ssuominen@gentoo.org>
+  networkmanager-0.9.8.10.ebuild, networkmanager-0.9.8.8.ebuild:
+  Allow falling back to sys-power/upower-pm-utils.
+
+*networkmanager-0.9.8.10 (27 Apr 2014)
+
+  27 Apr 2014; Gilles Dartiguelongue <eva@gentoo.org>
+  +networkmanager-0.9.8.10.ebuild:
+  Version bump for Gnome 3.12.
 
   29 Mar 2014; Alexandre Rostovtsev <tetromino@gentoo.org>
   networkmanager-0.9.8.8.ebuild:

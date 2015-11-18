@@ -4,7 +4,8 @@
 
 EAPI=5
 
-EGIT_REPO_URI=git://gitorious.org/vaapi/gstreamer-vaapi.git
+EGIT_REPO_URI=https://github.com/01org/gstreamer-vaapi.git
+#EGIT_REPO_URI=git://gitorious.org/vaapi/gstreamer-vaapi.git
 
 inherit autotools autotools-utils git-r3
 
@@ -13,7 +14,7 @@ HOMEPAGE="http://www.splitted-desktop.com/~gbeauchesne/gstreamer-vaapi/"
 SRC_URI=""
 
 LICENSE="GPL-2"
-SLOT="0"
+SLOT="1.0"
 KEYWORDS="~amd64 ~x86"
 IUSE="static-libs opengl X drm wayland"
 
