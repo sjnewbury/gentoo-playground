@@ -2,13 +2,13 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/media-libs/libvpx/libvpx-9999.ebuild,v 1.53 2015/02/05 16:00:23 mgorny Exp $
 
-EAPI=4
+EAPI=5
 inherit multilib toolchain-funcs multilib-minimal
 
 LIBVPX_TESTDATA_VER=1.3.0
 
 if [[ ${PV} == *9999* ]]; then
-	inherit git-2
+	inherit git-r3
 	EGIT_REPO_URI="https://chromium.googlesource.com/webm/${PN}.git"
 elif [[ ${PV} == *pre* ]]; then
 	SRC_URI="mirror://gentoo/${P}.tar.bz2"
