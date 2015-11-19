@@ -28,6 +28,7 @@ KEYWORDS="~amd64 ~x86"
 IUSE="+clients debug +drm +simple-clients static-libs +tablet +wayland-compositor +x11"
 
 RDEPEND="dev-libs/wayland
+	dev-libs/wayland-protocols
 	gnome-base/librsvg
 	media-libs/mesa[egl,gles2,wayland]
 	x11-libs/pixman
