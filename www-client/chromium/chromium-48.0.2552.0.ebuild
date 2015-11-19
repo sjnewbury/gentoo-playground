@@ -10,19 +10,17 @@ CHROMIUM_LANGS="am ar bg bn ca cs da de el en_GB es es_LA et fa fi fil fr gu he
 	sv sw ta te th tr uk vi zh_CN zh_TW"
 
 inherit check-reqs chromium eutils flag-o-matic multilib multiprocessing pax-utils \
-	portability python-any-r1 readme.gentoo toolchain-funcs versionator \
-	virtualx git-r3
+	portability python-any-r1 readme.gentoo toolchain-funcs versionator virtualx
 
-DESCRIPTION="Chromium Ozone for Wayland - Google Chromium web browser"
-HOMEPAGE="https://01.org/ozone-wayland"
+DESCRIPTION="Open-source version of Google Chrome web browser"
+HOMEPAGE="http://chromium.org/"
+SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}-lite.tar.xz"
 
-EGIT_REPO_URI="https://github.com/01org/ozone-wayland.git"
-
-LICENSE="BSD"
-SLOT="live"
+LICENSE="BSD hotwording? ( no-source-code )"
+SLOT="0"
 KEYWORDS="~amd64 ~arm ~x86"
-RESTRICT="proprietary-codecs? ( bindist )"
-IUSE="cups gnome gnome-keyring gtk3 +hangouts hidpi hotwording kerberos neon pic +proprietary-codecs pulseaudio selinux +tcmalloc opencl custom-cflags"
+IUSE="cups gnome gnome-keyring gtk3 +hangouts hidpi hotwording kerberos neon pic +proprietary-codecs pulseaudio selinux +system-ffmpeg +tcmalloc widevine opencl"
+RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 
 # Native Client binaries are compiled with different set of flags, bug #452066.
 QA_FLAGS_IGNORED=".*\.nexe"
@@ -34,7 +32,6 @@ QA_PRESTRIPPED=".*\.nexe"
 RDEPEND=">=app-accessibility/speech-dispatcher-0.8:=
 	app-arch/bzip2:=
 	app-arch/snappy:=
-	app-crypt/libsecret:=
 	cups? ( >=net-print/cups-1.3.11:= )
 	>=dev-libs/elfutils-0.149
 	dev-libs/expat:=
@@ -55,12 +52,12 @@ RDEPEND=">=app-accessibility/speech-dispatcher-0.8:=
 	media-libs/freetype:=
 	media-libs/harfbuzz:=[icu(+)]
 	media-libs/libexif:=
-	x11-libs/libva:=
 	>=media-libs/libjpeg-turbo-1.2.0-r1:=
 	media-libs/libpng:0=
 	>=media-libs/libwebp-0.4.0:=
 	media-libs/speex:=
 	pulseaudio? ( media-sound/pulseaudio:= )
+	system-ffmpeg? ( >=media-video/ffmpeg-2.7.2:=[opus,vorbis,vpx] )
 	sys-apps/dbus:=
 	sys-apps/pciutils:=
 	>=sys-libs/libcap-2.22:=
@@ -68,10 +65,23 @@ RDEPEND=">=app-accessibility/speech-dispatcher-0.8:=
 	virtual/udev
 	x11-libs/cairo:=
 	x11-libs/gdk-pixbuf:=
+	gtk3? ( x11-libs/gtk+:3= )
+	!gtk3? ( x11-libs/gtk+:2= )
 	x11-libs/libdrm
-	kerberos? ( virtual/krb5 )
-	>=dev-libs/wayland-1.5
-	opencl? ( virtual/opencl )"
+	x11-libs/libX11:=
+	x11-libs/libXcomposite:=
+	x11-libs/libXcursor:=
+	x11-libs/libXdamage:=
+	x11-libs/libXext:=
+	x11-libs/libXfixes:=
+	>=x11-libs/libXi-1.6.0:=
+	x11-libs/libXinerama:=
+	x11-libs/libXrandr:=
+	x11-libs/libXrender:=
+	x11-libs/libXScrnSaver:=
+	x11-libs/libXtst:=
+	x11-libs/pango:=
+	kerberos? ( virtual/krb5 )"
 DEPEND="${RDEPEND}
 	!arm? (
 		dev-lang/yasm
@@ -87,13 +97,15 @@ DEPEND="${RDEPEND}
 
 # For nvidia-drivers blocker, see bug #413637 .
 RDEPEND+="
-	!=www-client/chromium-9999*
+	!=www-client/chromium-9999
 	!<www-plugins/chrome-binary-plugins-37
 	x11-misc/xdg-utils
 	virtual/opengl
 	virtual/ttf-fonts
 	selinux? ( sec-policy/selinux-chromium )
-	tcmalloc? ( !<x11-drivers/nvidia-drivers-331.20 )"
+	opencl? ( virtual/opencl )
+	tcmalloc? ( !<x11-drivers/nvidia-drivers-331.20 )
+	widevine? ( www-plugins/chrome-binary-plugins[widevine(-)] )"
 
 # Python dependencies. The DEPEND part needs to be kept in sync
 # with python_check_deps.
@@ -135,14 +147,12 @@ are not displayed properly:
 Depending on your desktop environment, you may need
 to install additional packages to get icons on the Downloads page.
 
-For KDE, the required package is kde-apps/oxygen-icons.
+For KDE, the required package is kde-frameworks/oxygen-icons.
 
 For other desktop environments, try one of the following:
 - x11-themes/gnome-icon-theme
 - x11-themes/tango-icon-theme
 "
-
-S="${WORKDIR}/src"
 
 pkg_pretend() {
 	if [[ $(tc-getCC)$ == *gcc* ]] && \
@@ -162,65 +172,17 @@ pkg_pretend() {
 }
 
 pkg_setup() {
-	CHROMIUM_SUFFIX=-ozone
+	if [[ "${SLOT}" == "0" ]]; then
+		CHROMIUM_SUFFIX=""
+	else
+		CHROMIUM_SUFFIX="-${SLOT}"
+	fi
 	CHROMIUM_HOME="/usr/$(get_libdir)/chromium-browser${CHROMIUM_SUFFIX}"
 
 	# Make sure the build system will use the right python, bug #344367.
 	python-any-r1_pkg_setup
 
 	chromium_suid_sandbox_check_kernel_config
-}
-
-gclient_config() {
-	einfo "gclient config -->"
-	addwrite "${EGIT3_STORE_DIR}"
-	mkdir -p "${EGIT3_STORE_DIR}/${PN}"
-	"${WORKDIR}/depot_tools/gclient" config \
-		--deps-file "${3}" \
-		--name "${2}" \
-		--cache-dir "${EGIT3_STORE_DIR}/${PN}" \
-		"${1}"
-}
-
-gclient_sync() {
-	einfo "gclient sync -->"
-	"${WORKDIR}/depot_tools/gclient" sync --nohooks \
-		--delete_unversioned_trees -v || die
-}
-
-gclient_runhooks() {
-	# Run all hooks except gyp_chromium.
-	einfo "gclient runhooks -->"
-	cp src/DEPS src/DEPS.orig || die
-	sed -e 's:"python", "src/build/gyp_chromium":"true":' -i src/DEPS || die
-	"${WORKDIR}/depot_tools/gclient" runhooks
-	local ret=$?
-	mv src/DEPS.orig src/DEPS || die
-	[[ ${ret} -eq 0 ]] || die "gclient runhooks failed"
-}
-
-src_unpack() {
-	# grab depot_tools.
-	DEPOT_TOOLS_REPO="https://chromium.googlesource.com/chromium/tools/depot_tools.git"
-	git-r3_fetch "${DEPOT_TOOLS_REPO}"
-	git-r3_checkout "${DEPOT_TOOLS_REPO}" "${WORKDIR}/depot_tools"
-
-	cd "${WORKDIR}" || die
-
-	gclient_config "${EGIT_REPO_URI}" "src/ozone" ".DEPS.git"
-
-	gclient_sync
-
-	# Disabled so that we do not download nacl toolchain.
-	#gclient_runhooks
-
-	# Since we're not git-r3_checkout for the ozone repo, we need
-	# to set the EGIT_VERSION ourselves. 
-	cd ${S}/ozone
-	local new_commit_id=$(
-		git rev-parse --verify HEAD
-	)
-	export EGIT_VERSION=${new_commit_id}
 }
 
 src_prepare() {
@@ -232,36 +194,21 @@ src_prepare() {
 	#	touch out/Release/gen/sdk/toolchain/linux_x86_newlib/stamp.untar || die
 	# fi
 
-	# Upstream Ozone-Wayland patches
-	EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" \
-				epatch "${S}"/ozone/patches/00* || die
-
-	
-	# jump now to WebRTC dir and apply the needed patches there
-	#cd third_party/webrtc/
-	#EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" \
-	#			epatch "${S}"/ozone/patches/100* || die
-
-
-	# Gentoo Chromium patches
-	cd "${S}"
-	epatch "${FILESDIR}/chromium-system-jinja-r7.patch"
-	epatch "${FILESDIR}/chromium-libsecret-r0.patch"
-
-	# Remove any lingering nacl toolchain files.
-	rm -rf native_client/toolchain/linux_x86_newlib
+	epatch "${FILESDIR}/${PN}-system-ffmpeg-r0.patch"
+	epatch "${FILESDIR}/${PN}-system-jinja-r7.patch"
+	epatch "${FILESDIR}/enable_vaapi_on_linux-48.diff"
+	epatch "${FILESDIR}/chromium-widevine-r1.patch"
 
 	epatch_user
-	
-	${PYTHON} build/util/lastchange.py -o build/util/LASTCHANGE || die
-	${PYTHON} build/util/lastchange.py -s third_party/WebKit \
-		-o build/util/LASTCHANGE.blink || die
 
-	. chrome/VERSION
-	elog "Installing/updating to version ${MAJOR}.${MINOR}.${BUILD}.${PATCH} (Ozone-Wayland: ${EGIT_VERSION})"
+	local conditional_bundled_libraries=""
+	if ! use system-ffmpeg; then
+		conditional_bundled_libraries+=" third_party/ffmpeg"
+	fi
 
 	# Remove most bundled libraries. Some are still needed.
 	build/linux/unbundle/remove_bundled_libraries.py \
+		${conditional_bundled_libraries} \
 		'base/third_party/dmg_fp' \
 		'base/third_party/dynamic_annotations' \
 		'base/third_party/icu' \
@@ -298,7 +245,6 @@ src_prepare() {
 		'third_party/devscripts' \
 		'third_party/dom_distiller_js' \
 		'third_party/dom_distiller_js/dist/proto_gen/third_party/dom_distiller_js' \
-		'third_party/ffmpeg' \
 		'third_party/fips181' \
 		'third_party/flot' \
 		'third_party/google_input_tools' \
@@ -313,19 +259,19 @@ src_prepare() {
 		'third_party/libaddressinput' \
 		'third_party/libjingle' \
 		'third_party/libphonenumber' \
+		'third_party/libsecret' \
 		'third_party/libsrtp' \
 		'third_party/libudev' \
 		'third_party/libusb' \
+		'third_party/libva' \
 		'third_party/libvpx_new' \
 		'third_party/libvpx_new/source/libvpx/third_party/x86inc' \
-		'third_party/libva' \
 		'third_party/libxml/chromium' \
 		'third_party/libwebm' \
 		'third_party/libyuv' \
 		'third_party/lss' \
 		'third_party/lzma_sdk' \
 		'third_party/mesa' \
-		'third_party/minigbm' \
 		'third_party/modp_b64' \
 		'third_party/mojo' \
 		'third_party/mt19937ar' \
@@ -398,6 +344,7 @@ src_configure() {
 	# TODO: use_system_sqlite (http://crbug.com/22208).
 	myconf+="
 		-Duse_system_bzip2=1
+		-Duse_system_ffmpeg=$(usex system-ffmpeg 1 0)
 		-Duse_system_flac=1
 		-Duse_system_harfbuzz=1
 		-Duse_system_icu=1
@@ -439,8 +386,9 @@ src_configure() {
 		$(gyp_use hotwording enable_hotwording)
 		$(gyp_use kerberos)
 		$(gyp_use pulseaudio)
+		$(gyp_use opencl)
 		$(gyp_use tcmalloc use_allocator tcmalloc none)
-		$(gyp_use opencl)"
+		$(gyp_use widevine enable_widevine)"
 
 	# Use explicit library dependencies instead of dlopen.
 	# This makes breakages easier to detect by revdep-rebuild.
@@ -475,14 +423,6 @@ src_configure() {
 
 	ffmpeg_branding="$(usex proprietary-codecs Chrome Chromium)"
 	myconf+=" -Dproprietary_codecs=1 -Dffmpeg_branding=${ffmpeg_branding}"
-
-	# Ozone-Wayland
-	myconf+="
-		-Duse_ash=1
-		-Duse_aura=1
-		-Duse_ozone=1
-		-Denable_xdg_shell=1
-		-Duse_xkbcommon=1"
 
 	# Set up Google API keys, see http://www.chromium.org/developers/how-tos/api-keys .
 	# Note: these are for Gentoo use ONLY. For your own distribution,
@@ -542,38 +482,43 @@ src_configure() {
 		if use x86; then
 			filter-flags "-g*"
 		fi
+
 		# Prevent libvpx build failures. Bug 530248, 544702, 546984.
 		if [[ ${myarch} == amd64 || ${myarch} == x86 ]]; then
-			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx2
+			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2
 		fi
 	fi
 
 	# Make sure the build system will use the right tools, bug #340795.
-	tc-export AR CC CXX RANLIB
+	tc-export AR CC CXX NM
 
 	# Tools for building programs to be executed on the build system, bug #410883.
-	export AR_host=$(tc-getBUILD_AR)
-	export CC_host=$(tc-getBUILD_CC)
-	export CXX_host=$(tc-getBUILD_CXX)
-	export LD_host=${CXX_host}
+	if tc-is-cross-compiler; then
+		export AR_host=$(tc-getBUILD_AR)
+		export CC_host=$(tc-getBUILD_CC)
+		export CXX_host=$(tc-getBUILD_CXX)
+		export NM_host=$(tc-getBUILD_NM)
+	fi
 
 	# Bug 491582.
 	export TMPDIR="${WORKDIR}/temp"
 	mkdir -p -m 755 "${TMPDIR}" || die
 
-	local build_ffmpeg_args=""
-	if use pic && [[ "${ffmpeg_target_arch}" == "ia32" ]]; then
-		build_ffmpeg_args+=" --disable-asm"
-	fi
+	if ! use system-ffmpeg; then
+		local build_ffmpeg_args=""
+		if use pic && [[ "${ffmpeg_target_arch}" == "ia32" ]]; then
+			build_ffmpeg_args+=" --disable-asm"
+		fi
 
-	# Re-configure bundled ffmpeg. See bug #491378 for example reasons.
-	einfo "Configuring bundled ffmpeg..."
-	pushd third_party/ffmpeg > /dev/null || die
-	chromium/scripts/build_ffmpeg.py linux ${ffmpeg_target_arch} \
-		--branding ${ffmpeg_branding} -- ${build_ffmpeg_args} || die
-	chromium/scripts/copy_config.sh || die
-	chromium/scripts/generate_gyp.py || die
-	popd > /dev/null || die
+		# Re-configure bundled ffmpeg. See bug #491378 for example reasons.
+		einfo "Configuring bundled ffmpeg..."
+		pushd third_party/ffmpeg > /dev/null || die
+		chromium/scripts/build_ffmpeg.py linux ${ffmpeg_target_arch} \
+			--branding ${ffmpeg_branding} -- ${build_ffmpeg_args} || die
+		chromium/scripts/copy_config.sh || die
+		chromium/scripts/generate_gyp.py || die
+		popd > /dev/null || die
+	fi
 
 	third_party/libaddressinput/chromium/tools/update-strings.py || die
 
@@ -623,6 +568,7 @@ src_install() {
 	fperms 4755 "${CHROMIUM_HOME}/chrome-sandbox"
 
 	doexe out/Release/chromedriver || die
+	use widevine && doexe out/Release/libwidevinecdmadapter.so
 
 	# if ! use arm; then
 	#	doexe out/Release/nacl_helper{,_bootstrap} || die
