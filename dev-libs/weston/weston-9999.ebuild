@@ -25,7 +25,7 @@ fi
 LICENSE="CCPL-Attribution-ShareAlike-3.0 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+clients debug +drm +simple-clients static-libs +tablet +wayland-compositor +x11"
+IUSE="+clients debug +drm +simple-clients static-libs +tablet +wayland-compositor rdp +x11 systemd"
 
 RDEPEND="dev-libs/wayland
 	dev-libs/wayland-protocols
@@ -36,7 +36,8 @@ RDEPEND="dev-libs/wayland
 	debug? ( sys-libs/libunwind )
 	drm? ( >=virtual/udev-136 >=x11-libs/libdrm-2.4.23 media-libs/mesa[gbm] )
 	clients? ( >=x11-libs/cairo-1.10.0 x11-libs/gdk-pixbuf dev-libs/glib:2
-			   x11-libs/libxkbcommon media-libs/libpng app-text/poppler )"
+			   x11-libs/libxkbcommon media-libs/libpng app-text/poppler )
+	systemd? ( sys-apps/systemd )"
 DEPEND="${RDEPEND}"
 
 src_prepare() {
@@ -47,15 +48,20 @@ src_prepare() {
 
 src_configure() {
 	econf --disable-setuid-install \
+		  --enable-egl \
 		  $(use_enable debug libunwind) \
 		  $(use_enable static-libs static) \
 		  $(use_enable drm drm-compositor) \
+		  $(use_enable rdp rdp-compositor) \
 		  $(use_enable wayland-compositor) \
 		  $(use_enable x11 x11-compositor) \
 		  $(use_enable tablet tablet-shell) \
 		  $(use_enable clients) \
 		  $(use_enable clients demo-clients-install) \
-		  $(use_enable simple-clients)
+		  $(use_enable simple-clients) \
+		  $(use_enable simple-clients simple-egl-clients) \
+		  $(use_enable systemd systemd-login) \
+		  $(use_enable systemd systemd-notify)
 }
 
 src_compile() {
