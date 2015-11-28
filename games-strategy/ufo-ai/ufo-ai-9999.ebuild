@@ -181,6 +181,6 @@ src_install() {
 	prepgamesdirs
 
 	# Allow "other" users to read compiled maps
+	find "${ED}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -type d -exec chmod o+rx '{}' \;
 	find "${ED}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -name '*.bsp' -exec chmod o+r '{}' \;
-
 }
