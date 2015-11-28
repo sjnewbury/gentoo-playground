@@ -24,7 +24,7 @@ fi
 
 LICENSE="CCPL-Attribution-ShareAlike-3.0 MIT"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS=
 IUSE="+clients debug +drm +simple-clients static-libs +tablet +wayland-compositor rdp +x11 systemd"
 
 RDEPEND="dev-libs/wayland
