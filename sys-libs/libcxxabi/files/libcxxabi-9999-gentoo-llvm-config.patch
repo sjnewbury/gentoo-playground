@@ -1,0 +1,20 @@
+--- CMakeLists.txt~	2015-12-18 15:18:25.000000000 +0100
++++ CMakeLists.txt	2015-12-18 15:34:35.616887531 +0100
+@@ -23,8 +23,7 @@
+     message(STATUS "Found LLVM_CONFIG as ${LLVM_CONFIG}")
+     set(CONFIG_COMMAND ${LLVM_CONFIG}
+       "--includedir"
+-      "--prefix"
+-      "--src-root")
++      "--prefix")
+     execute_process(
+       COMMAND ${CONFIG_COMMAND}
+       RESULT_VARIABLE HAD_ERROR
+@@ -42,7 +41,6 @@
+ 
+     list(GET CONFIG_OUTPUT 0 INCLUDE_DIR)
+     list(GET CONFIG_OUTPUT 1 LLVM_OBJ_ROOT)
+-    list(GET CONFIG_OUTPUT 2 MAIN_SRC_DIR)
+ 
+     set(LLVM_INCLUDE_DIR ${INCLUDE_DIR} CACHE PATH "Path to llvm/include")
+     set(LLVM_BINARY_DIR ${LLVM_OBJ_ROOT} CACHE PATH "Path to LLVM build tree")

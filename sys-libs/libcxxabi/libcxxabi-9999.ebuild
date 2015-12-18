@@ -35,6 +35,11 @@ DEPEND="${RDEPEND}
         >=sys-devel/llvm-3.5
         "
 
+src_prepare() {
+	default
+	epatch "${FILESDIR}"/${P}-gentoo-llvm-config.patch
+}
+
 multilib_src_configure() {
         append-cxxflags -std=c++11
 
