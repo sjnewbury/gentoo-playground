@@ -172,22 +172,12 @@ diff --git a/src/config/ConfigOption.hxx b/src/config/ConfigOption.hxx
 index 506c9e9..e76c3dd 100644
 --- a/src/config/ConfigOption.hxx
 +++ b/src/config/ConfigOption.hxx
-@@ -20,6 +20,7 @@
- #ifndef MPD_CONFIG_OPTION_HXX
- #define MPD_CONFIG_OPTION_HXX
- 
-+#include <config.h>
- #include "Compiler.h"
- 
- #if defined(WIN32) && CLANG_OR_GCC_VERSION(4,7)
-@@ -89,6 +90,9 @@
+@@ -89,6 +89,7 @@
  	RESAMPLER,
  	AUDIO_FILTER,
  	DATABASE,
-+#ifdef ENABLE_RTOPT
-+	RTOPT,
-+#endif
  	NEIGHBORS,
++	RTOPT,
  	MAX
  };
 diff --git a/src/config/ConfigTemplates.cxx b/src/config/ConfigTemplates.cxx
