@@ -184,21 +184,11 @@ diff --git a/src/config/ConfigTemplates.cxx b/src/config/ConfigTemplates.cxx
 index 8eaa22b..e90f7c3 100644
 --- a/src/config/ConfigTemplates.cxx
 +++ b/src/config/ConfigTemplates.cxx
-@@ -21,6 +21,7 @@
- #include "ConfigOption.hxx"
- #include "util/Macros.hxx"
- 
-+#include <config.h>
- #include <string.h>
- 
- const ConfigTemplate config_param_templates[] = {
-@@ -90,6 +91,9 @@
+@@ -90,6 +90,7 @@
  	{ "filter", true },
  	{ "database" },
  	{ "neighbors", true },
-+#ifdef ENABLE_RTOPT
 +	{ "realtime_option", true },
-+#endif
  };
  
  static constexpr unsigned n_config_block_templates =
