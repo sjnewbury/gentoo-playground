@@ -4,7 +4,7 @@
 
 EAPI=5
 
-inherit systemd toolchain-funcs
+inherit eutils systemd toolchain-funcs
 
 DESCRIPTION="Dell Inspiron and Latitude utilities"
 HOMEPAGE="https://launchpad.net/i8kutils"
