@@ -29,7 +29,7 @@ DEPEND="alsa? ( media-libs/alsa-lib )
 		media-libs/sdl2-net
 	)"
 
-S=${WORKDIR}/${PN}
+#S=${WORKDIR}/${PN}
 
 src_unpack() {
 	subversion_src_unpack
@@ -37,7 +37,7 @@ src_unpack() {
 
 src_prepare() {
 	subversion_src_prepare
-	use sdl2 && epatch "${FILESDIR}"/${PN}-sdl2_20150503.patch
+	epatch "${FILESDIR}"/${PN}_sdl2_20150713.diff
 	eautoreconf
 }
 
@@ -49,7 +49,7 @@ src_configure() {
 		$(use_enable !hardened dynamic-x86) \
 		$(use_enable debug) \
 		$(use_enable opengl) \
-		$(use_with sdl2)
+		--with-sdl=$(use sdl2 && echo sdl2 || echo sdl12)
 }
 
 src_install() {
