@@ -15,7 +15,8 @@ HOMEPAGE="http://ufoai.sourceforge.net/"
 #	mirror://sourceforge/ufoai/${MY_P}-data.tar
 #	http://mattn.ninex.info/1maps.pk3"
 SRC_URI=
-EGIT_REPO_URI="git://git.code.sf.net/p/ufoai/code"
+#EGIT_REPO_URI="git://git.code.sf.net/p/ufoai/code"
+EGIT_REPO_URI="https://github.com/ufoai/ufoai.git"
 
 LICENSE="GPL-2"
 SLOT="0"
