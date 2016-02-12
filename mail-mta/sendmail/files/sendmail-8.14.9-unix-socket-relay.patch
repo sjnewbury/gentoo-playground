@@ -15,7 +15,7 @@
  ifdef(`_ACCESS_TABLE_', `dnl
 -R$*		$: $1 $| $>D <$&{server_name}> <?> <! AuthInfo> <>
 +R$*		$: $1 $| $>D <$&{h}> <?> <! AuthInfo> <>
-+R$* $| <?>$*	$: $1 $| $>A <$&{server_addr}> <?> <! AuthInfo> <>
++R$* $| <?>$*	$: $1 $| $>A <$&{server_name}> <?> <! AuthInfo> <>
  R$* $| <?>$*	$: $1 $| $>A <$&{server_addr}> <?> <! AuthInfo> <>
  R$* $| <?>$*	$: $1 $| <$(access AuthInfo`'_TAG_DELIM_ $: ? $)> <>
  R$* $| <?>$*	$@ no				no authinfo available
