@@ -8,7 +8,7 @@ DESCRIPTION="The GNU Compiler Collection"
 HOMEPAGE="https://gcc.gnu.org/"
 RESTRICT="strip" # cross-compilers need controlled stripping
 
-inherit eutils fixheadtails flag-o-matic gnuconfig libtool multilib pax-utils toolchain-funcs versionator
+inherit eutils fixheadtails flag-o-matic gnuconfig libtool multilib-build pax-utils toolchain-funcs versionator
 
 if [[ ${PV} == *_pre9999* ]] ; then
 	EGIT_REPO_URI="git://gcc.gnu.org/git/gcc.git"
@@ -212,13 +212,13 @@ DEPEND="${RDEPEND}
 if in_iuse gcj ; then
 	GCJ_DEPS=">=media-libs/libart_lgpl-2.1"
 	GCJ_GTK_DEPS="
-		x11-libs/libXt
-		x11-libs/libX11
-		x11-libs/libXtst
-		x11-proto/xproto
-		x11-proto/xextproto
-		=x11-libs/gtk+-2*
-		virtual/pkgconfig
+		x11-libs/libXt[${MULTILIB_USEDEP}]
+		x11-libs/libX11[${MULTILIB_USEDEP}]
+		x11-libs/libXtst[${MULTILIB_USEDEP}]
+		x11-proto/xproto[${MULTILIB_USEDEP}]
+		x11-proto/xextproto[${MULTILIB_USEDEP}]
+		=x11-libs/gtk+-2*[${MULTILIB_USEDEP}]
+		virtual/pkgconfig[${MULTILIB_USEDEP}]
 	"
 	tc_version_is_at_least 3.4 && GCJ_GTK_DEPS+=" x11-libs/pango"
 	tc_version_is_at_least 4.2 && GCJ_DEPS+=" app-arch/zip app-arch/unzip"
