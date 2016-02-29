@@ -5,7 +5,7 @@
 EAPI="3"
 PYTHON_DEPEND="2:2.5"
 
-inherit eutils distutils git-2
+inherit eutils distutils git-r3
 
 EGIT_REPO_URI="git://deluge-torrent.org/${PN}.git
 	http://git.deluge-torrent.org/${PN}/"

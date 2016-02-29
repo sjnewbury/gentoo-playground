@@ -1,15 +1,12 @@
 # Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: $
+# $Id$
 
 EAPI="5"
 GCONF_DEBUG="yes"
 GNOME2_LA_PUNT="yes"
 
-inherit autotools eutils gnome2 pam readme.gentoo systemd user
-if [[ ${PV} = 9999 ]]; then
-	inherit gnome2-live
-fi
+inherit autotools eutils gnome2 pam readme.gentoo systemd user versionator
 
 DESCRIPTION="GNOME Display Manager for managing graphical display servers and user logins"
 HOMEPAGE="https://wiki.gnome.org/Projects/GDM"
@@ -24,13 +21,10 @@ LICENSE="
 "
 
 SLOT="0"
-IUSE="accessibility audit branding fprint +introspection ipv6 plymouth selinux smartcard +systemd tcpd test wayland xinerama"
-REQUIRED_USE="wayland? ( systemd )"
-if [[ ${PV} = 9999 ]]; then
-	KEYWORDS=""
-else
-	KEYWORDS="~alpha ~amd64 ~arm ~ia64 ~ppc ~ppc64 ~sh ~sparc ~x86"
-fi
+
+IUSE="accessibility audit branding fprint +introspection ipv6 plymouth selinux smartcard tcpd test wayland xinerama"
+
+KEYWORDS="~alpha ~amd64 ~arm ~ia64 ~ppc ~ppc64 ~sh ~sparc ~x86"
 
 # NOTE: x11-base/xorg-server dep is for X_SERVER_PATH etc, bug #295686
 # nspr used by smartcard extension
@@ -38,7 +32,7 @@ fi
 # We need either systemd or >=openrc-0.12 to restart gdm properly, bug #463784
 COMMON_DEPEND="
 	app-text/iso-codes
-	>=dev-libs/glib-2.36:2
+	>=dev-libs/glib-2.36:2[dbus]
 	>=x11-libs/gtk+-2.91.1:3
 	>=gnome-base/dconf-0.20
 	>=gnome-base/gnome-settings-daemon-3.1.4
@@ -59,16 +53,13 @@ COMMON_DEPEND="
 	>=x11-misc/xdg-utils-1.0.2-r3
 
 	virtual/pam
-	systemd? ( >=sys-apps/systemd-186:0=[pam] )
-	!systemd? (
-		>=x11-base/xorg-server-1.14.3-r1
-		>=sys-auth/consolekit-0.4.5_p20120320-r2
-		!<sys-apps/openrc-0.12
-	)
-	sys-auth/pambase[systemd?]
+
+	>=sys-apps/systemd-186:0=[pam]
+
+	sys-auth/pambase[systemd]
 
 	audit? ( sys-process/audit )
-	introspection? ( >=dev-libs/gobject-introspection-0.9.12 )
+	introspection? ( >=dev-libs/gobject-introspection-0.9.12:= )
 	plymouth? ( sys-boot/plymouth )
 	selinux? ( sys-libs/libselinux )
 	tcpd? ( >=sys-apps/tcp-wrappers-7.6 )
@@ -97,17 +88,13 @@ DEPEND="${COMMON_DEPEND}
 	app-text/docbook-xml-dtd:4.1.2
 	dev-util/gdbus-codegen
 	>=dev-util/intltool-0.40.0
+	dev-util/itstool
 	virtual/pkgconfig
 	x11-proto/inputproto
 	x11-proto/randrproto
 	test? ( >=dev-libs/check-0.9.4 )
 	xinerama? ( x11-proto/xineramaproto )
 "
-
-if [[ ${PV} = 9999 ]]; then
-	DEPEND="${DEPEND}
-		app-text/yelp-tools"
-fi
 
 DOC_CONTENTS="
 	To make GDM start at boot, run:\n
@@ -153,18 +140,13 @@ src_prepare() {
 
 	epatch_user
 
-	if [[ ${PV} != 9999 ]]; then
-		eautoreconf
-	fi
+	eautoreconf
 
 	gnome2_src_prepare
 }
 
 src_configure() {
-	local myconf=""
-
-	[[ ${PV} != 9999 ]] && myconf="ITSTOOL=$(type -P true)"
-
+	local myconf
 	# PAM is the only auth scheme supported
 	# even though configure lists shadow and crypt
 	# they don't have any corresponding code.
@@ -175,6 +157,7 @@ src_configure() {
 	! use plymouth && myconf="${myconf} --with-initial-vt=7"
 
 	gnome2_src_configure \
+		--enable-gdm-xsession \
 		--with-run-dir=/run/gdm \
 		--localstatedir="${EPREFIX}"/var \
 		--disable-static \
@@ -182,15 +165,12 @@ src_configure() {
 		--enable-authentication-scheme=pam \
 		--with-default-pam-config=exherbo \
 		--with-at-spi-registryd-directory="${EPREFIX}"/usr/libexec \
-		--with-consolekit-directory="${EPREFIX}"/usr/lib/ConsoleKit \
 		--without-xevie \
+		--enable-systemd-journal \
 		$(use_with audit libaudit) \
 		$(use_enable ipv6) \
 		$(use_with plymouth) \
 		$(use_with selinux) \
-		$(use_with systemd) \
-		$(use_with !systemd console-kit) \
-		$(use_enable systemd systemd-journal) \
 		$(systemd_with_unitdir) \
 		$(use_with tcpd tcp-wrappers) \
 		$(use_enable wayland wayland-support) \
@@ -205,9 +185,9 @@ src_install() {
 		rm "${ED}"/usr/share/gdm/greeter/autostart/orca-autostart.desktop || die
 	fi
 
-	insinto /etc/X11/xinit/xinitrc.d
-	newins "${FILESDIR}/49-keychain-r1" 49-keychain
-	newins "${FILESDIR}/50-ssh-agent-r1" 50-ssh-agent
+	exeinto /etc/X11/xinit/xinitrc.d
+	newexe "${FILESDIR}/49-keychain-r1" 49-keychain
+	newexe "${FILESDIR}/50-ssh-agent-r1" 50-ssh-agent
 
 	# gdm user's home directory
 	keepdir /var/lib/gdm
@@ -237,4 +217,9 @@ pkg_postinst() {
 	eend ${ret}
 
 	readme.gentoo_print_elog
+
+	if ! version_is_at_least 3.16.0 ${REPLACING_VERSIONS}; then
+		ewarn "GDM will now use a new TTY per logged user as explained at:"
+		ewarn "https://wiki.gentoo.org/wiki/Project:GNOME/GNOME3-Troubleshooting#GDM_.3E.3D_3.16_opens_one_graphical_session_per_user"
+	fi
 }

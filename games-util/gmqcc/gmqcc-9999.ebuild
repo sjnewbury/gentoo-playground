@@ -5,7 +5,7 @@
 EAPI=5
 EGIT_REPO_URI="git://github.com/graphitemaster/gmqcc.git"
 
-inherit toolchain-funcs
+inherit cmake-utils
 [[ ${PV} == *9999* ]] && inherit git-2
 
 DESCRIPTION="An Improved Quake C Compiler"
@@ -19,16 +19,9 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE=""
 
-src_prepare() {
-	# Let's not be *too* pedantic
-	sed -i -e '/CFLAGS += -pedantic-errors/d' Makefile 
-}
-
-src_configure() {
-	tc-export CC
-}
-
 src_install() {
-	emake DESTDIR="${D}" PREFIX="${EPREFIX}/usr" install
-	dodoc README AUTHORS TODO CHANGES
+	dobin ${CMAKE_BUILD_DIR}/gmqcc
+	dobin ${CMAKE_BUILD_DIR}/qcvm
+	doman ${S}/doc/*.1
+	dodoc ${S}/README ${S}/AUTHORS
 }
