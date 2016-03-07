@@ -147,7 +147,7 @@ if [[ ${PN} != "kgcc64" && ${PN} != gcc-* ]] ; then
 	tc_version_is_at_least 4.1 && IUSE+=" libssp objc++"
 	tc_version_is_at_least 4.2 && IUSE_DEF+=( openmp )
 	tc_version_is_at_least 4.3 && IUSE+=" fixed-point"
-	tc_version_is_at_least 4.6 && IUSE+=" avx"
+	tc_version_is_at_least 4.6 && IUSE+=" cpu_flags_x86_avx"
 	tc_version_is_at_least 4.7 && IUSE+=" go"
 	# Note: while <=gcc-4.7 also supported graphite, it required forked ppl
 	# versions which we dropped.  Since graphite was also experimental in
