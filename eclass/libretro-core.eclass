@@ -68,9 +68,11 @@ libretro-core_src_unpack() {
 libretro-core_src_prepare() {
 	if [ -f "${S}"/Makefile ]; then
 		einfo "Attempting to hack flags to Gentooize libretro core..."
+		# Expand CFLAGS to prevent potential self-references
 		sed \
-			-e 's/-O3/\$(CFLAGS)/g' \
-			-i {m,M}akefile* && einfo "  Success!"
+			-e "s/-O3/${CFLAGS}/g" \
+			-iname $(find ${S} -type f -name 'Makefile*') \
+			&& einfo "  Success!"
 	fi
 	default_src_prepare
 }
