@@ -1,0 +1,606 @@
+diff --git a/include/mbedtls/check_config.h b/include/mbedtls/check_config.h
+index a95af6c..75cdcbc 100644
+--- a/include/mbedtls/check_config.h
++++ b/include/mbedtls/check_config.h
+@@ -256,6 +256,36 @@
+ #error "MBEDTLS_PLATFORM_EXIT_MACRO and MBEDTLS_PLATFORM_STD_EXIT/MBEDTLS_PLATFORM_EXIT_ALT cannot be defined simultaneously"
+ #endif
+ 
++#if defined(MBEDTLS_PLATFORM_TIME_ALT) &&\
++    ( !defined(MBEDTLS_PLATFORM_C) ||\
++        !defined(MBEDTLS_HAVE_TIME) )
++#error "MBEDTLS_PLATFORM_TIME_ALT defined, but not all prerequisites"
++#endif
++
++#if defined(MBEDTLS_PLATFORM_TIME_MACRO) &&\
++    ( !defined(MBEDTLS_PLATFORM_C) ||\
++        !defined(MBEDTLS_HAVE_TIME) )
++#error "MBEDTLS_PLATFORM_TIME_MACRO defined, but not all prerequisites"
++#endif
++
++#if defined(MBEDTLS_PLATFORM_TIME_TYPE_MACRO) &&\
++    ( !defined(MBEDTLS_PLATFORM_C) ||\
++        !defined(MBEDTLS_HAVE_TIME) )
++#error "MBEDTLS_PLATFORM_TIME_TYPE_MACRO defined, but not all prerequisites"
++#endif
++
++#if defined(MBEDTLS_PLATFORM_TIME_MACRO) &&\
++    ( defined(MBEDTLS_PLATFORM_STD_TIME) ||\
++        defined(MBEDTLS_PLATFORM_TIME_ALT) )
++#error "MBEDTLS_PLATFORM_TIME_MACRO and MBEDTLS_PLATFORM_STD_TIME/MBEDTLS_PLATFORM_TIME_ALT cannot be defined simultaneously"
++#endif
++
++#if defined(MBEDTLS_PLATFORM_TIME_TYPE_MACRO) &&\
++    ( defined(MBEDTLS_PLATFORM_STD_TIME) ||\
++        defined(MBEDTLS_PLATFORM_TIME_ALT) )
++#error "MBEDTLS_PLATFORM_TIME_TYPE_MACRO and MBEDTLS_PLATFORM_STD_TIME/MBEDTLS_PLATFORM_TIME_ALT cannot be defined simultaneously"
++#endif
++
+ #if defined(MBEDTLS_PLATFORM_FPRINTF_ALT) && !defined(MBEDTLS_PLATFORM_C)
+ #error "MBEDTLS_PLATFORM_FPRINTF_ALT defined, but not all prerequisites"
+ #endif
+@@ -352,6 +382,12 @@
+ #error "MBEDTLS_PLATFORM_STD_EXIT defined, but not all prerequisites"
+ #endif
+ 
++#if defined(MBEDTLS_PLATFORM_STD_TIME) &&\
++    ( !defined(MBEDTLS_PLATFORM_TIME_ALT) ||\
++        !defined(MBEDTLS_HAVE_TIME) )
++#error "MBEDTLS_PLATFORM_STD_TIME defined, but not all prerequisites"
++#endif
++
+ #if defined(MBEDTLS_PLATFORM_STD_FPRINTF) &&\
+     !defined(MBEDTLS_PLATFORM_FPRINTF_ALT)
+ #error "MBEDTLS_PLATFORM_STD_FPRINTF defined, but not all prerequisites"
+diff --git a/include/mbedtls/config.h b/include/mbedtls/config.h
+index 3b7c85b..456ec66 100644
+--- a/include/mbedtls/config.h
++++ b/include/mbedtls/config.h
+@@ -71,6 +71,10 @@
+  * The time does not need to be correct, only time differences are used,
+  * by contrast with MBEDTLS_HAVE_TIME_DATE
+  *
++ * Defining MBEDTLS_HAVE_TIME allows you to specify MBEDTLS_PLATFORM_TIME_ALT,
++ * MBEDTLS_PLATFORM_TIME_MACRO, MBEDTLS_PLATFORM_TIME_TYPE_MACRO and
++ * MBEDTLS_PLATFORM_STD_TIME.
++ *
+  * Comment if your system does not support time functions
+  */
+ #define MBEDTLS_HAVE_TIME
+@@ -148,6 +152,8 @@
+  * \warning MBEDTLS_PLATFORM_XXX_ALT cannot be defined at the same time as
+  * MBEDTLS_PLATFORM_XXX_MACRO!
+  *
++ * Requires: MBEDTLS_PLATFORM_TIME_ALT requires MBEDTLS_HAVE_TIME
++ *
+  * Uncomment a macro to enable alternate implementation of specific base
+  * platform function
+  */
+@@ -2512,7 +2518,7 @@
+ //#define MBEDTLS_PLATFORM_STD_CALLOC        calloc /**< Default allocator to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_STD_FREE            free /**< Default free to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_STD_EXIT            exit /**< Default exit to use, can be undefined */
+-//#define MBEDTLS_PLATFORM_STD_TIME            time /**< Default time to use, can be undefined */
++//#define MBEDTLS_PLATFORM_STD_TIME            time /**< Default time to use, can be undefined. MBEDTLS_HAVE_TIME must be enabled */
+ //#define MBEDTLS_PLATFORM_STD_FPRINTF      fprintf /**< Default fprintf to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_STD_PRINTF        printf /**< Default printf to use, can be undefined */
+ /* Note: your snprintf must correclty zero-terminate the buffer! */
+@@ -2528,8 +2534,8 @@
+ //#define MBEDTLS_PLATFORM_CALLOC_MACRO        calloc /**< Default allocator macro to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_FREE_MACRO            free /**< Default free macro to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_EXIT_MACRO            exit /**< Default exit macro to use, can be undefined */
+-//#define MBEDTLS_PLATFORM_TIME_MACRO            time /**< Default time macro to use, can be undefined */
+-//#define MBEDTLS_PLATFORM_TIME_TYPE_MACRO       time_t /**< Default time macro to use, can be undefined */
++//#define MBEDTLS_PLATFORM_TIME_MACRO            time /**< Default time macro to use, can be undefined. MBEDTLS_HAVE_TIME must be enabled */
++//#define MBEDTLS_PLATFORM_TIME_TYPE_MACRO       time_t /**< Default time macro to use, can be undefined. MBEDTLS_HAVE_TIME must be enabled */
+ //#define MBEDTLS_PLATFORM_FPRINTF_MACRO      fprintf /**< Default fprintf macro to use, can be undefined */
+ //#define MBEDTLS_PLATFORM_PRINTF_MACRO        printf /**< Default printf macro to use, can be undefined */
+ /* Note: your snprintf must correclty zero-terminate the buffer! */
+@@ -2567,7 +2573,11 @@
+ /* \} name SECTION: Customisation configuration options */
+ 
+ /* Target and application specific configurations */
+-//#define YOTTA_CFG_MBEDTLS_USER_CONFIG_FILE "target_config.h"
++//#define YOTTA_CFG_MBEDTLS_TARGET_CONFIG_FILE "mbedtls/target_config.h"
++
++#if defined(TARGET_LIKE_MBED) && defined(YOTTA_CFG_MBEDTLS_TARGET_CONFIG_FILE)
++#include YOTTA_CFG_MBEDTLS_TARGET_CONFIG_FILE
++#endif
+ 
+ /*
+  * Allow user to override any previous default.
+diff --git a/include/mbedtls/platform.h b/include/mbedtls/platform.h
+index caf8f25..b1b019e 100644
+--- a/include/mbedtls/platform.h
++++ b/include/mbedtls/platform.h
+@@ -29,6 +29,10 @@
+ #include MBEDTLS_CONFIG_FILE
+ #endif
+ 
++#if defined(MBEDTLS_HAVE_TIME)
++#include "mbedtls/platform_time.h"
++#endif
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -244,39 +248,6 @@ int mbedtls_platform_set_exit( void (*exit_func)( int status ) );
+ #endif
+ 
+ /*
+- * The time_t datatype
+- */
+-#if defined(MBEDTLS_PLATFORM_TIME_TYPE_MACRO)
+-typedef MBEDTLS_PLATFORM_TIME_TYPE_MACRO mbedtls_time_t;
+-#else
+-/* For time_t */
+-#include <time.h>
+-typedef time_t mbedtls_time_t;
+-#endif /* MBEDTLS_PLATFORM_TIME_TYPE_MACRO */
+-
+-/*
+- * The function pointers for time
+- */
+-#if defined(MBEDTLS_PLATFORM_TIME_ALT)
+-extern mbedtls_time_t (*mbedtls_time)( mbedtls_time_t* time );
+-
+-/**
+- * \brief   Set your own time function pointer
+- *
+- * \param   time_func   the time function implementation
+- *
+- * \return              0
+- */
+-int mbedtls_platform_set_time( mbedtls_time_t (*time_func)( mbedtls_time_t* time ) );
+-#else
+-#if defined(MBEDTLS_PLATFORM_TIME_MACRO)
+-#define mbedtls_time    MBEDTLS_PLATFORM_TIME_MACRO
+-#else
+-#define mbedtls_time   time
+-#endif /* MBEDTLS_PLATFORM_TIME_MACRO */
+-#endif /* MBEDTLS_PLATFORM_TIME_ALT */
+-
+-/*
+  * The function pointers for reading from and writing a seed file to
+  * Non-Volatile storage (NV) in a platform-independent way
+  *
+diff --git a/include/mbedtls/platform_time.h b/include/mbedtls/platform_time.h
+new file mode 100644
+index 0000000..abb3431
+--- /dev/null
++++ b/include/mbedtls/platform_time.h
+@@ -0,0 +1,81 @@
++/**
++ * \file platform_time.h
++ *
++ * \brief mbed TLS Platform time abstraction
++ *
++ *  Copyright (C) 2006-2016, ARM Limited, All Rights Reserved
++ *  SPDX-License-Identifier: Apache-2.0
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
++ *  not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *  http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ *
++ *  This file is part of mbed TLS (https://tls.mbed.org)
++ */
++#ifndef MBEDTLS_PLATFORM_TIME_H
++#define MBEDTLS_PLATFORM_TIME_H
++
++#if !defined(MBEDTLS_CONFIG_FILE)
++#include "config.h"
++#else
++#include MBEDTLS_CONFIG_FILE
++#endif
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/**
++ * \name SECTION: Module settings
++ *
++ * The configuration options you can set for this module are in this section.
++ * Either change them in config.h or define them on the compiler command line.
++ * \{
++ */
++
++/*
++ * The time_t datatype
++ */
++#if defined(MBEDTLS_PLATFORM_TIME_TYPE_MACRO)
++typedef MBEDTLS_PLATFORM_TIME_TYPE_MACRO mbedtls_time_t;
++#else
++/* For time_t */
++#include <time.h>
++typedef time_t mbedtls_time_t;
++#endif /* MBEDTLS_PLATFORM_TIME_TYPE_MACRO */
++
++/*
++ * The function pointers for time
++ */
++#if defined(MBEDTLS_PLATFORM_TIME_ALT)
++extern mbedtls_time_t (*mbedtls_time)( mbedtls_time_t* time );
++
++/**
++ * \brief   Set your own time function pointer
++ *
++ * \param   time_func   the time function implementation
++ *
++ * \return              0
++ */
++int mbedtls_platform_set_time( mbedtls_time_t (*time_func)( mbedtls_time_t* time ) );
++#else
++#if defined(MBEDTLS_PLATFORM_TIME_MACRO)
++#define mbedtls_time    MBEDTLS_PLATFORM_TIME_MACRO
++#else
++#define mbedtls_time   time
++#endif /* MBEDTLS_PLATFORM_TIME_MACRO */
++#endif /* MBEDTLS_PLATFORM_TIME_ALT */
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* platform_time.h */
+diff --git a/include/mbedtls/ssl.h b/include/mbedtls/ssl.h
+index 82c0760..c0bfd3e 100644
+--- a/include/mbedtls/ssl.h
++++ b/include/mbedtls/ssl.h
+@@ -52,7 +52,7 @@
+ #endif
+ 
+ #if defined(MBEDTLS_HAVE_TIME)
+-#include <time.h>
++#include "mbedtls/platform_time.h"
+ #endif
+ 
+ /*
+diff --git a/library/net.c b/library/net.c
+index 4142bc0..8b96321 100644
+--- a/library/net.c
++++ b/library/net.c
+@@ -36,7 +36,6 @@
+ #include "mbedtls/platform.h"
+ #else
+ #include <stdlib.h>
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/net.h"
+diff --git a/library/platform.c b/library/platform.c
+index 68ca45d..2591c45 100644
+--- a/library/platform.c
++++ b/library/platform.c
+@@ -190,6 +190,8 @@ int mbedtls_platform_set_exit( void (*exit_func)( int status ) )
+ }
+ #endif /* MBEDTLS_PLATFORM_EXIT_ALT */
+ 
++#if defined(MBEDTLS_HAVE_TIME)
++
+ #if defined(MBEDTLS_PLATFORM_TIME_ALT)
+ #if !defined(MBEDTLS_PLATFORM_STD_TIME)
+ /*
+@@ -213,6 +215,8 @@ int mbedtls_platform_set_time( mbedtls_time_t (*time_func)( mbedtls_time_t* time
+ }
+ #endif /* MBEDTLS_PLATFORM_TIME_ALT */
+ 
++#endif /* MBEDTLS_HAVE_TIME */
++
+ #if defined(MBEDTLS_ENTROPY_NV_SEED)
+ #if !defined(MBEDTLS_PLATFORM_NO_STD_FUNCTIONS) && defined(MBEDTLS_FS_IO)
+ /* Default implementations for the platform independent seed functions use
+diff --git a/library/ssl_cache.c b/library/ssl_cache.c
+index 01c66ae..9b62de2 100644
+--- a/library/ssl_cache.c
++++ b/library/ssl_cache.c
+@@ -37,8 +37,6 @@
+ #include <stdlib.h>
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/ssl_cache.h"
+diff --git a/library/ssl_ciphersuites.c b/library/ssl_ciphersuites.c
+index 3546331..a762bf7 100644
+--- a/library/ssl_ciphersuites.c
++++ b/library/ssl_ciphersuites.c
+@@ -33,7 +33,6 @@
+ #include "mbedtls/platform.h"
+ #else
+ #include <stdlib.h>
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/ssl_ciphersuites.h"
+diff --git a/library/ssl_cli.c b/library/ssl_cli.c
+index cd39db0..358dc46 100644
+--- a/library/ssl_cli.c
++++ b/library/ssl_cli.c
+@@ -33,8 +33,6 @@
+ #include <stdlib.h>
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/debug.h"
+@@ -46,7 +44,7 @@
+ #include <stdint.h>
+ 
+ #if defined(MBEDTLS_HAVE_TIME)
+-#include <time.h>
++#include "mbedtls/platform_time.h"
+ #endif
+ 
+ #if defined(MBEDTLS_SSL_SESSION_TICKETS)
+diff --git a/library/ssl_cookie.c b/library/ssl_cookie.c
+index f241c86..9fb32de 100644
+--- a/library/ssl_cookie.c
++++ b/library/ssl_cookie.c
+@@ -36,8 +36,6 @@
+ #else
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/ssl_cookie.h"
+diff --git a/library/ssl_srv.c b/library/ssl_srv.c
+index 7271045..ec59cc1 100644
+--- a/library/ssl_srv.c
++++ b/library/ssl_srv.c
+@@ -33,8 +33,6 @@
+ #include <stdlib.h>
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/debug.h"
+@@ -48,7 +46,7 @@
+ #endif
+ 
+ #if defined(MBEDTLS_HAVE_TIME)
+-#include <time.h>
++#include "mbedtls/platform_time.h"
+ #endif
+ 
+ #if defined(MBEDTLS_SSL_SESSION_TICKETS)
+diff --git a/library/ssl_ticket.c b/library/ssl_ticket.c
+index 5d77403..4d9116d 100644
+--- a/library/ssl_ticket.c
++++ b/library/ssl_ticket.c
+@@ -33,8 +33,6 @@
+ #include <stdlib.h>
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/ssl_ticket.h"
+diff --git a/library/ssl_tls.c b/library/ssl_tls.c
+index 80a908d..505bb6c 100644
+--- a/library/ssl_tls.c
++++ b/library/ssl_tls.c
+@@ -41,7 +41,6 @@
+ #include <stdlib.h>
+ #define mbedtls_calloc    calloc
+ #define mbedtls_free      free
+-#define mbedtls_time_t    time_t
+ #endif
+ 
+ #include "mbedtls/debug.h"
+diff --git a/library/x509.c b/library/x509.c
+index a0df817..bc3bfe0 100644
+--- a/library/x509.c
++++ b/library/x509.c
+@@ -55,12 +55,15 @@
+ #include <stdlib.h>
+ #define mbedtls_free      free
+ #define mbedtls_calloc    calloc
+-#define mbedtls_time      time
+-#define mbedtls_time_t    time_t
+ #define mbedtls_printf    printf
+ #define mbedtls_snprintf  snprintf
+ #endif
+ 
++
++#if defined(MBEDTLS_HAVE_TIME)
++#include "mbedtls/platform_time.h"
++#endif
++
+ #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
+ #include <windows.h>
+ #else
+diff --git a/programs/ssl/dtls_client.c b/programs/ssl/dtls_client.c
+index 14fb612..b37eb83 100644
+--- a/programs/ssl/dtls_client.c
++++ b/programs/ssl/dtls_client.c
+@@ -31,7 +31,6 @@
+ #include <stdio.h>
+ #define mbedtls_printf     printf
+ #define mbedtls_fprintf    fprintf
+-#define mbedtls_time_t     time_t
+ #endif
+ 
+ #if !defined(MBEDTLS_SSL_CLI_C) || !defined(MBEDTLS_SSL_PROTO_DTLS) ||    \
+diff --git a/scripts/output_env.sh b/scripts/output_env.sh
+new file mode 100755
+index 0000000..0b7c153
+--- /dev/null
++++ b/scripts/output_env.sh
+@@ -0,0 +1,109 @@
++#!/bin/sh
++#
++# output_env.sh
++#
++# This file is part of mbed TLS (https://tls.mbed.org)
++#
++# Copyright (c) 2016, ARM Limited, All Rights Reserved
++#
++# Purpose
++#
++# To print out all the relevant information about the development environment.
++#
++# This includes:
++#   - architecture of the system
++#   - type and version of the operating system
++#   - version of armcc, gcc-arm and gcc compilers
++#   - version of libc, clang, asan and valgrind
++#   - version of gnuTLS and OpenSSL
++
++echo
++echo "1) Operating system and architecture:"
++uname -a
++
++echo
++if `hash armcc` > /dev/null; then
++    echo "2) armcc:"
++    armcc --vsn | head -n 2
++else
++    echo "2) armcc not found!"
++fi
++
++echo
++if `hash arm-none-eabi-gcc` > /dev/null; then
++    echo
++    echo "3) gcc-arm:"
++    arm-none-eabi-gcc --version | head -n 1
++else
++    echo
++    echo "3) gcc-arm not found!"
++fi
++
++echo
++if `hash gcc` > /dev/null; then
++    echo "4) gcc:"
++    gcc --version | head -n 1
++else
++    echo "4) gcc not found!"
++fi
++
++echo
++if `hash clang` > /dev/null; then
++    echo "5) clang:"
++    clang --version | head -n 2
++    clang -v 2>&1 | grep Selected
++else
++    echo "5) clang not found!"
++fi
++
++echo
++if `hash ldd` > /dev/null; then
++    echo "6) libc:"
++    ldd --version | head -n 1
++else
++    echo "6) No ldd present: can't determine libc version!"
++fi
++
++echo
++if `hash valgrind` > /dev/null; then
++    echo "7) valgrind:"
++    valgrind --version
++else
++    echo "7) valgrind not found!"
++fi
++
++echo
++if `hash openssl` > /dev/null; then
++    echo "8) openssl:"
++    openssl version
++else
++    echo "8) openssl not found!"
++fi
++
++echo
++if `hash gnutls-cli` > /dev/null; then
++    echo "9) gnuTLS client:"
++    gnutls-cli --version | head -n 1
++else
++    echo "9) gnuTLS client not found!"
++fi
++
++echo
++if `hash gnutls-serv` > /dev/null; then
++    echo "10) gnuTLS server:"
++    gnutls-serv --version | head -n 1
++else
++    echo "10) gnuTLS server not found!"
++fi
++
++echo
++if `hash dpkg` > /dev/null; then
++    echo "11) asan:"
++    dpkg -s libasan2 2> /dev/null | grep -i version
++    dpkg -s libasan1 2> /dev/null | grep -i version
++    dpkg -s libasan0 2> /dev/null | grep -i version
++else
++    echo "11) No dpkg present: can't determine asan version!"
++fi
++
++echo
+diff --git a/tests/scripts/all.sh b/tests/scripts/all.sh
+index 5262397..5c18f4d 100755
+--- a/tests/scripts/all.sh
++++ b/tests/scripts/all.sh
+@@ -121,6 +121,9 @@ fi
+ #
+ # Indicative running times are given for reference.
+ 
++msg "info: output_env.sh"
++scripts/output_env.sh
++
+ msg "test: recursion.pl" # < 1s
+ tests/scripts/recursion.pl library/*.c
+ 
+@@ -231,6 +234,7 @@ scripts/config.pl unset MBEDTLS_PLATFORM_MEMORY
+ scripts/config.pl unset MBEDTLS_PLATFORM_PRINTF_ALT
+ scripts/config.pl unset MBEDTLS_PLATFORM_FPRINTF_ALT
+ scripts/config.pl unset MBEDTLS_PLATFORM_SNPRINTF_ALT
++scripts/config.pl unset MBEDTLS_PLATFORM_TIME_ALT
+ scripts/config.pl unset MBEDTLS_PLATFORM_EXIT_ALT
+ scripts/config.pl unset MBEDTLS_ENTROPY_NV_SEED
+ scripts/config.pl unset MBEDTLS_MEMORY_BUFFER_ALLOC_C
+diff --git a/tests/scripts/basic-build-test.sh b/tests/scripts/basic-build-test.sh
+index 9fab396..9b8bd3c 100755
+--- a/tests/scripts/basic-build-test.sh
++++ b/tests/scripts/basic-build-test.sh
+@@ -39,6 +39,10 @@ fi
+ CONFIG_H='include/mbedtls/config.h'
+ CONFIG_BAK="$CONFIG_H.bak"
+ 
++# Step 0 - print build environment info
++scripts/output_env.sh
++echo
++
+ # Step 1 - Make and instrumented build for code coverage
+ export CFLAGS=' --coverage -g3 -O0 '
+ make clean
+diff --git a/yotta/data/adjust-config.sh b/yotta/data/adjust-config.sh
+index 6580c09..3fa8490 100755
+--- a/yotta/data/adjust-config.sh
++++ b/yotta/data/adjust-config.sh
+@@ -16,7 +16,7 @@ conf() {
+ 
+ 
+ # Set the target specific header
+-conf set YOTTA_CFG_MBEDTLS_USER_CONFIG_FILE \"target_config.h\"
++conf set YOTTA_CFG_MBEDTLS_TARGET_CONFIG_FILE \"mbedtls/target_config.h\"
+ 
+ # not supported on mbed OS, nor used by mbed Client
+ conf unset MBEDTLS_NET_C

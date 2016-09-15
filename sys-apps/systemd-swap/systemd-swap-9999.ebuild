@@ -25,7 +25,8 @@ src_install() {
 	doexe systemd-swap.sh
     insinto /etc
     doins systemd-swap.conf
-    insinto /etc/modprobe.d
-    doins 90-systemd-swap.conf
+    dosym ../systemd-swap.conf /etc/systemd/swap.conf
+#    insinto /etc/modprobe.d
+#    doins 90-systemd-swap.conf
     systemd_dounit systemd-swap.service
 }

@@ -22,6 +22,7 @@ IUSE=""
 src_prepare() {
 	# fixed in git master
 	sed -i -e "s:-Werror ::" Makefile || die
+	sed -i -e "s:-pedantic-errors:-Wpedantic:" Makefile || die
 }
 
 src_configure() {

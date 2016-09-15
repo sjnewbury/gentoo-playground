@@ -1,0 +1,70 @@
+--- ./build/config/BUILD.gn~	2016-06-26 01:20:52.000000000 +0100
++++ ./build/config/BUILD.gn	2016-06-26 01:26:31.232509539 +0100
+@@ -231,6 +231,9 @@
+   if (enable_video_hole) {
+     defines += [ "VIDEO_HOLE=1" ]
+   }
++  if (enable_webcl) {
++    defines += [ "ENABLE_WEBCL=1" ]
++  }
+   if (safe_browsing_mode == 1) {
+     defines += [ "FULL_SAFE_BROWSING" ]
+     defines += [ "SAFE_BROWSING_CSD" ]
+--- ./build/common.gypi~	2016-06-26 01:20:52.000000000 +0100
++++ ./build/common.gypi	2016-06-26 01:32:14.798176001 +0100
+@@ -571,6 +571,9 @@
+       # Webrtc compilation is enabled by default. Set to 0 to disable.
+       'enable_webrtc%': 1,
+ 
++      # WebCL compilation is enabled by default. Set to 0 to disable.
++      'enable_webcl%': 1,
++
+       # Media router support is enabled by default. Set to 0 to disable.
+       'enable_media_router%': 1,
+ 
+@@ -845,6 +848,7 @@
+ 
+         ['OS=="android"', {
+           'enable_webrtc%': 1,
++          'enable_webcl%': 1,
+         }],
+ 
+         ['OS=="ios"', {
+@@ -1185,6 +1189,7 @@
+     'enable_one_click_signin%': '<(enable_one_click_signin)',
+     'enable_media_router%': '<(enable_media_router)',
+     'enable_webrtc%': '<(enable_webrtc)',
++    'enable_webcl%': '<(enable_webcl)',
+     'chromium_win_pch%': '<(chromium_win_pch)',
+     'configuration_policy': '<(configuration_policy)',
+     'safe_browsing%': '<(safe_browsing)',
+@@ -2185,6 +2190,9 @@
+       ['enable_webrtc==1', {
+         'grit_defines': ['-D', 'enable_webrtc'],
+       }],
++      ['enable_webcl==1', {
++        'grit_defines': ['-D', 'enable_webcl'],
++      }],
+       ['enable_hangout_services_extension==1', {
+         'grit_defines': ['-D', 'enable_hangout_services_extension'],
+       }],
+@@ -2727,6 +2735,9 @@
+       ['enable_webrtc==1', {
+         'defines': ['ENABLE_WEBRTC=1'],
+       }],
++      ['enable_webcl==1', {
++        'defines': ['ENABLE_WEBCL=1'],
++      }],
+       ['enable_media_router==1', {
+         'defines': ['ENABLE_MEDIA_ROUTER=1'],
+       }],
+--- ./third_party/WebKit/Source/platform/RuntimeEnabledFeatures.in~	2016-06-15 20:03:41.000000000 +0100
++++ ./third_party/WebKit/Source/platform/RuntimeEnabledFeatures.in	2016-06-26 10:38:19.874014505 +0100
+@@ -221,6 +221,7 @@
+ WebAnimationsAPI status=experimental
+ WebAnimationsSVG status=experimental
+ WebBluetooth
++WebCL status=experimental
+ WebGLDraftExtensions status=experimental
+ WebGLImageChromium
+ WebUSB status=experimental

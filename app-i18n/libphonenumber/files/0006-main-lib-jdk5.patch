@@ -1,0 +1,35 @@
+diff --git a/java/geocoder/src/com/google/i18n/phonenumbers/PhoneNumberToTimeZonesMapper.java b/java/geocoder/src/com/google/i18n/phonenumbers/PhoneNumberToTimeZonesMapper.java
+index afbc0b2..1d01a4c 100644
+--- a/java/geocoder/src/com/google/i18n/phonenumbers/PhoneNumberToTimeZonesMapper.java
++++ b/java/geocoder/src/com/google/i18n/phonenumbers/PhoneNumberToTimeZonesMapper.java
+@@ -173,7 +173,7 @@ public class PhoneNumberToTimeZonesMapper {
+    */
+   private List<String> getTimeZonesForGeocodableNumber(PhoneNumber number) {
+     List<String> timezones = prefixTimeZonesMap.lookupTimeZonesForNumber(number);
+-    return Collections.unmodifiableList(timezones.isEmpty() ? UNKNOWN_TIME_ZONE_LIST
++    return Collections.unmodifiableList(timezones.size() == 0 ? UNKNOWN_TIME_ZONE_LIST
+                                                             : timezones);
+   }
+ 
+@@ -186,7 +186,7 @@ public class PhoneNumberToTimeZonesMapper {
+    */
+   private List<String> getCountryLevelTimeZonesforNumber(PhoneNumber number) {
+     List<String> timezones = prefixTimeZonesMap.lookupCountryLevelTimeZonesForNumber(number);
+-    return Collections.unmodifiableList(timezones.isEmpty() ? UNKNOWN_TIME_ZONE_LIST
++    return Collections.unmodifiableList(timezones.size() == 0 ? UNKNOWN_TIME_ZONE_LIST
+                                                             : timezones);
+   }
+ }
+diff --git a/java/libphonenumber/test/com/google/i18n/phonenumbers/PhoneNumberUtilTest.java b/java/libphonenumber/test/com/google/i18n/phonenumbers/PhoneNumberUtilTest.java
+index 30d26cd..1466440 100644
+--- a/java/libphonenumber/test/com/google/i18n/phonenumbers/PhoneNumberUtilTest.java
++++ b/java/libphonenumber/test/com/google/i18n/phonenumbers/PhoneNumberUtilTest.java
+@@ -1229,7 +1229,7 @@ public class PhoneNumberUtilTest extends TestMetadataTestCase {
+     assertTrue(phoneUtil.getRegionCodesForCountryCode(49).contains(RegionCode.DE));
+     assertTrue(phoneUtil.getRegionCodesForCountryCode(800).contains(RegionCode.UN001));
+     // Test with invalid country calling code.
+-    assertTrue(phoneUtil.getRegionCodesForCountryCode(-1).isEmpty());
++    assertTrue(phoneUtil.getRegionCodesForCountryCode(-1).size() == 0);
+   }
+ 
+   public void testGetCountryCodeForRegion() {

@@ -1,0 +1,11 @@
+--- a/content/renderer/history_entry.h
++++ b/content/renderer/history_entry.h
+@@ -51,6 +51,8 @@
+ class RenderFrameImpl;
+ class RenderViewImpl;
+ 
++const int kInvalidFrameRoutingID = -1;
++
+ class CONTENT_EXPORT HistoryEntry {
+  public:
+   class HistoryNode {

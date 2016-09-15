@@ -1,15 +1,15 @@
-# Copyright 1999-2014 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: $
+# $Id$
 
 EAPI="5"
 GCONF_DEBUG="yes"
 GNOME2_LA_PUNT="yes" # plugins are dlopened
-PYTHON_COMPAT=( python2_{6,7} )
+PYTHON_COMPAT=( python3_{3,4,5} )
 PYTHON_REQ_USE="threads"
 
-inherit autotools eutils gnome2 multilib python-single-r1
-if [[ "${PV}" == "9999" ]]; then
+inherit eutils gnome2 multilib python-single-r1
+if [[ ${PV} = 9999 ]]; then
 	VALA_MIN_API_VERSION="0.14"
 	inherit gnome2-live vala
 fi
@@ -26,55 +26,48 @@ REQUIRED_USE="
 	zeitgeist? ( introspection )
 "
 
-if [[ "${PV}" == "9999" ]]; then
+if [[ ${PV} = 9999 ]]; then
 	IUSE+=" doc vala"
 	REQUIRED_USE+=" zeitgeist? ( vala )"
 	KEYWORDS=""
 else
-	KEYWORDS="~alpha ~amd64 ~arm ~ia64 ~ppc ~ppc64 ~sparc ~x86 ~x86-fbsd"
+	KEYWORDS="~amd64 ~arm ~ia64 ~ppc ~ppc64 ~x86 ~x86-fbsd"
 fi
 
-# TODO:
-# Cone (VLC) plugin needs someone with the right setup to test it
-#
 # FIXME:
-# Automagic tracker-0.9.0
 # Runtime dependency on gnome-session-2.91
 RDEPEND="
-	>=dev-libs/glib-2.35:2
-	>=x11-libs/gdk-pixbuf-2.23.0:2
-	>=x11-libs/gtk+-3.11.5:3[introspection?]
-	>=dev-libs/totem-pl-parser-3.10.1:0=[introspection?]
-	>=dev-libs/libpeas-1.1.0[gtk]
-	>=x11-themes/gnome-icon-theme-2.16
-	x11-libs/cairo
+	>=dev-libs/glib-2.35:2[dbus]
+	>=dev-libs/libpeas-1.1[gtk]
 	>=dev-libs/libxml2-2.6:2
-	>=media-libs/clutter-1.17.3:1.0
-	>=media-libs/clutter-gst-1.5.5:2.0
-	>=media-libs/clutter-gtk-1.0.2:1.0
-	x11-libs/mx:1.0
+	>=dev-libs/totem-pl-parser-3.10.1:0=[introspection?]
+	>=media-libs/clutter-1.17.3:1.0[gtk]
+	>=media-libs/clutter-gst-2.99.2:3.0
+	>=media-libs/clutter-gtk-1.5.5:1.0
+	>=x11-libs/cairo-1.14
+	>=x11-libs/gdk-pixbuf-2.23.0:2
+	>=x11-libs/gtk+-3.19.4:3[introspection?]
 
-	>=media-libs/grilo-0.2.9:0.2[playlist]
-	media-plugins/grilo-plugins:0.2
-	>=media-libs/gstreamer-1.3.1:1.0
-	>=media-libs/gst-plugins-base-1.4.2:1.0[X,introspection?,pango]
+	>=media-libs/grilo-0.3.0:0.3[playlist]
+	media-plugins/grilo-plugins:0.3
+	>=media-libs/gstreamer-1.6.0:1.0
+	>=media-libs/gst-plugins-base-1.6.0:1.0[X,introspection?,pango]
 	media-libs/gst-plugins-good:1.0
-	media-plugins/gst-plugins-taglib:1.0
 	media-plugins/gst-plugins-meta:1.0
+	media-plugins/gst-plugins-taglib:1.0
 
-	x11-libs/libICE
-	x11-libs/libSM
 	x11-libs/libX11
-	>=x11-libs/libXxf86vm-1.0.1
 
+	gnome-base/gnome-desktop:3=
 	gnome-base/gsettings-desktop-schemas
 	x11-themes/gnome-icon-theme-symbolic
 
-	introspection? ( >=dev-libs/gobject-introspection-0.6.7 )
+	introspection? ( >=dev-libs/gobject-introspection-0.6.7:= )
 	lirc? ( app-misc/lirc )
 	nautilus? ( >=gnome-base/nautilus-2.91.3 )
 	python? (
 		${PYTHON_DEPS}
+		>=dev-libs/libpeas-1.1.0[${PYTHON_USEDEP}]
 		>=dev-python/pygobject-2.90.3:3[${PYTHON_USEDEP}]
 		dev-python/pyxdg[${PYTHON_USEDEP}]
 		dev-python/dbus-python[${PYTHON_USEDEP}]
@@ -83,19 +76,26 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}
 	app-text/docbook-xml-dtd:4.5
-	app-text/scrollkeeper
+	app-text/yelp-tools
+	dev-libs/appstream-glib
 	>=dev-util/gtk-doc-am-1.14
-	>=dev-util/intltool-0.40
+	>=dev-util/intltool-0.50.1
 	sys-devel/gettext
+	virtual/pkgconfig
 	x11-proto/xextproto
 	x11-proto/xproto
-	virtual/pkgconfig
-	test? ( python? ( dev-python/pylint ) )
+
+	dev-libs/gobject-introspection-common
+	gnome-base/gnome-common
 "
+# eautoreconf needs:
+#	app-text/yelp-tools
+#	dev-libs/gobject-introspection-common
+#	gnome-base/gnome-common
 # docbook-xml-dtd is needed for user doc
 # Prevent dev-python/pylint dep, bug #482538
 # Only needed when regenerating C sources from Vala files
-if [[ "${PV}" == "9999" ]]; then
+if [[ ${PV} = 9999 ]]; then
 	DEPEND+=" vala? ( $(vala_depend) )
 		app-text/yelp-tools
 		doc? ( >=dev-util/gtk-doc-1.14 )"
@@ -106,13 +106,10 @@ pkg_setup() {
 }
 
 src_prepare() {
-	# AC_CONFIG_AUX_DIR_DEFAULT doesn't exist, and eautoreconf/aclocal fails
-	mkdir -p m4
-
 	# Prevent pylint usage by tests, bug #482538
 	sed -i -e 's/ check-pylint//' src/plugins/Makefile.plugins || die
 
-	if [[ "${PV}" == "9999" ]]; then
+	if [[ ${PV} = 9999 ]]; then
 		# Only needed when regenerating C sources from Vala files
 		use vala && vala_src_prepare
 	fi
@@ -126,35 +123,30 @@ src_prepare() {
 }
 
 src_configure() {
-	local myconf=""
-
 	# Disabled: sample-python, sample-vala
 	local plugins="apple-trailers,autoload-subtitles,brasero-disc-recorder"
-	plugins+=",chapters,im-status,gromit,media-player-keys,ontop"
+	plugins+=",im-status,gromit,media-player-keys,ontop"
 	plugins+=",properties,recent,rotation,screensaver,screenshot"
 	plugins+=",skipto,vimeo"
 	use lirc && plugins+=",lirc"
 	use nautilus && plugins+=",save-file"
 	use python && plugins+=",dbusservice,pythonconsole,opensubtitles"
-	if [[ "${PV}" == "9999" ]]; then
+	if [[ ${PV} = 9999 ]]; then
 		# Only needed when regenerating C sources from Vala files
-		myconf="${myconf} $(use_enable vala) VALAC=$(type -P valac)"
+		myconf="${myconf} $(use_enable vala)"
 		use vala && plugins+=",rotation"
 	else
-		die "WTF?"
 		myconf="${myconf} --enable-vala VALAC=$(type -P true)"
 		plugins+=",rotation"
 	fi
 	use zeitgeist && plugins+=",zeitgeist-dp"
 
-	#--with-smclient=auto needed to correctly link to libICE and libSM
-	# XXX: always set to true otherwise tests fails due to pylint not
-	# respecting EPYTHON (wait for python-r1)
 	# pylint is checked unconditionally, but is only used for make check
+	# appstream-util overriding necessary until upstream fixes their macro
+	# to respect configure switch
 	gnome2_src_configure \
 		--disable-run-in-source-tree \
 		--disable-static \
-		--with-smclient=auto \
 		--enable-easy-codec-installation \
 		--enable-vala \
 		$(use_enable introspection) \
@@ -162,7 +154,7 @@ src_configure() {
 		$(use_enable python) \
 		PYLINT=$(type -P true) \
 		VALAC=$(type -P true) \
-		BROWSER_PLUGIN_DIR=/usr/$(get_libdir)/nsbrowser/plugins \
+		APPSTREAM_UTIL=$(type -P true) \
 		--with-plugins=${plugins} \
 		${myconf}
 }

@@ -24,15 +24,16 @@ fi
 LICENSE="MIT"
 SLOT="0/10"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="test"
+IUSE="test input_devices_wacom"
 # Tests require write access to udev rules directory which is a no-no for live system.
 # Other tests are just about logs, exported symbols and autotest of the test library.
 RESTRICT="test"
 
 RDEPEND="
-	>=dev-libs/libevdev-0.4
-	>=sys-libs/mtdev-1.1
-	virtual/libudev
+	>=dev-libs/libevdev-0.4[${MULTILIB_USEDEP}]
+	>=sys-libs/mtdev-1.1.0[${MULTILIB_USEDEP}]
+	virtual/libudev[${MULTILIB_USEDEP}]
+	input_devices_wacom? ( dev-libs/libwacom[${MULTILIB_USEDEP}] )
 "
 DEPEND="${RDEPEND}
 	virtual/pkgconfig"
@@ -53,6 +54,7 @@ src_configure() {
 	# building documentation silently fails with graphviz syntax errors
 	local myeconfargs=(
 		--disable-event-gui
+		$(use_enable input_devices_wacom libwacom)
 		$(use_enable test tests)
 		--with-udev-dir="$(get_udevdir)"
 	)
@@ -62,7 +64,7 @@ src_configure() {
 
 multilib_src_install() {
 	default
-	multilib_is_native_abi && dodoc -r doc/html
+#	multilib_is_native_abi && dodoc -r ${S}/doc/html
 }
 
 multilib_src_install_all() {

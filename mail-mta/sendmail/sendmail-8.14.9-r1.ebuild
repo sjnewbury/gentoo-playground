@@ -61,6 +61,7 @@ src_prepare() {
 	epatch "${FILESDIR}"/"${PN}"-8.14.5+db-5.0.patch
 	epatch "${FILESDIR}"/sendmail-starttls-multi-crl.patch
 	epatch "${FILESDIR}"/${P}-unix-socket-relay.patch
+	epatch "${FILESDIR}"/${P}-maxdaemons.patch
 
 	local confCC="$(tc-getCC)"
 	local confCCOPTS="${CFLAGS}"

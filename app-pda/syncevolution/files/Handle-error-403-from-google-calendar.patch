@@ -1,0 +1,41 @@
+From e6642e9c53bfcea9254d67a283467b4df797227b Mon Sep 17 00:00:00 2001
+From: Renato Araujo Oliveira Filho <renato.filho@canonical.com>
+Date: Tue, 7 Apr 2015 11:10:23 -0300
+Subject: [PATCH 2/3] Handle error 403 from google calendar to avoid sync to
+ fail.
+
+---
+ src/backends/webdav/WebDAVSource.cpp | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/src/backends/webdav/WebDAVSource.cpp b/src/backends/webdav/WebDAVSource.cpp
+index 9f90cf4..91ad91d 100644
+--- a/src/backends/webdav/WebDAVSource.cpp
++++ b/src/backends/webdav/WebDAVSource.cpp
+@@ -2251,7 +2251,10 @@ TrackingSyncSource::InsertItemResult WebDAVSource::insertItem(const string &uid,
+         // - Is retried? Might need slow sync in this case!
+         //
+         // req.addHeader("If-Match", etag);
+-        if (!req.run()) {
++        std::set<int> expected;
++        expected.insert(403);
++
++        if (!req.run(&expected)) {
+             goto retry;
+         }
+         SE_LOG_DEBUG(NULL, "update item status: %s",
+@@ -2265,6 +2268,11 @@ TrackingSyncSource::InsertItemResult WebDAVSource::insertItem(const string &uid,
+             // even when updating an item. Accept it.
+             // SE_THROW("unexpected creation instead of update");
+             break;
++        case 403:
++            // this can happen with Google Calendar if the user was removed from
++            // an event by the organizer. Check bug #89927 for more details
++            return InsertItemResult(new_uid, "", ITEM_OKAY);
++            break;
+         default:
+             SE_THROW_EXCEPTION_STATUS(TransportStatusException,
+                                       std::string("unexpected status for update: ") +
+-- 
+2.1.0
+

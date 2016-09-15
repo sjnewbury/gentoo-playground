@@ -1,0 +1,11 @@
+--- ./Makefile.am~	2013-10-28 12:38:33.000000000 +0000
++++ ./Makefile.am	2016-06-11 17:49:40.430579045 +0100
+@@ -24,7 +24,7 @@
+ # Tell aclocal where to find `.m4' files.
+ ACLOCAL_AMFLAGS = -I m4
+ 
+-SUBDIRS = . utils src tests interfaces demos doc m4
++SUBDIRS = . utils src tests interfaces doc m4
+ 
+ dist_noinst_SCRIPTS = \
+ configure

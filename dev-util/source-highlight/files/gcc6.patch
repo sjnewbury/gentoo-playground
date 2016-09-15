@@ -1,0 +1,28 @@
+--- ./lib/srchilite/settings.cpp.orig	2011-12-16 17:10:11.000000000 +0000
++++ ./lib/srchilite/settings.cpp	2016-06-17 09:00:14.620632336 +0100
+@@ -94,14 +94,14 @@
+     string file = dataDir + "/" + testFileName;
+     ifstream i(file.c_str());
+ 
+-    return (i != 0);
++    return (i) ? true : false;
+ }
+ 
+ bool Settings::checkForConfFile() {
+     string file = confDir + confFileName;
+     ifstream i(file.c_str());
+ 
+-    return (i != 0);
++    return (i) ? true : false;
+ }
+ 
+ bool Settings::readDataDir() {
+@@ -109,7 +109,7 @@
+     ifstream i(file.c_str());
+ 
+     string line;
+-    if (i != 0) {
++    if (i) {
+         while (read_line(&i, line)) {
+             if (line.size()) {
+                 boost::cmatch what;

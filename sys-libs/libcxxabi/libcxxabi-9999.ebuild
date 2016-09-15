@@ -31,7 +31,6 @@ RDEPEND=""
 DEPEND="${RDEPEND}
         ~sys-libs/libcxx-${PV}
         sys-libs/libunwind
-        sys-devel/clang
         >=sys-devel/llvm-3.5
         "
 
@@ -47,7 +46,7 @@ multilib_src_configure() {
         mycmakeargs="
                 -DLLVM_LIBDIR_SUFFIX=${abilibdir/lib}
         "
-        CC=clang CXX=clang++ cmake-utils_src_configure
+        cmake-utils_src_configure
 }
 
 src_install() {

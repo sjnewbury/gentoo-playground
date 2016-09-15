@@ -1,0 +1,43 @@
+From: Markus Koschany <apo@debian.org>
+Date: Sat, 16 Jul 2016 22:39:45 +0200
+Subject: gcc-6 ftbfs
+
+Debian-Bug: https://bugs.debian.org/811613
+Forwarded: no
+---
+ tools/cpp/src/cpp-build/generate_geocoding_data.cc | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/tools/cpp/src/cpp-build/generate_geocoding_data.cc b/tools/cpp/src/cpp-build/generate_geocoding_data.cc
+index ef94ef6..65d53d0 100644
+--- a/tools/cpp/src/cpp-build/generate_geocoding_data.cc
++++ b/tools/cpp/src/cpp-build/generate_geocoding_data.cc
+@@ -140,16 +140,24 @@ bool EndsWith(const string& s, const string& suffix) {
+ bool StrToInt(const string& s, int32* n) {
+   std::stringstream stream;
+   stream << s;
+-  stream >> *n;
+-  return stream;
++  if (stream >> *n) {
++      return 1;
++  }
++  else{
++      return 0;
++  }
+ }
+ 
+ // Converts integer to string, returns true on success.
+ bool IntToStr(int32 n, string* s) {
+   std::stringstream stream;
+   stream << n;
+-  stream >> *s;
+-  return stream;
++  if (stream >> *s) {
++      return 1;
++  }
++  else{
++      return 0;
++  }
+ }
+ 
+ // Parses the prefix descriptions file at path, clears and fills the output

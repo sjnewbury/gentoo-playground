@@ -1,0 +1,46 @@
+--- abiword-3.0.1.orig/plugins/collab/backends/service/xp/RealmProtocol.cpp
++++ abiword-3.0.1/plugins/collab/backends/service/xp/RealmProtocol.cpp
+@@ -6,8 +6,8 @@ namespace protocolv1 {
+ 
+ #define MAX_PACKET_DATA_SIZE 64*1024*1024
+ 		
+-#define RPV1_PACKET_NONEXISTENT -2
+-#define RPV1_PACKET_VARIABLE -1
++#define RPV1_PACKET_NONEXISTENT uint32_t(-2)
++#define RPV1_PACKET_VARIABLE uint32_t(-1)
+ 	
+ static uint32_t body_size[6] = {
+ 	RPV1_PACKET_NONEXISTENT, /* 0: reserved */
+--- abiword-3.0.1.orig/plugins/collab/backends/service/xp/soa_soup.cpp
++++ abiword-3.0.1/plugins/collab/backends/service/xp/soa_soup.cpp
+@@ -163,7 +163,7 @@ namespace soup_soa {
+ 	
+ 	static bool _invoke(const std::string& /*url*/, const soa::method_invocation& /*mi*/, SoaSoupSession& sess, std::string& result) {
+ 		if (!sess.m_session || !sess.m_msg )
+-			return soa::GenericPtr();
++			return false;
+ 
+ 		guint status = soup_session_send_message (sess.m_session, sess.m_msg);
+ 		if (!(SOUP_STATUS_IS_SUCCESSFUL (status) ||
+--- abiword-3.0.1.orig/plugins/latex/xp/ie_exp_LaTeX.cpp
++++ abiword-3.0.1/plugins/latex/xp/ie_exp_LaTeX.cpp
+@@ -1329,7 +1329,7 @@ void s_LaTeX_Listener::_outputData(const
+ 	m_pie->write(sBuf.c_str(),sBuf.size());
+ }
+ 
+-#define SUB(a,who) case a: subst = "\\(\\"who"\\)"; return true;
++#define SUB(a,who) case a: subst = "\\(\\" who"\\)"; return true;
+ #define SUBd(a,who) case a: subst = who; return true;
+ static bool _convertLettersToSymbols(char c, const char *& subst)
+ {
+--- abiword-3.0.1.orig/plugins/xslfo/xp/ie_exp_XSL-FO.cpp
++++ abiword-3.0.1/plugins/xslfo/xp/ie_exp_XSL-FO.cpp
+@@ -1451,7 +1451,7 @@ void s_XSL_FO_Listener::_openSection(PT_
+ 	{ \
+ 		UT_UTF8String esc = szValue; \
+ 		esc.escapeXML(); \
+-		buf += " "x"=\""; \
++		buf += " " x"=\""; \
+ 		buf += esc.utf8_str(); \
+ 		buf += "\""; \
+ 	}

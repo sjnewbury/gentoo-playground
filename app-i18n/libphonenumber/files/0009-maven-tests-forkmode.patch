@@ -1,0 +1,10 @@
+--- a/java/pom.xml
++++ b/java/pom.xml
+@@ -92,7 +92,6 @@
+         <artifactId>maven-surefire-plugin</artifactId>
+         <version>2.12</version>
+         <configuration>
+-          <forkMode>never</forkMode>
+           <includes>
+             <include>**/*Test.java</include>
+           </includes>

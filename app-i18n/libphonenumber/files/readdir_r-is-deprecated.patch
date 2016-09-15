@@ -1,0 +1,149 @@
+From: Markus Koschany <apo@debian.org>
+Date: Tue, 13 Sep 2016 23:11:10 +0200
+Subject: readdir_r is deprecated
+
+Fix FTBFS with glibc 2.24.
+
+Forwarded: https://github.com/googlei18n/libphonenumber/issues/1307
+Debian-Bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=836768
+Origin: https://github.com/googlei18n/libphonenumber/pull/1090
+---
+ cpp/CMakeLists.txt                                 |  6 +--
+ tools/cpp/CMakeLists.txt                           |  3 +-
+ tools/cpp/src/cpp-build/generate_geocoding_data.cc | 53 +++++++++-------------
+ 3 files changed, 27 insertions(+), 35 deletions(-)
+
+diff --git a/cpp/CMakeLists.txt b/cpp/CMakeLists.txt
+index 9a3adb0..4d95238 100644
+--- a/cpp/CMakeLists.txt
++++ b/cpp/CMakeLists.txt
+@@ -82,14 +82,14 @@ if (${USE_ALTERNATE_FORMATS} STREQUAL "ON")
+ endif ()
+ 
+ # Find all the required libraries and programs.
+-if (${USE_BOOST} STREQUAL "ON")
++if (${USE_BOOST} STREQUAL "ON" OR ${BUILD_GEOCODER} STREQUAL "ON")
+   add_definitions ("-DI18N_PHONENUMBERS_USE_BOOST")
+   if (WIN32)
+     set (Boost_USE_STATIC_LIBS ON)
+   endif ()
+-  find_package (Boost 1.40.0 COMPONENTS date_time system thread)
++  find_package (Boost 1.40.0 COMPONENTS date_time filesystem system thread)
+   if (NOT Boost_FOUND)
+-    print_error ("Boost Date_Time/System/Thread" "Boost")
++    print_error ("Boost Date_Time/Filesystem/System/Thread" "Boost")
+   endif ()
+   include_directories (${Boost_INCLUDE_DIRS})
+ endif ()
+diff --git a/tools/cpp/CMakeLists.txt b/tools/cpp/CMakeLists.txt
+index fafa846..1dcf285 100644
+--- a/tools/cpp/CMakeLists.txt
++++ b/tools/cpp/CMakeLists.txt
+@@ -38,6 +38,7 @@ endif ()
+ include_directories ("src")
+ 
+ add_executable (generate_geocoding_data ${SOURCES})
++target_link_libraries (generate_geocoding_data ${Boost_LIBRARIES})
+ 
+ set (TEST_SOURCES
+   "src/cpp-build/generate_geocoding_data.cc"
+@@ -54,4 +55,4 @@ endif ()
+ # Build the testing binary.
+ include_directories ("test")
+ add_executable (generate_geocoding_data_test ${TEST_SOURCES})
+-target_link_libraries (generate_geocoding_data_test ${TEST_LIBS})
++target_link_libraries (generate_geocoding_data_test ${TEST_LIBS} ${Boost_LIBRARIES})
+diff --git a/tools/cpp/src/cpp-build/generate_geocoding_data.cc b/tools/cpp/src/cpp-build/generate_geocoding_data.cc
+index 132a917..ec03298 100644
+--- a/tools/cpp/src/cpp-build/generate_geocoding_data.cc
++++ b/tools/cpp/src/cpp-build/generate_geocoding_data.cc
+@@ -16,7 +16,6 @@
+ 
+ #include "cpp-build/generate_geocoding_data.h"
+ 
+-#include <dirent.h>
+ #include <locale>
+ #include <sys/stat.h>
+ #include <algorithm>
+@@ -31,6 +30,7 @@
+ #include <string>
+ #include <utility>
+ #include <vector>
++#include <boost/filesystem.hpp>
+ 
+ #include "base/basictypes.h"
+ 
+@@ -43,6 +43,8 @@ using std::vector;
+ using std::set;
+ using std::pair;
+ 
++namespace fs = boost::filesystem;
++
+ template <typename ResourceType> class AutoCloser {
+  public:
+   typedef int (*ReleaseFunction) (ResourceType* resource);
+@@ -79,7 +81,7 @@ enum DirEntryKinds {
+ 
+ class DirEntry {
+  public:
+-  DirEntry(const char* n, DirEntryKinds k)
++  DirEntry(const std::string& n, DirEntryKinds k)
+       : name_(n),
+         kind_(k)
+   {}
+@@ -97,37 +99,26 @@ class DirEntry {
+ // success.
+ bool ListDirectory(const string& path, vector<DirEntry>* entries) {
+   entries->clear();
+-  DIR* dir = opendir(path.c_str());
+-  if (!dir) {
+-    return false;
+-  }
+-  AutoCloser<DIR> dir_closer(&dir, closedir);
+-  struct dirent entry, *dir_result;
+-  struct stat entry_stat;
+-  while (true) {
+-    const int res = readdir_r(dir, &entry, &dir_result);
+-    if (res) {
+-      return false;
+-    }
+-    if (dir_result == NULL) {
+-      std::sort(entries->begin(), entries->end());
+-      return true;
+-    }
+-    if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+-       continue;
+-    }
+-    const string entry_path = path + "/" + entry.d_name;
+-    if (stat(entry_path.c_str(), &entry_stat)) {
+-      return false;
+-    }
+-    DirEntryKinds kind = kFile;
+-    if (S_ISDIR(entry_stat.st_mode)) {
+-      kind = kDirectory;
+-    } else if (!S_ISREG(entry_stat.st_mode)) {
+-      continue;
++
++  try {
++    for (fs::directory_iterator it(path); it != fs::directory_iterator(); ++it) {
++      DirEntryKinds kind;
++
++      if (fs::is_directory(it->status())) {
++          kind = kDirectory;
++      } else if (fs::is_regular_file(it->status())) {
++          kind = kFile;
++      } else {
++          continue;
++      }
++
++      entries->push_back(DirEntry(it->path().filename().string(), kind));
+     }
+-    entries->push_back(DirEntry(entry.d_name, kind));
++  } catch (const fs::filesystem_error& ex) {
++    return false;
+   }
++
++  return true;
+ }
+ 
+ // Returns true if s ends with suffix.

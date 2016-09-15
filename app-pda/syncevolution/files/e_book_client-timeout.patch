@@ -1,0 +1,11 @@
+--- ./src/dbus/server/pim/edsf-view.cpp.orig	2014-04-25 08:55:47.000000000 +0100
++++ ./src/dbus/server/pim/edsf-view.cpp	2016-09-15 08:01:15.957996010 +0100
+@@ -63,7 +63,7 @@
+     if (!getenv("SYNCEVOLUTION_NO_PIM_EDS_DIRECT")) {
+         while (!m_ebook) {
+             SE_LOG_DEBUG(NULL, "edsf %s: synchronously connecting direct", m_uuid.c_str());
+-            m_ebook = EBookClientCXX::steal(E_BOOK_CLIENT(e_book_client_connect_direct_sync(m_registry, source, NULL, gerror)));
++            m_ebook = EBookClientCXX::steal(E_BOOK_CLIENT(e_book_client_connect_direct_sync(m_registry, source, 10, NULL, gerror)));
+             if (!m_ebook) {
+                 SE_LOG_DEBUG(NULL, "edsf %s: no DRA client for address book: %s", m_uuid.c_str(), gerror ? gerror->message : "???");
+                 if (gerror && g_error_matches(gerror, E_CLIENT_ERROR, E_CLIENT_ERROR_BUSY)) {

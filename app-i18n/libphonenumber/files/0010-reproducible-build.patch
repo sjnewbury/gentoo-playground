@@ -1,0 +1,18 @@
+--- a/tools/cpp/src/cpp-build/generate_geocoding_data.cc
++++ b/tools/cpp/src/cpp-build/generate_geocoding_data.cc
+@@ -86,6 +86,7 @@
+ 
+   const std::string& name() const { return name_; }
+   DirEntryKinds kind() const { return kind_; }
++  bool operator<(const DirEntry& d) { return name_ < d.name() || kind_ < d.kind(); }
+ 
+  private:
+   std::string name_;
+@@ -109,6 +110,7 @@
+       return false;
+     }
+     if (dir_result == NULL) {
++      std::sort(entries->begin(), entries->end());
+       return true;
+     }
+     if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {

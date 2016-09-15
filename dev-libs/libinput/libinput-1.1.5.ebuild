@@ -30,9 +30,9 @@ IUSE="test"
 RESTRICT="test"
 
 RDEPEND="
-	>=dev-libs/libevdev-0.4
-	>=sys-libs/mtdev-1.1
-	virtual/libudev
+	>=dev-libs/libevdev-0.4[${MULTILIB_USEDEP}]
+	>=sys-libs/mtdev-1.1[${MULTILIB_USEDEP}]
+	virtual/libudev[${MULTILIB_USEDEP}]
 "
 DEPEND="${RDEPEND}
 	virtual/pkgconfig"

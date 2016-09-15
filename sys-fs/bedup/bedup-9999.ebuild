@@ -1,32 +1,32 @@
-# Copyright 1999-2014 Gentoo Foundation
+# Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-fs/bedup/bedup-9999.ebuild,v 1.6 2014/05/21 11:31:18 mgorny Exp $
+# $Id$
 
 EAPI=5
 
-PYTHON_COMPAT=( python{3_3,3_4} pypy3 )
+PYTHON_COMPAT=( python{3_3,3_4,3_5} pypy3 )
 # pypy unsupported for now ;-(
 
 #if LIVE
 EGIT_REPO_URI="git://github.com/g2p/bedup.git
 	https://github.com/g2p/bedup.git"
-EGIT_BRANCH=wip/dedup-syscall
 inherit git-r3
 #endif
 
-inherit distutils-r1
+inherit distutils-r1 vcs-snapshot
 
 DESCRIPTION="Btrfs file de-duplication tool"
 HOMEPAGE="https://github.com/g2p/bedup"
-SRC_URI="https://github.com/g2p/${PN}/archive/v${PV}.tar.gz"
+SRC_URI="https://github.com/g2p/${PN}/archive/v${PV}.tar.gz
+	-> ${P}.tar.gz"
 
 LICENSE="GPL-2+"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE=""
+IUSE="syscall"
 
 # we need btrfs-progs with includes installed.
-DEPEND="$(python_gen_cond_dep 'dev-python/cffi:=[${PYTHON_USEDEP}]' 'python*')
+DEPEND=">=dev-python/cffi-0.5:=[${PYTHON_USEDEP}]
 	>=sys-fs/btrfs-progs-0.20_rc1_p358"
 RDEPEND="${DEPEND}
 	dev-python/mako[${PYTHON_USEDEP}]
@@ -40,7 +40,15 @@ SRC_URI=
 KEYWORDS=
 #endif
 
-#src_prepare() {
-#	default
-#	epatch "${FILESDIR}/SQLAlchemy-0.9-compat.patch"
-#}
+src_unpack() {
+	git-r3_src_unpack
+	use syscall && git-r3_fetch "https://github.com/markfasheh/duperemove.git" "4b2d8b74618cc7d56c302adb8116b42bc6a3c53a" "duperemove"
+}
+
+src_prepare() {
+	if use syscall; then
+		epatch "${FILESDIR}/${P}-dedup-syscall-master.patch"
+		rm -f "${S}/duperemove"
+		git-r3_checkout "https://github.com/markfasheh/duperemove.git" "${S}/duperemove" "duperemove"
+	fi
+}

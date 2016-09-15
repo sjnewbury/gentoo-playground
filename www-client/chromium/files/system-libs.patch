@@ -1,0 +1,13 @@
+--- ./build/linux/unbundle/replace_gn_files.py~	2016-06-09 23:03:11.000000000 +0100
++++ ./build/linux/unbundle/replace_gn_files.py	2016-06-17 19:46:34.818541152 +0100
+@@ -20,7 +20,10 @@
+   'ffmpeg': 'third_party/ffmpeg/BUILD.gn',
+   'flac': 'third_party/flac/BUILD.gn',
+   'harfbuzz-ng': 'third_party/harfbuzz-ng/BUILD.gn',
++  'icu': 'third_party/icu/BUILD.gn',
+   'libevent': 'base/third_party/libevent/BUILD.gn',
++  'libjpeg-turbo': 'third_party/libjpeg-turbo/BUILD.gn',
++  'libpng': 'third_party/libpng/BUILD.gn',
+   'libwebp': 'third_party/libwebp/BUILD.gn',
+   'libxml': 'third_party/libxml/BUILD.gn',
+   'libxslt': 'third_party/libxslt/BUILD.gn',

@@ -1,0 +1,215 @@
+--- cdrom.cpp.orig	2016-02-05 18:32:05.748572388 +0000
++++ cdrom.cpp	2016-02-05 18:32:40.528840436 +0000
+@@ -21,6 +21,8 @@
+ // SDL CDROM 
+ // ******************************************************
+ 
++#include "SDL_version.h"
++
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
+@@ -30,6 +32,8 @@
+ #include "support.h"
+ #include "cdrom.h"
+ 
++#if C_PHYSICAL_CDROM_MOUNT
++
+ CDROM_Interface_SDL::CDROM_Interface_SDL(void) {
+ 	driveID		= 0;
+ 	oldLeadOut	= 0;
+@@ -148,6 +152,8 @@
+ 	return success;
+ }
+ 
++#endif /* C_PHYSICAL_CDROM_MOUNT */
++
+ int CDROM_GetMountType(char* path, int forceCD) {
+ // 0 - physical CDROM
+ // 1 - Iso file
+@@ -162,6 +168,7 @@
+ 	upcase(buffer);
+ #endif
+ 
++#if C_PHYSICAL_CDROM_MOUNT
+ 	int num = SDL_CDNumDrives();
+ 	// If cd drive is forced then check if its in range and return 0
+ 	if ((forceCD>=0) && (forceCD<num)) {
+@@ -174,6 +181,7 @@
+ 		cdName = SDL_CDName(i);
+ 		if (strcmp(buffer,cdName)==0) return 0;
+ 	};
++#endif
+ 	
+ 	// Detect ISO
+ 	struct stat file_stat;
+--- cdrom_aspi_win32.cpp.orig	2016-02-05 18:32:05.748572388 +0000
++++ cdrom_aspi_win32.cpp	2016-02-05 18:35:00.606586670 +0000
+@@ -17,11 +17,15 @@
+  */
+ 
+ 
++#include "SDL_version.h"
++#include "dosbox.h"
++
++#if C_PHYSICAL_CDROM_MOUNT
++
+ #if defined (WIN32) && 0
+ 
+ #include <ctype.h>
+ 
+-#include "dosbox.h"
+ #include "cdrom.h"
+ #include "support.h"
+ 
+@@ -770,3 +774,4 @@
+ };
+ 
+ #endif
++#endif /* C_PHYSICAL_CDROM_MOUNT */
+--- cdrom_ioctl_win32.cpp.orig	2016-02-05 18:32:05.751905747 +0000
++++ cdrom_ioctl_win32.cpp	2016-02-05 18:35:33.033503248 +0000
+@@ -17,6 +17,11 @@
+  */
+ 
+ 
++#include "SDL_version.h"
++#include "cdrom.h"
++
++#if C_PHYSICAL_CDROM_MOUNT
++
+ #if defined (WIN32) && 0
+ 
+ // *****************************************************************
+@@ -35,8 +40,6 @@
+ 
+ #include <mmsystem.h>
+ 
+-#include "cdrom.h"
+-
+ // for a more sophisticated implementation of the mci cdda functionality
+ // see the SDL sources, which the mci_ functions are based on
+ 
+@@ -626,3 +629,4 @@
+ };
+ 
+ #endif
++#endif /* C_PHYSICAL_CDROM_MOUNT */
+--- dos_programs.cpp.orig	2016-02-05 18:32:05.755239106 +0000
++++ dos_programs.cpp	2016-02-05 20:02:47.847180829 +0000
+@@ -104,7 +104,9 @@
+ 	*make=new MOUSE;
+ }
+ 
++#if C_PHYSICAL_CDROM_MOUNT
+ void MSCDEX_SetCDInterface(int intNr, int forceCD);
++#endif
+ Bitu ZDRIVE_NUM = 25;
+ 
+ class MOUNT : public Program {
+@@ -234,11 +236,15 @@
+ 		}
+ 		/* Show list of cdroms */
+ 		if (cmd->FindExist("-cd",false)) {
++#if C_PHYSICAL_CDROM_MOUNT
+ 			int num = SDL_CDNumDrives();
+    			WriteOut(MSG_Get("PROGRAM_MOUNT_CDROMS_FOUND"),num);
+ 			for (int i=0; i<num; i++) {
+ 				WriteOut("%2d. %s\n",i,SDL_CDName(i));
+ 			};
++#else
++			WriteOut(MSG_Get("PROGRAM_MOUNT_PHYS_CDROMS_NOT_SUPPORTED"));
++#endif
+ 			return;
+ 		}
+ 
+@@ -376,9 +382,9 @@
+ 			if (temp_line[temp_line.size()-1]!=CROSS_FILESPLIT) temp_line+=CROSS_FILESPLIT;
+ 			Bit8u bit8size=(Bit8u) sizes[1];
+ 			if (type=="cdrom") {
++#if C_PHYSICAL_CDROM_MOUNT
+ 				int num = -1;
+ 				cmd->FindInt("-usecd",num,true);
+-				int error = 0;
+ 				if (cmd->FindExist("-aspi",false)) {
+ 					MSCDEX_SetCDInterface(CDROM_USE_ASPI, num);
+ 				} else if (cmd->FindExist("-ioctl_dio",false)) {
+@@ -407,6 +413,21 @@
+ 					MSCDEX_SetCDInterface(CDROM_USE_IOCTL_DIO, num);
+ #endif
+ 				}
++#else /* C_PHYSICAL_CDROM_MOUNT */
++				if (cmd->FindExist("-usecd",false)
++				    || cmd->FindExist("-aspi",false)
++				    || cmd->FindExist("-ioctl_dio",false)
++				    || cmd->FindExist("-ioctl_dx",false)
++#if defined (WIN32)
++				    || cmd->FindExist("-ioctl_mci",false)
++#endif
++				    || cmd->FindExist("-noioctl",false)
++				) {
++					WriteOut(MSG_Get("PROGRAM_MOUNT_PHYS_CDROMS_NOT_SUPPORTED"));
++					/* Just ignore, mount anyway */
++				}
++#endif /* C_PHYSICAL_CDROM_MOUNT */
++				int error = 0;
+ 				if (is_physfs) {
+ 					LOG_MSG("ERROR:This build does not support physfs");
+ 				} else {
+@@ -2603,7 +2624,9 @@
+ 					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_ALREADY_MOUNTED"));
+ 					return;
+ 				}
++#if C_PHYSICAL_CDROM_MOUNT
+ 				MSCDEX_SetCDInterface(CDROM_USE_SDL, -1);
++#endif
+ 				// create new drives for all images
+ 				std::vector<DOS_Drive*> isoDisks;
+ 				std::vector<std::string>::size_type i;
+@@ -2927,7 +2950,11 @@
+ 	MSG_Add("PROGRAM_MOUSE_ERROR","Already installed at PS/2 port.\n");
+ 	MSG_Add("PROGRAM_MOUSE_NOINSTALLED","Driver is not installed.\n");
+ 	MSG_Add("PROGRAM_MOUSE_HELP","Turns on/off mouse.\n\nMOUSE [/?] [/U] [/V]\n  /U: Uninstall\n  /V: Reverse Y-axis\n");
++#if C_PHYSICAL_CDROM_MOUNT
+ 	MSG_Add("PROGRAM_MOUNT_CDROMS_FOUND","CDROMs found: %d\n");
++#else
++	MSG_Add("PROGRAM_MOUNT_PHYS_CDROMS_NOT_SUPPORTED","Physical CDROMs aren't fully supported. IMGMOUNT may be more useful.\n");
++#endif
+ 	MSG_Add("PROGRAM_MOUNT_STATUS_FORMAT","%-5s  %-58s %-12s\n");
+ 	MSG_Add("PROGRAM_MOUNT_STATUS_2","Drive %c is mounted as %s\n");
+ 	MSG_Add("PROGRAM_MOUNT_STATUS_1","The currently mounted drives are:\n");
+@@ -3084,7 +3111,11 @@
+ 		);
+ 	MSG_Add("PROGRAM_INTRO_CDROM",
+ 		"\033[2J\033[32;1mHow to mount a Real/Virtual CD-ROM Drive in DOSBox:\033[0m\n"
++#if C_PHYSICAL_CDROM_MOUNT
+ 		"DOSBox provides CD-ROM emulation on several levels.\n"
++#else
++		"DOSBox provides CD-ROM emulation on a few levels.\n"
++#endif
+ 		"\n"
+ 		"The \033[33mbasic\033[0m level works on all CD-ROM drives and normal directories.\n"
+ 		"It installs MSCDEX and marks the files read-only.\n"
+@@ -3093,6 +3124,7 @@
+ 		"If it doesn't work you might have to tell DOSBox the label of the CD-ROM:\n"
+ 		"\033[34;1mmount d C:\\example -t cdrom -label CDLABEL\033[0m\n"
+ 		"\n"
++#if C_PHYSICAL_CDROM_MOUNT
+ 		"The \033[33mnext\033[0m level adds some low-level support.\n"
+ 		"Therefore only works on CD-ROM drives:\n"
+ 		"\033[34;1mmount d \033[0;31mD:\\\033[34;1m -t cdrom -usecd \033[33m0\033[0m\n"
+@@ -3106,6 +3138,14 @@
+ 		"Replace \033[0;31mD:\\\033[0m with the location of your CD-ROM.\n"
+ 		"Replace the \033[33;1m0\033[0m in \033[34;1m-usecd \033[33m0\033[0m with the number reported for your CD-ROM if you type:\n"
+ 		"\033[34;1mmount -cd\033[0m\n"
++#else
++		"The \033[33mhigher\033[0m level adds CD-ROM image mounting support.\n"
++		"Therefore only works on supported CD-ROM images:\n"
++		"\033[34;1mimgmount d \033[0;31mD:\\example.img\033[34;1m -t cdrom\033[0m\n"
++		"\n"
++		"Replace \033[0;31mD:\\\033[0m with the location of your CD-ROM.\n"
++		"Replace \033[0;31mD:\\example.img\033[0m with the location of your CD-ROM image.\n"
++#endif
+ 		);
+ 	MSG_Add("PROGRAM_INTRO_SPECIAL",
+ 		"\033[2J\033[32;1mSpecial keys:\033[0m\n"

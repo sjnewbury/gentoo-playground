@@ -6,7 +6,7 @@ EAPI=5
 
 MY_PV=${PV/_/-}
 
-inherit systemd
+inherit systemd eutils
 
 DESCRIPTION="AMD K10/K11 P-State, frequency and voltage modification utility"
 HOMEPAGE="https://code.google.com/p/turionpowercontrol/"
@@ -20,6 +20,11 @@ IUSE=""
 DEPEND="sys-libs/ncurses"
 
 S="${WORKDIR}/tpc-${MY_PV}/src"
+
+src_prepare() {
+	default
+	epatch "${FILESDIR}/tpc-0.44-remove-MSVC_Round.patch"
+}
 
 src_compile() {
 	emake \

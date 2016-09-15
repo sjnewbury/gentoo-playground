@@ -36,8 +36,6 @@ DEPEND="${RDEPEND}
 
 src_prepare() {
 	default
-	# CDROM audio support has been removed from SDL2
-	epatch "${FILESDIR}/nocdrom.diff"
 	epatch "${FILESDIR}/SDL2-GL-libs.diff"
 	eautoreconf
 }
@@ -68,7 +66,7 @@ src_install() {
 
 	# install documentation
 	dodoc AUTHORS README NEWS
-	dohtml "${S}"/data/doc/*.htm
+	dohtml "${S}"/data/doc/*.htm*
 	dohtml -r "${S}"/data/doc/images
 
 	prepgamesdirs

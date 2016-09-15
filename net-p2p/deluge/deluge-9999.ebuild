@@ -22,6 +22,7 @@ IUSE="geoip gtk libnotify setproctitle webinterface"
 DEPEND=">=net-libs/rb_libtorrent-1[python]
 	dev-python/setuptools"
 RDEPEND="${DEPEND}
+	dev-python/jsmin
 	dev-python/chardet
 	dev-python/pyopenssl
 	dev-python/pyxdg

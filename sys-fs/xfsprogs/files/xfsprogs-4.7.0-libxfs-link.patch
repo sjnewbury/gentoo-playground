@@ -1,0 +1,26 @@
+--- ./io/Makefile.orig	2016-09-14 09:37:24.741955711 +0000
++++ ./io/Makefile	2016-09-14 09:38:38.619764877 +0000
+@@ -13,8 +13,8 @@
+ 	mmap.c open.c parent.c pread.c prealloc.c pwrite.c seek.c shutdown.c \
+ 	sync.c truncate.c reflink.c
+ 
+-LLDLIBS = $(LIBXCMD) $(LIBHANDLE)
+-LTDEPENDENCIES = $(LIBXCMD) $(LIBHANDLE)
++LLDLIBS = $(LIBXFS) $(LIBXCMD) $(LIBHANDLE)
++LTDEPENDENCIES = $(LIBXFS) $(LIBXCMD) $(LIBHANDLE)
+ LLDFLAGS = -static-libtool-libs
+ 
+ ifeq ($(HAVE_FADVISE),yes)
+--- ./quota/Makefile.orig	2016-09-14 09:37:24.741955711 +0000
++++ ./quota/Makefile	2016-09-14 09:38:06.902607714 +0000
+@@ -14,8 +14,8 @@
+ PCFILES = darwin.c freebsd.c irix.c linux.c
+ LSRCFILES = $(shell echo $(PCFILES) | sed -e "s/$(PKG_PLATFORM).c//g")
+ 
+-LLDLIBS = $(LIBXCMD)
+-LTDEPENDENCIES = $(LIBXCMD)
++LLDLIBS = $(LIBXFS) $(LIBXCMD)
++LTDEPENDENCIES = $(LIBXFS) $(LIBXCMD)
+ LLDFLAGS = -static
+ 
+ ifeq ($(ENABLE_READLINE),yes)

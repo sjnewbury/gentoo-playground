@@ -1,0 +1,21 @@
+--- Makefile~	2016-09-14 22:56:13.000000000 +0100
++++ Makefile	2016-09-14 23:01:29.748114793 +0100
+@@ -56,14 +56,15 @@
+ 
+ c := $(CC) -std=gnu99
+ cpp := $(CXX) -std=gnu++0x
+-flags := -O3 -fomit-frame-pointer -fno-tree-vectorize -I. $(fpic)
++cxxflags := -O3 -fomit-frame-pointer $(CXXFLAGS) -I. $(fpic)
++cflags := -O3 -fomit-frame-pointer $(CFLAGS) -I. $(fpic)
+ 
+ compile = \
+   $(strip \
+     $(if $(filter %.c,$<), \
+-      $(c) $(flags) $1 -c $< -o $@, \
++      $(c) $(cflags) $1 -c $< -o $@, \
+       $(if $(filter %.cpp,$<), \
+-        $(cpp) $(flags) $1 -c $< -o $@ \
++        $(cpp) $(cxxflags) $1 -c $< -o $@ \
+       ) \
+     ) \
+   )

@@ -1,0 +1,146 @@
+--- toolchain.eclass	2016-04-20 13:35:10.543840192 +0100
++++ toolchain.eclass.bak	2016-04-20 13:35:04.373847023 +0100
+@@ -8,7 +8,7 @@
+ HOMEPAGE="https://gcc.gnu.org/"
+ RESTRICT="strip" # cross-compilers need controlled stripping
+ 
+-inherit eutils fixheadtails flag-o-matic gnuconfig libtool multilib pax-utils toolchain-funcs versionator
++inherit eutils fixheadtails flag-o-matic gnuconfig libtool multilib-build pax-utils toolchain-funcs versionator
+ 
+ if [[ ${PV} == *_pre9999* ]] ; then
+ 	EGIT_REPO_URI="git://gcc.gnu.org/git/gcc.git"
+@@ -147,11 +147,12 @@
+ 	tc_version_is_at_least 4.1 && IUSE+=" libssp objc++"
+ 	tc_version_is_at_least 4.2 && IUSE_DEF+=( openmp )
+ 	tc_version_is_at_least 4.3 && IUSE+=" fixed-point"
++	tc_version_is_at_least 4.6 && IUSE+=" cpu_flags_x86_avx"
+ 	tc_version_is_at_least 4.7 && IUSE+=" go"
+ 	# Note: while <=gcc-4.7 also supported graphite, it required forked ppl
+ 	# versions which we dropped.  Since graphite was also experimental in
+ 	# the older versions, we don't want to bother supporting it.  #448024
+-	tc_version_is_at_least 4.8 && IUSE+=" graphite" IUSE_DEF+=( sanitize )
++	tc_version_is_at_least 4.8 && IUSE+=" graphite gold" IUSE_DEF+=( sanitize )
+ 	tc_version_is_at_least 4.9 && IUSE+=" cilk"
+ 	tc_version_is_at_least 5.0 && IUSE+=" jit"
+ 	tc_version_is_at_least 6.0 && IUSE+=" pie +ssp"
+@@ -159,7 +160,15 @@
+ 
+ IUSE+=" ${IUSE_DEF[*]/#/+}"
+ 
+-SLOT="${GCC_CONFIG_VER}"
++# Support upgrade paths here or people get pissed
++if ! tc_version_is_at_least 4.8 || is_crosscompile || use multislot || [[ ${GCC_PV} == *_alpha* ]] ; then
++	SLOT="${GCC_CONFIG_VER}"
++elif ! tc_version_is_at_least 5.0 ; then
++	SLOT="${GCC_BRANCH_VER}"
++else
++	# Upstream changed versioning w/gcc-5+, so SLOT matches major only. #555164
++	SLOT="${GCCMAJOR}"
++fi
+ 
+ #---->> DEPEND <<----
+ 
+@@ -203,13 +212,13 @@
+ if in_iuse gcj ; then
+ 	GCJ_DEPS=">=media-libs/libart_lgpl-2.1"
+ 	GCJ_GTK_DEPS="
+-		x11-libs/libXt
+-		x11-libs/libX11
+-		x11-libs/libXtst
+-		x11-proto/xproto
+-		x11-proto/xextproto
+-		=x11-libs/gtk+-2*
+-		virtual/pkgconfig
++		x11-libs/libXt[${MULTILIB_USEDEP}]
++		x11-libs/libX11[${MULTILIB_USEDEP}]
++		x11-libs/libXtst[${MULTILIB_USEDEP}]
++		x11-proto/xproto[${MULTILIB_USEDEP}]
++		x11-proto/xextproto[${MULTILIB_USEDEP}]
++		=x11-libs/gtk+-2*[${MULTILIB_USEDEP}]
++		virtual/pkgconfig[${MULTILIB_USEDEP}]
+ 	"
+ 	tc_version_is_at_least 3.4 && GCJ_GTK_DEPS+=" x11-libs/pango"
+ 	tc_version_is_at_least 4.2 && GCJ_DEPS+=" app-arch/zip app-arch/unzip"
+@@ -918,6 +927,18 @@
+ 		confgcc+=( --disable-build-with-cxx --disable-build-poststage1-with-cxx )
+ 	fi
+ 
++	# default to avx for math ops
++	if use cpu_flags_x86_avx && tc_version_is_at_least 4.6; then
++		case $(tc-arch) in
++			amd64|x86) confgcc+=( --with-fpmath=avx ) ;;
++		esac
++	fi
++
++	# use gold linker
++	if tc_version_is_at_least 4.8; then
++		confgcc+=( $(use_enable gold) )
++	fi
++
+ 	### Cross-compiler options
+ 	if is_crosscompile ; then
+ 		# Enable build warnings by default with cross-compilers when system
+@@ -1684,12 +1705,10 @@
+ 			ln -sf ${CTARGET}-${x} ${CTARGET}-${x}-${GCC_CONFIG_VER}
+ 		fi
+ 	done
+-	# Rename the main go binaries as we don't want to clobber dev-lang/go
++	# Clear out the main go binaries as we don't want to clobber dev-lang/go
+ 	# when gcc-config runs. #567806
+ 	if tc_version_is_at_least 5 && is_go ; then
+-		for x in go gofmt; do
+-			mv ${x} ${x}-${GCCMAJOR} || die
+-		done
++		rm -f go gofmt
+ 	fi
+ 
+ 	# Now do the fun stripping stuff
+@@ -2050,36 +2069,26 @@
+ 		return 0
+ 	fi
+ 
+-	local current_gcc_config target
++	local current_gcc_config="" current_specs="" use_specs=""
+ 
+ 	current_gcc_config=$(env -i ROOT="${ROOT}" gcc-config -c ${CTARGET} 2>/dev/null)
+ 	if [[ -n ${current_gcc_config} ]] ; then
+-		local current_specs use_specs
+ 		# figure out which specs-specific config is active
+ 		current_specs=$(gcc-config -S ${current_gcc_config} | awk '{print $3}')
+ 		[[ -n ${current_specs} ]] && use_specs=-${current_specs}
+-
+-		if [[ -n ${use_specs} ]] && \
+-		   [[ ! -e ${ROOT}/etc/env.d/gcc/${CTARGET}-${GCC_CONFIG_VER}${use_specs} ]]
+-		then
+-			ewarn "The currently selected specs-specific gcc config,"
+-			ewarn "${current_specs}, doesn't exist anymore. This is usually"
+-			ewarn "due to enabling/disabling hardened or switching to a version"
+-			ewarn "of gcc that doesnt create multiple specs files. The default"
+-			ewarn "config will be used, and the previous preference forgotten."
+-			use_specs=""
+-		fi
+-
+-		target="${CTARGET}-${GCC_CONFIG_VER}${use_specs}"
+-	else
+-		# The curent target is invalid.  Attempt to switch to a valid one.
+-		# Blindly pick the latest version.  #529608
+-		# TODO: Should update gcc-config to accept `-l ${CTARGET}` rather than
+-		# doing a partial grep like this.
+-		target=$(gcc-config -l 2>/dev/null | grep " ${CTARGET}-[0-9]" | tail -1 | awk '{print $2}')
++	fi
++	if [[ -n ${use_specs} ]] && \
++	   [[ ! -e ${ROOT}/etc/env.d/gcc/${CTARGET}-${GCC_CONFIG_VER}${use_specs} ]]
++	then
++		ewarn "The currently selected specs-specific gcc config,"
++		ewarn "${current_specs}, doesn't exist anymore. This is usually"
++		ewarn "due to enabling/disabling hardened or switching to a version"
++		ewarn "of gcc that doesnt create multiple specs files. The default"
++		ewarn "config will be used, and the previous preference forgotten."
++		use_specs=""
+ 	fi
+ 
+-	gcc-config "${target}"
++	gcc-config ${CTARGET}-${GCC_CONFIG_VER}${use_specs}
+ }
+ 
+ should_we_gcc_config() {

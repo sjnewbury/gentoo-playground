@@ -1,0 +1,23 @@
+From a7bc5e17cf3a8f6a54fb9d66a5e003b1cb33277f Mon Sep 17 00:00:00 2001
+From: Tino Mettler <tino+debian@tikei.de>
+Date: Thu, 14 Jul 2016 14:43:26 +0200
+Subject: [PATCH] Add cast to int to fix FTBFS with GCC 6
+
+Closes: #831080
+---
+ src/sysync/itemfield.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/sysync/itemfield.cpp b/src/sysync/itemfield.cpp
+index 64867e0..de73744 100644
+--- a/src/sysync/itemfield.cpp
++++ b/src/sysync/itemfield.cpp
+@@ -1488,7 +1488,7 @@ void TTimestampField::getAsRFC822date(string &aRFC822String, timecontext_t aTarg
+       " %c%02hd%02hd",
+       moffs>=0 ? '+' : '-',
+       (uInt16)(abs(moffs) / MinsPerHour),
+-      (uInt16)(abs(moffs) % MinsPerHour)
++      (uInt16)((int)abs(moffs) % MinsPerHour)
+     );
+   }
+ } // TTimestampField::getAsRFC822date

@@ -1,0 +1,168 @@
+diff --git a/tools/java/common/src/com/google/i18n/phonenumbers/BuildMetadataFromXml.java b/tools/java/common/src/com/google/i18n/phonenumbers/BuildMetadataFromXml.java
+index d36273f..f49aca7 100644
+--- a/tools/java/common/src/com/google/i18n/phonenumbers/BuildMetadataFromXml.java
++++ b/tools/java/common/src/com/google/i18n/phonenumbers/BuildMetadataFromXml.java
+@@ -137,7 +137,7 @@ public class BuildMetadataFromXml {
+       } else {
+         // For most countries, there will be only one region code for the country calling code.
+         List<String> listWithRegionCode = new ArrayList<String>(1);
+-        if (!regionCode.isEmpty()) {  // For alternate formats, there are no region codes at all.
++        if (regionCode.length() != 0) {  // For alternate formats, there are no region codes at all.
+           listWithRegionCode.add(regionCode);
+         }
+         countryCodeToRegionCodeMap.put(countryCode, listWithRegionCode);
+@@ -202,7 +202,7 @@ public class BuildMetadataFromXml {
+             validateRE(element.getAttribute(NATIONAL_PREFIX_TRANSFORM_RULE)));
+       }
+     }
+-    if (!nationalPrefix.isEmpty()) {
++    if (nationalPrefix.length() != 0) {
+       metadata.setNationalPrefix(nationalPrefix);
+       if (!metadata.hasNationalPrefixForParsing()) {
+         metadata.setNationalPrefixForParsing(nationalPrefix);
+diff --git a/tools/java/cpp-build/test/com/google/i18n/phonenumbers/BuildMetadataCppFromXmlTest.java b/tools/java/cpp-build/test/com/google/i18n/phonenumbers/BuildMetadataCppFromXmlTest.java
+index b1976e8..3d3a161 100644
+--- a/tools/java/cpp-build/test/com/google/i18n/phonenumbers/BuildMetadataCppFromXmlTest.java
++++ b/tools/java/cpp-build/test/com/google/i18n/phonenumbers/BuildMetadataCppFromXmlTest.java
+@@ -30,6 +30,7 @@ import org.junit.Test;
+ import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.OutputStream;
++import java.io.UnsupportedEncodingException;
+ import java.nio.charset.Charset;
+ 
+ /**
+@@ -78,7 +79,7 @@ public class BuildMetadataCppFromXmlTest {
+   }
+ 
+   @Test
+-  public void generateMetadata() {
++  public void generateMetadata() throws UnsupportedEncodingException {
+     String[] args = new String[] {
+         IGNORED, INPUT_PATH_XML, OUTPUT_DIR, "metadata" };
+     // Most of the useful asserts are done in the mock class.
+@@ -97,7 +98,7 @@ public class BuildMetadataCppFromXmlTest {
+   }
+ 
+   @Test
+-  public void generateLiteMetadata() {
++  public void generateLiteMetadata() throws UnsupportedEncodingException {
+     String[] args = new String[] {
+         IGNORED, INPUT_PATH_XML, OUTPUT_DIR, "lite_metadata" };
+     // Most of the useful asserts are done in the mock class.
+@@ -116,7 +117,7 @@ public class BuildMetadataCppFromXmlTest {
+   }
+ 
+   @Test
+-  public void generateAlternateFormat() {
++  public void generateAlternateFormat() throws UnsupportedEncodingException {
+     String[] args = new String[] {
+         IGNORED, INPUT_PATH_XML, OUTPUT_DIR, "alternate_format" };
+     // Most of the useful asserts are done in the mock class.
+@@ -175,11 +176,11 @@ public class BuildMetadataCppFromXmlTest {
+       assertEquals(expectedVariant, variant);
+       return sourceOut;
+     }
+-    String capturedHeaderFile() {
+-      return new String(headerOut.toByteArray(), UTF_8);
++    String capturedHeaderFile() throws UnsupportedEncodingException {
++      return new String(headerOut.toByteArray(), "UTF-8");
+     }
+-    String capturedSourceFile() {
+-      return new String(sourceOut.toByteArray(), UTF_8);
++    String capturedSourceFile() throws UnsupportedEncodingException {
++      return new String(sourceOut.toByteArray(), "UTF-8");
+     }
+   }
+ }
+diff --git a/tools/java/data/pom.xml b/tools/java/data/pom.xml
+index 626aea9..0fb2b66 100644
+--- a/tools/java/data/pom.xml
++++ b/tools/java/data/pom.xml
+@@ -48,8 +48,8 @@
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-compiler-plugin</artifactId>
+         <configuration>
+-          <source>1.6</source>
+-          <target>1.6</target>
++          <source>1.5</source>
++          <target>1.5</target>
+         </configuration>
+       </plugin>
+       <plugin>
+diff --git a/tools/java/java-build/src/com/google/i18n/phonenumbers/BuildMetadataProtoFromXml.java b/tools/java/java-build/src/com/google/i18n/phonenumbers/BuildMetadataProtoFromXml.java
+index 9d39971..c3069c7 100644
+--- a/tools/java/java-build/src/com/google/i18n/phonenumbers/BuildMetadataProtoFromXml.java
++++ b/tools/java/java-build/src/com/google/i18n/phonenumbers/BuildMetadataProtoFromXml.java
+@@ -168,7 +168,7 @@ public class BuildMetadataProtoFromXml extends Command {
+           String regionCode = metadata.getId();
+           // For non-geographical country calling codes (e.g. +800), or for alternate formats, use the
+           // country calling codes instead of the region code to form the file name.
+-          if (regionCode.equals("001") || regionCode.isEmpty()) {
++          if (regionCode.equals("001") || regionCode.length() == 0) {
+             regionCode = Integer.toString(metadata.getCountryCode());
+           }
+           PhoneMetadataCollection outMetadataCollection = new PhoneMetadataCollection();
+@@ -214,7 +214,7 @@ public class BuildMetadataProtoFromXml extends Command {
+     // calling codes listed in it.
+     boolean hasRegionCodes = false;
+     for (List<String> listWithRegionCode : countryCodeToRegionCodeMap.values()) {
+-      if (!listWithRegionCode.isEmpty()) {
++      if (listWithRegionCode.size() > 0) {
+         hasRegionCodes = true;
+         break;
+       }
+diff --git a/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixData.java b/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixData.java
+index 419f69d..65985c7 100644
+--- a/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixData.java
++++ b/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixData.java
+@@ -145,7 +145,6 @@ public class GeneratePhonePrefixData {
+       throws IOException {
+     final SortedMap<Integer, String> phonePrefixMap = new TreeMap<Integer, String>();
+     parseTextFile(input, new PhonePrefixMappingHandler() {
+-      @Override
+       public void process(int prefix, String location) {
+         if (phonePrefixMap.put(prefix, location) != null) {
+           throw new RuntimeException(String.format("duplicated prefix %d", prefix));
+@@ -194,7 +193,6 @@ public class GeneratePhonePrefixData {
+       final Set<Integer> phonePrefixes = new HashSet<Integer>();
+       FileInputStream inputStream = new FileInputStream(countryCodeFile);
+       parseTextFile(inputStream, new PhonePrefixMappingHandler() {
+-        @Override
+         public void process(int prefix, String location) {
+           phonePrefixes.add(Integer.parseInt(String.valueOf(prefix).substring(0, 4)));
+         }
+@@ -414,7 +412,7 @@ public class GeneratePhonePrefixData {
+     Iterator<Map.Entry<Integer, String>> it = map.entrySet().iterator();
+     while (it.hasNext()) {
+       Map.Entry<Integer, String> mapping = it.next();
+-      if (mapping.getValue().isEmpty()) {
++      if (mapping.getValue().length() == 0) {
+         it.remove();
+       }
+     }
+diff --git a/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GenerateTimeZonesMapData.java b/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GenerateTimeZonesMapData.java
+index b07a187..710badc 100644
+--- a/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GenerateTimeZonesMapData.java
++++ b/tools/java/java-build/src/com/google/i18n/phonenumbers/buildtools/GenerateTimeZonesMapData.java
+@@ -82,7 +82,7 @@ public class GenerateTimeZonesMapData {
+       }
+       Integer prefix = Integer.parseInt(line.substring(0, indexOfPipe));
+       String timezones = line.substring(indexOfPipe + 1);
+-      if (timezones.isEmpty()) {
++      if (timezones.length() == 0) {
+         throw new RuntimeException(String.format("line %d: missing time zones", lineNumber));
+       }
+       if (timeZoneMap.put(prefix, timezones) != null) {
+diff --git a/tools/java/java-build/test/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixDataTest.java b/tools/java/java-build/test/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixDataTest.java
+index 828707a..ef6879a 100644
+--- a/tools/java/java-build/test/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixDataTest.java
++++ b/tools/java/java-build/test/com/google/i18n/phonenumbers/buildtools/GeneratePhonePrefixDataTest.java
+@@ -93,7 +93,6 @@ public class GeneratePhonePrefixDataTest extends TestCase {
+     final Map<Integer, String> mappings = new HashMap<Integer, String>();
+     GeneratePhonePrefixData.parseTextFile(new ByteArrayInputStream(input.getBytes()),
+                                           new PhonePrefixMappingHandler() {
+-      @Override
+       public void process(int phonePrefix, String location) {
+         mappings.put(phonePrefix, location);
+       }

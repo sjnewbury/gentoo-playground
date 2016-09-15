@@ -1,0 +1,25 @@
+From 0b6211d2cfadb3fbbcc7c7ed8655b8082f9d6cbf Mon Sep 17 00:00:00 2001
+From: Niels Ole Salscheider <niels_ole@salscheider-online.de>
+Date: Sun, 2 Mar 2014 12:59:32 +0100
+Subject: [PATCH] autotools: Add QtCore include path to KDEPIM_CFLAGS
+
+---
+ src/backends/akonadi/configure-sub.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/backends/akonadi/configure-sub.in b/src/backends/akonadi/configure-sub.in
+index 064c2ed..ed05f1b 100644
+--- a/src/backends/akonadi/configure-sub.in
++++ b/src/backends/akonadi/configure-sub.in
+@@ -10,7 +10,7 @@ AKONADIFOUND=yes
+ if ! test "$KDEPIM_CFLAGS"; then
+    KDEPIM_CFLAGS="-I`kde4-config --path include` -I`kde4-config --path include`/KDE"
+    if test "$QMAKE"; then
+-      KDEPIM_CFLAGS="$KDEPIM_CFLAGS -I`$QMAKE -query QT_INSTALL_HEADERS`"
++      KDEPIM_CFLAGS="$KDEPIM_CFLAGS -I`$QMAKE -query QT_INSTALL_HEADERS` -I`$QMAKE -query QT_INSTALL_HEADERS`/QtCore"
+    fi
+ fi
+ if ! test "$KDEPIM_LIBS"; then
+-- 
+1.9.0
+

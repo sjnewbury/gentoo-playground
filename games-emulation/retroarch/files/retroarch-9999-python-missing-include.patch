@@ -1,0 +1,24 @@
+From 446d1792063493422c41eceba05c91a1a139b84a Mon Sep 17 00:00:00 2001
+From: Steven Newbury <steve@snewbury.org.uk>
+Date: Tue, 13 Sep 2016 16:21:19 +0100
+Subject: [PATCH] Add missing include
+
+---
+ gfx/drivers_tracker/video_state_python.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/gfx/drivers_tracker/video_state_python.c b/gfx/drivers_tracker/video_state_python.c
+index bbdbff6..010a3ae 100644
+--- a/gfx/drivers_tracker/video_state_python.c
++++ b/gfx/drivers_tracker/video_state_python.c
+@@ -31,6 +31,7 @@
+ #include "../../core.h"
+ #include "../../verbosity.h"
+ #include "../../input/input_config.h"
++#include "../configuration.h"
+ 
+ static PyObject* py_read_wram(PyObject *self, PyObject *args)
+ {
+-- 
+2.10.0
+

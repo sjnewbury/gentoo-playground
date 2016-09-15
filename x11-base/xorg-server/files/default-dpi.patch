@@ -87,17 +87,17 @@
                  mmWidth = width * 25.4 / DEFAULT_DPI;
                  mmHeight = height * 25.4 / DEFAULT_DPI;
              }
---- ./hw/xfree86/common/xf86Config.c.orig	2015-08-25 23:33:55.698946167 +0100
-+++ ./hw/xfree86/common/xf86Config.c	2015-08-25 23:54:11.962375877 +0100
-@@ -704,6 +704,7 @@
-     FLAG_USE_SIGIO,
+--- ./hw/xfree86/common/xf86Config.c.orig	2016-05-31 19:19:57.319496993 +0100
++++ ./hw/xfree86/common/xf86Config.c	2016-05-31 19:24:05.376776349 +0100
+@@ -701,6 +701,7 @@
      FLAG_AUTO_ADD_GPU,
      FLAG_MAX_CLIENTS,
+     FLAG_IGLX,
 +    FLAG_DEFAULT_DPI,
  } FlagValues;
  
  /**
-@@ -909,6 +910,14 @@
+@@ -887,6 +888,14 @@
          }
      }
  
@@ -112,7 +112,7 @@
  #ifdef RANDR
      xf86Info.disableRandR = FALSE;
      xf86Info.randRFrom = X_DEFAULT;
-@@ -1419,6 +1428,8 @@
+@@ -1403,6 +1412,8 @@
       {0}, FALSE},
      {LAYOUT_SINGLECARD, "SingleCard", OPTV_BOOLEAN,
       {0}, FALSE},

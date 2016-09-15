@@ -1,0 +1,10 @@
+--- a/dom/events/TouchEvent.cpp	2016-03-15 18:37:43.000000000 -0400
++++ b/dom/events/TouchEvent.cpp	2016-03-17 21:07:47.034895092 -0400
+@@ -194,7 +194,6 @@
+       }
+       prefValue = sIsTouchDeviceSupportPresent;
+ #else
+-      NS_WARNING("dom.w3c_touch_events.enabled=2 not implemented!");
+       prefValue = false;
+ #endif
+     } else {

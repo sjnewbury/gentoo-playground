@@ -11,3 +11,11 @@ This repository contains ebuilds which fall into the following categories:
   bug in the portage version which hasn't yet been fixed
 
 * all new packages not currently in portage
+
+WARNING! Some ebuilds in this repo supercede those in Portage and have
+KEYWORDS copied from their Portage counterparts.  Until I rectify this
+or alternatively provide a local mask in this repo, I recommend adding
+a local mask for */*::gentoo-playground, then unmasking specific packages
+as needed.
+
+I would accept pull requests to rectify this situation.

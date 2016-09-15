@@ -1,0 +1,40 @@
+From db387faa24fea7207d7054b51f2d2e0fd203e1e9 Mon Sep 17 00:00:00 2001
+From: Renato Araujo Oliveira Filho <renato.filho@canonical.com>
+Date: Wed, 8 Apr 2015 14:08:26 -0300
+Subject: [PATCH 3/3] Use 90 days as default value for syncInterval.
+
+---
+ src/syncevo/SyncConfig.cpp | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/syncevo/SyncConfig.cpp b/src/syncevo/SyncConfig.cpp
+index 4f49d20..ae6e8ce 100644
+--- a/src/syncevo/SyncConfig.cpp
++++ b/src/syncevo/SyncConfig.cpp
+@@ -2851,7 +2851,7 @@ static ConfigProperty sourcePropCalendarSyncInterval(Aliases("syncInterval"),
+                                            "Defines the number of days before the current date that should be use as start date for the calendar sync.\n"
+                                            "This can be set do limit the number of events imported from the source calendar.\n"
+                                            "\n"
+-                                           "Leave it empty if you want to import all events.\n");
++                                           "If unset, the limit will be set to 90 days..\n");
+ 
+ static StringConfigProperty sourcePropDatabaseFormat("databaseFormat",
+                                                      "Defines the data format to be used by the backend for its\n"
+@@ -3044,7 +3044,13 @@ SyncSourceNodes::getNode(const ConfigProperty &prop) const
+ 
+ InitStateString SyncSourceConfig::getDatabaseID() const { return sourcePropDatabaseID.getProperty(*getNode(sourcePropDatabaseID)); }
+ void SyncSourceConfig::setDatabaseID(const string &value, bool temporarily) { sourcePropDatabaseID.setProperty(*getNode(sourcePropDatabaseID), value, temporarily); }
+-InitStateString SyncSourceConfig::getSyncInterval() const { return sourcePropCalendarSyncInterval.getProperty(*getNode(sourcePropCalendarSyncInterval)); }
++InitStateString SyncSourceConfig::getSyncInterval() const {
++    InitStateString interval = sourcePropCalendarSyncInterval.getProperty(*getNode(sourcePropCalendarSyncInterval));
++    if (interval.empty()) {
++        interval = InitStateString("90", false);
++    }
++    return interval;
++}
+ void SyncSourceConfig::setSyncInterval(const string &value, bool temporarily) {
+     sourcePropCalendarSyncInterval.setProperty(*getNode(sourcePropCalendarSyncInterval), value, temporarily);
+ }
+-- 
+2.1.0
+

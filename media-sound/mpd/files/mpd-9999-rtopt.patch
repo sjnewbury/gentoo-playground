@@ -230,9 +230,9 @@ index 37b45bd..cc51d27 100644
 +#include "rt_opt.hxx"
 +#endif
 +
+ #include <stdexcept>
  #include <functional>
- 
- static constexpr Domain decoder_thread_domain("decoder_thread");
+ #include <memory>
 @@ -433,6 +437,9 @@ static void
  decoder_task(void *arg)
  {
@@ -247,8 +247,8 @@ diff --git a/src/output/OutputThread.cxx b/src/output/OutputThread.cxx
 index a7fb2b8..42a020d 100644
 --- a/src/output/OutputThread.cxx
 +++ b/src/output/OutputThread.cxx
-@@ -36,6 +36,9 @@
- #include "util/Error.hxx"
+@@ -38,6 +38,9 @@
+ #include "util/ConstBuffer.hxx"
  #include "Log.hxx"
  #include "Compiler.h"
 +#ifdef ENABLE_RTOPT
@@ -257,7 +257,7 @@ index a7fb2b8..42a020d 100644
  
  #include <assert.h>
  #include <string.h>
-@@ -561,8 +564,13 @@ AudioOutput::Task()
+@@ -593,6 +596,10 @@
  {
  	FormatThreadName("output:%s", name);
  
@@ -265,7 +265,12 @@ index a7fb2b8..42a020d 100644
 +       rtopt_change_output_priority(name);
 +       rtopt_change_output_timerslack(name);
 +#else
- 	SetThreadRealtime();
+ 	Error error;
+ 	if(!SetThreadRealtime(error)) {
+ 		LogError(error);
+@@ -600,6 +607,7 @@
+ 			"OutputThread could not get realtime scheduling, continuing anyway");
+ 	}
  	SetThreadTimerSlackUS(100);
 +#endif
  

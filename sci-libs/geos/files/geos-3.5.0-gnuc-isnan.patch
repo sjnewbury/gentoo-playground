@@ -1,0 +1,11 @@
+--- ./include/geos/platform.h.in~	2016-09-08 17:59:47.000000000 +0100
++++ ./include/geos/platform.h.in	2016-09-08 18:38:05.877357391 +0100
+@@ -95,7 +95,7 @@
+ #  define ISNAN(x) (std::isnan(x))
+ # elif defined(__OSX__) || defined(__APPLE__) || \
+        defined(__NetBSD__) || defined(__DragonFly__) || defined (__OpenBSD__) || \
+-       (defined(__sun) && defined(__GNUC__))
++       defined(__GNUC__)
+    // Hack for OS/X <cmath> incorrectly re-defining isnan() into oblivion.
+    // It does leave a version in std.
+ #  define ISNAN(x) (std::isnan(x))

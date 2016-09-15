@@ -5,7 +5,7 @@
 EAPI=5
 
 # py3.3 removed due to nosetests
-PYTHON_COMPAT=( python{2_7,3_3,3_4} pypy{,3} )
+PYTHON_COMPAT=( python{2_7,3_3,3_4,3_5} pypy{,3} )
 inherit distutils-r1
 
 DESCRIPTION="A Python module to deal with freedesktop.org specifications"

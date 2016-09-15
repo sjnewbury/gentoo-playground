@@ -14,4 +14,4 @@ IUSE=""
 RDEPEND=">=dev-libs/libinput-1.1.0:0="
 DEPEND="${RDEPEND}"
 
-DOCS=( "README.md" "conf/90-libinput.conf" )
+DOCS=( "README.md" "conf/40-libinput.conf" )

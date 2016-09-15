@@ -1,0 +1,24 @@
+--- contextlib2-0.4.0.ebuild	2015-09-23 09:16:36.000000000 +0100
++++ /usr/portage/dev-python/contextlib2/contextlib2-0.5.1.ebuild	2016-03-12 18:14:35.000000000 +0000
+@@ -4,7 +4,7 @@
+ 
+ EAPI=5
+ 
+-PYTHON_COMPAT=( python{2_7,3_3,3_4} pypy{,3} )
++PYTHON_COMPAT=( python{2_7,3_3,3_4,3_5} pypy )
+ 
+ inherit distutils-r1
+ 
+@@ -14,9 +14,11 @@
+ 
+ LICENSE="PSF-2.4"
+ SLOT="0"
+-KEYWORDS="amd64 x86"
++KEYWORDS="~amd64 ~arm64 ~x86"
+ IUSE="test"
+ 
++DEPEND="test? ( dev-python/unittest2[${PYTHON_USEDEP}] )"
++
+ python_test() {
+ 	"${PYTHON}" test_contextlib2.py || die "Tests fail for ${EPYTHON}"
+ }

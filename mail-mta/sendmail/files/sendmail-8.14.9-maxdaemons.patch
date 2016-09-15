@@ -1,0 +1,22 @@
+--- ./doc/op/op.me~	2014-05-16 21:40:15.000000000 +0100
++++ ./doc/op/op.me	2016-09-09 16:16:33.581952321 +0100
+@@ -9932,7 +9932,7 @@
+ The maximum depth to which MIME messages may be nested
+ (that is, nested Message or Multipart documents;
+ this does not limit the number of components in a single Multipart document).
+-.ip "MAXDAEMONS [10]"
++.ip "MAXDAEMONS [16]"
+ The maximum number of sockets sendmail will open for accepting connections
+ on different ports.
+ .ip "MAXMACNAMELEN [25]"
+--- ./sendmail/conf.h~	2014-03-06 17:31:31.000000000 +0000
++++ ./sendmail/conf.h	2016-09-09 16:16:34.625312643 +0100
+@@ -113,7 +113,7 @@
+ # define MAXHDRSLEN	(32 * 1024)	/* max size of message headers */
+ #endif /* ! MAXHDRSLEN */
+ #ifndef MAXDAEMONS
+-# define MAXDAEMONS	10		/* max number of ports to listen to */
++# define MAXDAEMONS	16		/* max number of ports to listen to */
+ #endif /* MAXDAEMONS */
+ #ifndef MAXINTERFACES
+ # define MAXINTERFACES	512		/* number of interfaces to probe */

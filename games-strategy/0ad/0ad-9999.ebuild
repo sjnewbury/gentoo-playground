@@ -67,7 +67,7 @@ pkg_setup() {
 }
 
 src_prepare() {
-	epatch "${FILESDIR}"/${PN}-0.0.19_alpha-gentoo.patch
+	epatch "${FILESDIR}"/${P}-gentoo.patch
 #	epatch "${FILESDIR}"/${PN}-0.0.19_alpha-miniupnpc14.patch
 	epatch "${FILESDIR}"/${PN}-0.0.19_alpha-spidermonkey-cxxflags.patch
 	#epatch "${FILESDIR}"/${P}-GL4.patch

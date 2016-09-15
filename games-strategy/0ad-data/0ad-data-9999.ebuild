@@ -35,7 +35,7 @@ EGIT_CHECKOUT_DIR=${S}
 src_prepare() {
 	default
 	#epatch "${FILESDIR}/${P/-data}-GL4.patch"
-	epatch "${FILESDIR}"/${PN/-data}-0.0.19_alpha-gentoo.patch
+	epatch "${FILESDIR}"/${P/-data}-gentoo.patch
 
 	rm binaries/data/tools/fontbuilder/fonts/*.txt
 	rm -fr binaries/data/l10n/
