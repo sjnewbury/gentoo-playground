@@ -114,7 +114,7 @@ RDEPEND+="
 # with python_check_deps.
 DEPEND+=" $(python_gen_any_dep '
 	dev-python/beautifulsoup:python-2[${PYTHON_USEDEP}]
-	dev-python/beautifulsoup:4[${PYTHON_USEDEP}]
+	>=dev-python/beautifulsoup-4.3.2:4[${PYTHON_USEDEP}]
 	dev-python/html5lib[${PYTHON_USEDEP}]
 	dev-python/jinja[${PYTHON_USEDEP}]
 	dev-python/ply[${PYTHON_USEDEP}]
@@ -122,7 +122,7 @@ DEPEND+=" $(python_gen_any_dep '
 ')"
 python_check_deps() {
 	has_version --host-root "dev-python/beautifulsoup:python-2[${PYTHON_USEDEP}]" &&
-	has_version --host-root "dev-python/beautifulsoup:4[${PYTHON_USEDEP}]" &&
+	has_version --host-root ">=dev-python/beautifulsoup-4.3.2:4[${PYTHON_USEDEP}]" &&
 	has_version --host-root "dev-python/html5lib[${PYTHON_USEDEP}]" &&
 	has_version --host-root "dev-python/jinja[${PYTHON_USEDEP}]" &&
 	has_version --host-root "dev-python/ply[${PYTHON_USEDEP}]" &&
@@ -328,6 +328,35 @@ src_prepare() {
 		'v8/src/third_party/fdlibm' \
 		'v8/src/third_party/valgrind' \
 		--do-remove || die
+
+	# Avoid CFLAGS problems, bug #352457, bug #390147.
+	if ! use custom-cflags; then
+		replace-flags "-Os" "-O2"
+		strip-flags
+
+		# Prevent linker from running out of address space, bug #471810 .
+		if use x86; then
+			filter-flags "-g*"
+		fi
+
+		# Prevent libvpx build failures. Bug 530248, 544702, 546984.
+		if [[ ${myarch} == amd64 || ${myarch} == x86 ]]; then
+			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2
+		fi
+	fi
+
+	# HACK! Insert our CC/CXX/FLAGS into build/toolchain/linux/BUILD.gn
+	if !tc-is-clang; then
+		# Ensure CC/CXX/LD are set to something
+		[[ -z ${CC} ]] && CC="$(tc-getCC)"
+		[[ -z ${CXX} ]] && CXX="$(tc-getCXX)"
+		[[ -z ${LD} ]] && LD="$(tc-getLD)"
+
+		sed -e '/  cc = \"gcc\"/d' \
+		    -e '/  cxx = \"g++\"/d' \
+		    -e "/gcc_toolchain(.*)/a \  cc = \"${CC}\"\n  cxx = \"${CXX}\"\n  extra_cflags = \"${CFLAGS}\"\n  extra_cxxflags = \"${CXXFLAGS}\"\n  extra_ldflags = \"${LDFLAGS}\"\n" \
+		    -i build/toolchain/linux/BUILD.gn || die sed failed
+	fi
 }
 
 src_configure() {
@@ -404,9 +433,9 @@ src_configure() {
 			-Duse_system_yasm=1"
 	fi
 
-	# Disable OpenH264 support since we're using libva
-	myconf_gyp+="
-		-Duse_openh264=0"
+	# Disable OpenH264 support since we don't need it
+	myconf_gyp+=" -Duse_openh264=0"
+	myconf_gn+=" use_openh264=false"
 
 	# Optional dependencies.
 	# TODO: linux_link_kerberos, bug #381289.
@@ -453,7 +482,7 @@ src_configure() {
 
 	if [[ $(tc-getCC) == *clang* ]]; then
 		myconf_gyp+=" -Dclang=1"
-		myconf_gn+=" is_clang=true"
+		myconf_gn+=" is_clang=true clang_base_path=\"/usr\" clang_use_chrome_plugins=false"
 	else
 		myconf_gyp+=" -Dclang=0"
 		myconf_gn+=" is_clang=false"
@@ -533,22 +562,6 @@ src_configure() {
 	# Disable fatal linker warnings, bug 506268.
 	myconf_gyp+=" -Ddisable_fatal_linker_warnings=1"
 	myconf_gn+=" fatal_linker_warnings=false"
-
-	# Avoid CFLAGS problems, bug #352457, bug #390147.
-	if ! use custom-cflags; then
-		replace-flags "-Os" "-O2"
-		strip-flags
-
-		# Prevent linker from running out of address space, bug #471810 .
-		if use x86; then
-			filter-flags "-g*"
-		fi
-
-		# Prevent libvpx build failures. Bug 530248, 544702, 546984.
-		if [[ ${myarch} == amd64 || ${myarch} == x86 ]]; then
-			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2
-		fi
-	fi
 
 	# Make sure the build system will use the right tools, bug #340795.
 	tc-export AR CC CXX NM

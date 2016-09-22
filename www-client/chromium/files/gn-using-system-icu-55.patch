@@ -1,0 +1,25 @@
+--- ./build/config/BUILD.gn~	2016-03-29 20:01:56.000000000 +0100
++++ ./build/config/BUILD.gn	2016-04-06 15:39:05.094121165 +0100
+@@ -145,6 +145,9 @@
+   if (use_allocator != "tcmalloc") {
+     defines += [ "NO_TCMALLOC" ]
+   }
++  if (use_system_icu) {
++    defines += [ "USING_SYSTEM_ICU" ]
++  }
+   if (is_asan || is_lsan || is_tsan || is_msan) {
+     defines += [
+       "MEMORY_TOOL_REPLACES_ALLOCATOR",
+--- ./third_party/WebKit/Source/BUILD.gn.orig	2016-06-17 19:30:17.403187104 +0100
++++ ./third_party/WebKit/Source/BUILD.gn	2016-06-17 19:32:14.524459718 +0100
+@@ -83,6 +83,10 @@
+   }
+ }
+ 
++  if (use_system_icu) {
++    defines += [ "USING_SYSTEM_ICU" ]
++  }
++
+ # The follow configs apply to all targets except for unit tests, which rely on
+ # static initializers.
+ config("non_test_config") {
