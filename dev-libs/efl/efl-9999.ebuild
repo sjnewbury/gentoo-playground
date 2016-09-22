@@ -110,8 +110,8 @@ DEPEND="${COMMON_DEP}
 S="${WORKDIR}/${P/_/-}"
 
 src_prepare() {
-	epatch "${FILESDIR}/${P}-gnutls34.patch"
-	epatch "${FILESDIR}/${P}-emile-buildfix.patch"
+	#epatch "${FILESDIR}/${P}-gnutls34.patch"
+	#epatch "${FILESDIR}/${P}-emile-buildfix.patch"
 
 	[ ${PV} = 9999 ] && eautoreconf
 }
