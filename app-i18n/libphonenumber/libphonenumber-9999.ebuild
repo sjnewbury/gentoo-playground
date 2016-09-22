@@ -21,7 +21,7 @@ RDEPEND=""
 DEPEND="${RDEPEND}
 	dev-cpp/gtest
 	dev-libs/protobuf
-	deb-libs/boost[threads]
+	dev-libs/boost[threads]
 	virtual/pkgconfig"
 
 S=${WORKDIR}/${P}/cpp
