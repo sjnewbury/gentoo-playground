@@ -37,6 +37,7 @@ DEPEND="${RDEPEND}
 src_prepare() {
 	default
 	epatch "${FILESDIR}/SDL2-GL-libs.diff"
+	epatch "${FILESDIR}/0001-Revert-Rename-the-icon-after-install-instead-of-copy.patch"
 	eautoreconf
 }
 
