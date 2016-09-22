@@ -13,7 +13,7 @@ This repository contains ebuilds which fall into the following categories:
 * all new packages not currently in portage
 
 
-<<New ebuilds>>
+<h2>New ebuilds</h2>
 
 There are many new ebuilds for packages that are not in
 Portage, many of them are "live", this includes for example,
@@ -23,7 +23,7 @@ of any of these ebuilds, let me know.  Also feel free to open
 Gentoo bugzilla entries for new ebuilds from this repository,
 just do please drop me a note.
 
-<<libretro>>
+<h2>libretro</h2>
 
 Currently there are some RetroArch/libretro ebuilds included
 which are fixed/tweaked versions of ebuilds from abendbrot's
@@ -32,7 +32,7 @@ so if you want to use libretro/RetroArch I recommend adding
 abendbrot's overlay. 
 
 
-WARNING! WARNING! Some ebuilds in this repo supercede those in Portage
+<b>WARNING! WARNING!</b> Some ebuilds in this repo supercede those in Portage
 and have KEYWORDS copied from their Portage counterparts.  Until I rectify
 this or alternatively provide a local mask in this repo, I recommend
 adding a local mask for */*::gentoo-playground, then unmasking specific
