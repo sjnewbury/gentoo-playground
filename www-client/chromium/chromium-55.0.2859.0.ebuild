@@ -344,7 +344,7 @@ src_prepare() {
 	fi
 
 	# HACK! Insert our CC/CXX/FLAGS into build/toolchain/linux/BUILD.gn
-	if !tc-is-clang; then
+	if ! tc-is-clang; then
 		# Ensure CC/CXX/LD are set to something
 		[[ -z ${CC} ]] && CC="$(tc-getCC)"
 		[[ -z ${CXX} ]] && CXX="$(tc-getCXX)"

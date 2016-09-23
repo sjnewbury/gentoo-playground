@@ -91,28 +91,38 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
  #include "content/common/sandbox_linux/sandbox_bpf_base_policy_linux.h"
  #include "content/common/sandbox_linux/sandbox_seccomp_bpf_linux.h"
  #include "content/common/set_process_title.h"
-@@ -34,6 +36,8 @@
+@@ -34,6 +36,14 @@
  #include "sandbox/linux/syscall_broker/broker_file_permission.h"
  #include "sandbox/linux/syscall_broker/broker_process.h"
  #include "sandbox/linux/system_headers/linux_syscalls.h"
 +#include "third_party/libva/va/va.h"
++#if defined(USE_X11)
 +#include "third_party/libva/va/va_x11.h"
++#include "ui/gfx/x/x11_types.h"
++#elif defined(USE_OZONE)
++#include "third_party/libva/va/va_drm.h"
++#include "third_party/libva/va/va_drmcommon.h"
++#endif 
  
  using sandbox::arch_seccomp_data;
  using sandbox::bpf_dsl::Allow;
-@@ -43,6 +47,11 @@
+@@ -43,6 +53,15 @@
  using sandbox::syscall_broker::BrokerProcess;
  using sandbox::SyscallSets;
  
 +using content_common::kModuleVa;
++#if defined(USE_X11)
 +using content_common::kModuleVa_x11;
++#elif defined(USE_OZONE)
++using content_common::kModuleVa_drm;
++#endif
 +using content_common::InitializeStubs;
 +using content_common::StubPathMap;
 +
  namespace content {
  
  namespace {
-@@ -97,7 +106,7 @@
+@@ -97,7 +116,7 @@
  
  bool IsAcceleratedVaapiVideoEncodeEnabled() {
    bool accelerated_encode_enabled = false;
@@ -121,19 +131,27 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
    const base::CommandLine& command_line =
        *base::CommandLine::ForCurrentProcess();
    accelerated_encode_enabled =
-@@ -282,6 +291,21 @@
+@@ -282,6 +301,29 @@
    }
  }
  
-+VADisplay VaapiPrepare() {
++static VADisplay VaapiGetVADisplay() {
 +  StubPathMap paths;
++  VADisplay va_display;
 +  paths[kModuleVa].push_back("libva.so.1");
++#if defined(USE_OZONE)
++  paths[kModuleVa_drm].push_back("libva-drm.so.1");
++#elif defined (USE_X11)
 +  paths[kModuleVa_x11].push_back("libva-x11.so.1");
++#endif
 +  if (!InitializeStubs(paths)) {
 +    return NULL;
 +  }
-+  Display* x_display = XOpenDisplay(NULL);
-+  VADisplay va_display = vaGetDisplay(x_display);
++#if defined(USE_OZONE)
++  va_display = vaGetDisplayDRM(drm_fd_.get());
++#elif defined(USE_X11)
++  va_display = vaGetDisplay(gfx::GetXDisplay());
++#endif
 +  if (!vaDisplayIsValid(va_display)) {
 +    return NULL;
 +  }
@@ -143,30 +161,21 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
  bool GpuProcessPolicy::PreSandboxHook() {
    // Warm up resources needed by the policy we're about to enable and
    // eventually start a broker process.
-@@ -300,25 +324,23 @@
+@@ -300,24 +342,13 @@
      // inside the sandbox, so preload them now.
      if (IsAcceleratedVaapiVideoEncodeEnabled() ||
          IsAcceleratedVideoDecodeEnabled()) {
 -      const char* I965DrvVideoPath = NULL;
 -      const char* I965HybridDrvVideoPath = NULL;
- 
+-
 -      if (IsArchitectureX86_64()) {
 -        I965DrvVideoPath = "/usr/lib64/va/drivers/i965_drv_video.so";
 -        I965HybridDrvVideoPath = "/usr/lib64/va/drivers/hybrid_drv_video.so";
 -      } else if (IsArchitectureI386()) {
 -        I965DrvVideoPath = "/usr/lib/va/drivers/i965_drv_video.so";
-+      // libva drivers won't get loaded even above two libraries get dlopened.
-+      // Thus, libva calls will fail after post sandbox stage.
-+      //
-+      // To get the va driver loaded before sandboxing, upstream simply dlopen
-+      // the hard-coded va driver path because ChromeOS is the only platform
-+      // that Google want to support libva.
-+      //
-+      // While generic linux distros ship va driver as anywhere they want.
-+      // Fortunately, the va driver will be loadded when vaInitialize() get
-+      // called.
-+      // So the following code is to call vaInitialize() before sandboxing.
-+      VADisplay va_display = VaapiPrepare();
++// Since this is just for preloading ignore any errors
++#if defined(USE_OZONE) || defined(USE_X11)
++      VADisplay va_display = VaapiGetVADisplay();
 +      if (va_display) {
 +          int major_version, minor_version;
 +          vaInitialize(va_display, &major_version, &minor_version);
@@ -180,10 +189,9 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
 -      dlopen("libva-drm.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
 -#elif defined(USE_X11)
 -      dlopen("libva-x11.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
--#endif
+ #endif
      }
    }
- 
 diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/gpu/gpu_main.cc chromium-55.0.2859.0/content/gpu/gpu_main.cc
 --- /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/gpu/gpu_main.cc	2016-09-13 23:03:12.000000000 +0100
 +++ chromium-55.0.2859.0/content/gpu/gpu_main.cc	2016-09-17 00:12:55.819627457 +0100
