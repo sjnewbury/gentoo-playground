@@ -18,7 +18,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
-IUSE="cups +gn gnome gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +tcmalloc widevine opencl"
+IUSE="cups +gn gnome gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +tcmalloc widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 
 # Native Client binaries are compiled with different set of flags, bug #452066.
@@ -93,7 +93,6 @@ RDEPEND="${COMMON_DEPEND}
 	x11-misc/xdg-utils
 	virtual/opengl
 	virtual/ttf-fonts
-	opencl? ( virtual/opencl )
 	selinux? ( sec-policy/selinux-chromium )
 	tcmalloc? ( !<x11-drivers/nvidia-drivers-331.20 )
 	widevine? ( www-plugins/chrome-binary-plugins[widevine(-)] )
@@ -450,13 +449,11 @@ src_configure() {
 		$(gyp_use hangouts enable_hangout_services_extension)
 		$(gyp_use kerberos)
 		$(gyp_use pulseaudio)
-		$(gyp_use opencl enable_webcl)
 		$(gyp_use tcmalloc use_allocator tcmalloc none)
 		$(gyp_use widevine enable_widevine)"
 
 	myconf_gn+=" enable_hangout_services_extension=$(usex hangouts true false)"
 	myconf_gn+=" enable_widevine=$(usex widevine true false)"
-	myconf_gn+=" enable_webcl=$(usex opencl true false)"
 	myconf_gn+=" use_cups=$(usex cups true false)"
 	myconf_gn+=" use_gconf=$(usex gnome true false)"
 	myconf_gn+=" use_gnome_keyring=$(usex gnome-keyring true false)"
