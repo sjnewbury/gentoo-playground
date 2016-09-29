@@ -66,7 +66,12 @@ src_prepare() {
 
 	# TYPO FIX NEEDS PUSHING UPSTREAM!!!
 	sed -i common/include/x86emitter/x86_intrin.h \
-		-e 's/__GNUG__/__GNUC__/' || die
+		-e 's/__GNUG__/__GNUC__/' || die REMOVEME: Fix no longer needed
+
+	# Set this in your CFLAGS if you want it.  I prefer AVX as
+	# toolchain default YMMV
+	sed -i cmake/BuildParameters.cmake \
+		-e 's/ -mfpmath=sse//' || die Removing -mfpmath=sse failed
 }
 
 src_configure() {
