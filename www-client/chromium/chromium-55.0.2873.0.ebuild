@@ -171,7 +171,6 @@ PATCHES=(
 	"${FILESDIR}/enable_vaapi_on_linux-55.diff"
 	"${FILESDIR}/fix-gtk3-build.patch"
 	"${FILESDIR}/disable-openh264-55.diff"
-	"${FILESDIR}/${PN}-55-libgtk2ui-build-fix.patch"
 	"${FILESDIR}/${PN}-55-missing-include.patch"
 )
 
