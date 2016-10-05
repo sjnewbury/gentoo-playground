@@ -79,119 +79,6 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
    IPC_STRUCT_TRAITS_MEMBER(disable_vaapi_accelerated_video_encode)
  #endif
  #if defined(ENABLE_WEBRTC)
-diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/common/sandbox_linux/bpf_gpu_policy_linux.cc chromium-55.0.2859.0/content/common/sandbox_linux/bpf_gpu_policy_linux.cc
---- /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/common/sandbox_linux/bpf_gpu_policy_linux.cc	2016-09-13 23:03:12.000000000 +0100
-+++ chromium-55.0.2859.0/content/common/sandbox_linux/bpf_gpu_policy_linux.cc	2016-09-17 00:11:28.071217048 +0100
-@@ -24,6 +24,8 @@
- #include "base/memory/ptr_util.h"
- #include "base/strings/stringprintf.h"
- #include "build/build_config.h"
-+// Auto-generated for dlopen libva libraries
-+#include "content/common/va_stubs.h"
- #include "content/common/sandbox_linux/sandbox_bpf_base_policy_linux.h"
- #include "content/common/sandbox_linux/sandbox_seccomp_bpf_linux.h"
- #include "content/common/set_process_title.h"
-@@ -34,6 +36,14 @@
- #include "sandbox/linux/syscall_broker/broker_file_permission.h"
- #include "sandbox/linux/syscall_broker/broker_process.h"
- #include "sandbox/linux/system_headers/linux_syscalls.h"
-+#include "third_party/libva/va/va.h"
-+#if defined(USE_X11)
-+#include "third_party/libva/va/va_x11.h"
-+#include "ui/gfx/x/x11_types.h"
-+#elif defined(USE_OZONE)
-+#include "third_party/libva/va/va_drm.h"
-+#include "third_party/libva/va/va_drmcommon.h"
-+#endif 
- 
- using sandbox::arch_seccomp_data;
- using sandbox::bpf_dsl::Allow;
-@@ -43,6 +53,15 @@
- using sandbox::syscall_broker::BrokerProcess;
- using sandbox::SyscallSets;
- 
-+using content_common::kModuleVa;
-+#if defined(USE_X11)
-+using content_common::kModuleVa_x11;
-+#elif defined(USE_OZONE)
-+using content_common::kModuleVa_drm;
-+#endif
-+using content_common::InitializeStubs;
-+using content_common::StubPathMap;
-+
- namespace content {
- 
- namespace {
-@@ -97,7 +116,7 @@
- 
- bool IsAcceleratedVaapiVideoEncodeEnabled() {
-   bool accelerated_encode_enabled = false;
--#if defined(OS_CHROMEOS)
-+#if defined(OS_CHROMEOS) || defined(OS_LINUX)
-   const base::CommandLine& command_line =
-       *base::CommandLine::ForCurrentProcess();
-   accelerated_encode_enabled =
-@@ -282,6 +301,29 @@
-   }
- }
- 
-+static VADisplay VaapiGetVADisplay() {
-+  StubPathMap paths;
-+  VADisplay va_display;
-+  paths[kModuleVa].push_back("libva.so.1");
-+#if defined(USE_OZONE)
-+  paths[kModuleVa_drm].push_back("libva-drm.so.1");
-+#elif defined (USE_X11)
-+  paths[kModuleVa_x11].push_back("libva-x11.so.1");
-+#endif
-+  if (!InitializeStubs(paths)) {
-+    return NULL;
-+  }
-+#if defined(USE_OZONE)
-+  va_display = vaGetDisplayDRM(drm_fd_.get());
-+#elif defined(USE_X11)
-+  va_display = vaGetDisplay(gfx::GetXDisplay());
-+#endif
-+  if (!vaDisplayIsValid(va_display)) {
-+    return NULL;
-+  }
-+  return va_display;
-+}
-+
- bool GpuProcessPolicy::PreSandboxHook() {
-   // Warm up resources needed by the policy we're about to enable and
-   // eventually start a broker process.
-@@ -300,24 +342,13 @@
-     // inside the sandbox, so preload them now.
-     if (IsAcceleratedVaapiVideoEncodeEnabled() ||
-         IsAcceleratedVideoDecodeEnabled()) {
--      const char* I965DrvVideoPath = NULL;
--      const char* I965HybridDrvVideoPath = NULL;
--
--      if (IsArchitectureX86_64()) {
--        I965DrvVideoPath = "/usr/lib64/va/drivers/i965_drv_video.so";
--        I965HybridDrvVideoPath = "/usr/lib64/va/drivers/hybrid_drv_video.so";
--      } else if (IsArchitectureI386()) {
--        I965DrvVideoPath = "/usr/lib/va/drivers/i965_drv_video.so";
-+// Since this is just for preloading ignore any errors
-+#if defined(USE_OZONE) || defined(USE_X11)
-+      VADisplay va_display = VaapiGetVADisplay();
-+      if (va_display) {
-+          int major_version, minor_version;
-+          vaInitialize(va_display, &major_version, &minor_version);
-       }
--
--      dlopen(I965DrvVideoPath, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
--      if (I965HybridDrvVideoPath)
--        dlopen(I965HybridDrvVideoPath, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
--      dlopen("libva.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
--#if defined(USE_OZONE)
--      dlopen("libva-drm.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
--#elif defined(USE_X11)
--      dlopen("libva-x11.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
- #endif
-     }
-   }
 diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/gpu/gpu_main.cc chromium-55.0.2859.0/content/gpu/gpu_main.cc
 --- /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.2859.0/content/gpu/gpu_main.cc	2016-09-13 23:03:12.000000000 +0100
 +++ chromium-55.0.2859.0/content/gpu/gpu_main.cc	2016-09-17 00:12:55.819627457 +0100
@@ -562,3 +449,194 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
    media::VaapiWrapper::PreSandboxInitialization();
  #endif
  
+--- chromium-55.0.2873.0/media/gpu/vaapi_wrapper.cc	2016-09-28 06:49:55.000000000 +0100
++++ chromium-55.0.2873.0.new/media/gpu/vaapi_wrapper.cc	2016-10-05 18:52:15.140194813 +0100
+@@ -471,7 +471,11 @@
+   unsigned int num_attribs;
+   va_res = vaQuerySurfaceAttributes(va_display_, va_config_id, nullptr,
+                                     &num_attribs);
+-  VA_SUCCESS_OR_RETURN(va_res, "vaQuerySurfaceAttributes failed", false);
++  if (va_res != VA_STATUS_SUCCESS) {
++    resolution->SetSize(4096, 4096);
++    return true;
++  }
++
+   if (!num_attribs)
+     return false;
+ 
+--- chromium-55.0.2873.0/content/common/sandbox_linux/bpf_gpu_policy_linux.cc	2016-09-28 06:49:54.000000000 +0100
++++ chromium-55.0.2873.0.new/content/common/sandbox_linux/bpf_gpu_policy_linux.cc	2016-10-05 18:14:55.748057651 +0100
+@@ -24,6 +24,8 @@
+ #include "base/memory/ptr_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "build/build_config.h"
++// Auto-generated for dlopen libva libraries
++#include "content/common/va_stubs.h"
+ #include "content/common/sandbox_linux/sandbox_bpf_base_policy_linux.h"
+ #include "content/common/sandbox_linux/sandbox_seccomp_bpf_linux.h"
+ #include "content/common/set_process_title.h"
+@@ -34,6 +36,17 @@
+ #include "sandbox/linux/syscall_broker/broker_file_permission.h"
+ #include "sandbox/linux/syscall_broker/broker_process.h"
+ #include "sandbox/linux/system_headers/linux_syscalls.h"
++#include "third_party/libva/va/va.h"
++#include "third_party/libva/va/va_backend.h"
++#if defined(USE_X11)
++#include "third_party/libva/va/va_x11.h"
++#include "ui/gfx/x/x11_types.h"
++#elif defined(USE_OZONE)
++#include "third_party/libva/va/va_drm.h"
++#include "third_party/libva/va/va_drmcommon.h"
++#endif 
++#define DRIVER_EXTENSION	"_drv_video.so"
++#define VA_DRIVERS_PATH		"/usr/lib64/va/drivers"
+ 
+ using sandbox::arch_seccomp_data;
+ using sandbox::bpf_dsl::Allow;
+@@ -43,6 +56,15 @@
+ using sandbox::syscall_broker::BrokerProcess;
+ using sandbox::SyscallSets;
+ 
++using content_common::kModuleVa;
++#if defined(USE_X11)
++using content_common::kModuleVa_x11;
++#elif defined(USE_OZONE)
++using content_common::kModuleVa_drm;
++#endif
++using content_common::InitializeStubs;
++using content_common::StubPathMap;
++
+ namespace content {
+ 
+ namespace {
+@@ -97,7 +119,7 @@
+ 
+ bool IsAcceleratedVaapiVideoEncodeEnabled() {
+   bool accelerated_encode_enabled = false;
+-#if defined(OS_CHROMEOS)
++#if defined(OS_CHROMEOS) || defined(OS_LINUX)
+   const base::CommandLine& command_line =
+       *base::CommandLine::ForCurrentProcess();
+   accelerated_encode_enabled =
+@@ -282,6 +304,29 @@
+   }
+ }
+ 
++static VADisplay VaapiGetVADisplay() {
++  StubPathMap paths;
++  VADisplay va_display;
++  paths[kModuleVa].push_back("libva.so.1");
++#if defined(USE_OZONE)
++  paths[kModuleVa_drm].push_back("libva-drm.so.1");
++#elif defined (USE_X11)
++  paths[kModuleVa_x11].push_back("libva-x11.so.1");
++#endif
++  if (!InitializeStubs(paths)) {
++    return NULL;
++  }
++#if defined(USE_OZONE)
++  va_display = vaGetDisplayDRM(drm_fd_.get());
++#elif defined(USE_X11)
++  va_display = vaGetDisplay(gfx::GetXDisplay());
++#endif
++  if (!vaDisplayIsValid(va_display)) {
++    return NULL;
++  }
++  return va_display;
++}
++
+ bool GpuProcessPolicy::PreSandboxHook() {
+   // Warm up resources needed by the policy we're about to enable and
+   // eventually start a broker process.
+@@ -300,24 +345,75 @@
+     // inside the sandbox, so preload them now.
+     if (IsAcceleratedVaapiVideoEncodeEnabled() ||
+         IsAcceleratedVideoDecodeEnabled()) {
+-      const char* I965DrvVideoPath = NULL;
+-      const char* I965HybridDrvVideoPath = NULL;
+-
+-      if (IsArchitectureX86_64()) {
+-        I965DrvVideoPath = "/usr/lib64/va/drivers/i965_drv_video.so";
+-        I965HybridDrvVideoPath = "/usr/lib64/va/drivers/hybrid_drv_video.so";
+-      } else if (IsArchitectureI386()) {
+-        I965DrvVideoPath = "/usr/lib/va/drivers/i965_drv_video.so";
+-      }
+-
+-      dlopen(I965DrvVideoPath, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
+-      if (I965HybridDrvVideoPath)
+-        dlopen(I965HybridDrvVideoPath, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
+-      dlopen("libva.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
++// Init a VA Context, get driver name (and path), close context and preload 
++#if defined(USE_OZONE) || defined(USE_X11)
++      VADisplay va_display = VaapiGetVADisplay();
++      if (va_display) {
++          char *va_search_path = getenv("LIBVA_DRIVERS_PATH");
++          char *va_driver_name = getenv("LIBVA_DRIVER_NAME");
++          char *saveptr, *driver_dir;
++          VADisplayContextP pDisplayContext =
++                               static_cast<VADisplayContextP>(va_display);
++          pDisplayContext->vaGetDriverName(va_display, &va_driver_name);
++          if (va_driver_name) {
++            va_driver_name = strdup((const char*)va_driver_name);
++          } else
++              return true;
++
++          if (!va_search_path)
++                va_search_path = (char*)VA_DRIVERS_PATH;
++
++          va_search_path = strdup((const char*)va_search_path);
++          driver_dir = strtok_r(va_search_path, ":", &saveptr);
++          while (driver_dir) {
++            void *handle = NULL;
++            char *driver_path = (char *) malloc( strlen(driver_dir) +
++                                             strlen(va_driver_name) +
++                                             strlen(DRIVER_EXTENSION) + 2 );
++            if (!driver_path) {
++              free(va_search_path);    
++              // always return true otherwise *all* 
++              // GPU acceleration is disabled
++              return true;
++            }
++
++            strncpy( driver_path, driver_dir, strlen(driver_dir) + 1);
++            strncat( driver_path, "/", strlen("/") );
++            strncat( driver_path, va_driver_name, strlen(va_driver_name) );
++            strncat( driver_path, DRIVER_EXTENSION, strlen(DRIVER_EXTENSION) );
++        
++            // attempt to dlopen() the va driver
++            if ( access( driver_path, X_OK|R_OK ) != -1 ) {
++              printf("Attempting to pre-load %s VA driver...\n", va_driver_name);
++	      if (dlopen(driver_path, RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE)) {
++                printf("VA driver \"%s\" opened!\n", driver_path);
++
++                if (strcmp(va_driver_name, "nvidia" ) == 0) {
++                  printf("Pre-loading NVIDIA VDPAU driver libraries...\n");
++                  if(dlopen("libvdpau_nvidia.so", RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE))
++                    printf("Loaded libvdpau_nvidia.so\n");
++                  
++                  if (dlopen("libvdpau.so", RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE))
++                    printf("Loaded libvdpau.so\n");
++                }
++                printf("Loading libva libraries...\n");
++                dlopen("libva.so.1", RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE);
+ #if defined(USE_OZONE)
+-      dlopen("libva-drm.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
++                dlopen("libva-drm.so.1", RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE);
+ #elif defined(USE_X11)
+-      dlopen("libva-x11.so.1", RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
++                dlopen("libva-x11.so.1", RTLD_NOW|RTLD_GLOBAL|RTLD_NODELETE);
++#endif
++                free(driver_path);
++                break;
++              }
++              printf("VA driver failed to open!\n");
++            }
++            free(driver_path);
++        
++            driver_dir = strtok_r(NULL, ":", &saveptr);
++          }
++        free(va_search_path);
++      }
+ #endif
+     }
+   }
