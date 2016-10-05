@@ -98,7 +98,8 @@ src_prepare() {
 
 	cp -f doc/mpdconf.example doc/mpdconf.dist || die "cp failed"
 	epatch "${FILESDIR}"/${PN}-0.18.conf.patch
-	epatch "${FILESDIR}"/${PN}-9999-pulse-sample-formats.patch
+	#epatch "${FILESDIR}"/${P}-lto.patch
+	#epatch "${FILESDIR}"/${PN}-9999-pulse-sample-formats.patch
 	if use realtime; then
 		epatch "${FILESDIR}"/${PN}-9999-rtopt.patch
 		epatch "${FILESDIR}"/${PN}-0.19-rtopt-fix.patch
