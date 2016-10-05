@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=5
+EAPI=6
 
 PLOCALES="ar ca cs da_DK de el en es fa fr hr hu it ja ko ms_MY nb nl pl pt_BR pt ro_RO ru sr sv tr zh_CN zh_TW"
 PLOCALE_BACKUP="en"
@@ -12,8 +12,7 @@ inherit cmake-utils eutils l10n pax-utils toolchain-funcs versionator wxwidgets
 
 if [[ ${PV} == 9999* ]]
 then
-	EGIT_REPO_URI="https://github.com/stenzek/dolphin.git"
-	EGIT_BRANCH="vulkan"
+	EGIT_REPO_URI="https://github.com/${PN}-emu/${PN}.git"
 	inherit git-r3
 	KEYWORDS=""
 else
@@ -95,6 +94,11 @@ pkg_pretend() {
 }
 
 src_prepare() {
+	default
+
+	sed -i -e 's/missing-variable-declarations/missing-declarations/g' CMakeLists.txt || die
+
+
 	# Remove automatic dependencies to prevent building without flags enabled.
 	if use !alsa; then
 		sed -i -e '/include(FindALSA/d' CMakeLists.txt || die
@@ -130,6 +134,7 @@ src_prepare() {
 	mv Externals/wxWidgets3 . || die
 	mv Externals/glslang . || die
 	mv Externals/Vulkan . || die
+	mv Externals/hidapi . || die
 	rm -r Externals/* || die "Failed to delete Externals dir."
 	mv Bochs_disasm Externals || die
 	mv SOIL Externals || die
@@ -138,6 +143,7 @@ src_prepare() {
 	mv wxWidgets3 Externals || die
 	mv glslang Externals || die
 	mv Vulkan Externals || die
+	mv hidapi Externals || die
 
 	remove_locale() {
 		# Ensure preservation of the backup locale when no valid LINGUA is set
@@ -160,17 +166,17 @@ src_configure() {
 
 	local mycmakeargs=(
 		"-DUSE_SHARED_ENET=ON"
-		$( cmake-utils_use ffmpeg ENCODE_FRAMEDUMPS )
-		$( cmake-utils_use log FASTLOG )
-		$( cmake-utils_use profile OPROFILING )
-		$( cmake-utils_use_disable wxwidgets WX )
-		$( cmake-utils_use_enable evdev EVDEV )
-		$( cmake-utils_use_enable lto LTO )
-		$( cmake-utils_use_enable pch PCH )
-		$( cmake-utils_use_enable qt5 QT2 )
-		$( cmake-utils_use_enable sdl SDL )
-		$( cmake-utils_use_use egl EGL )
-		$( cmake-utils_use_use upnp UPNP )
+		-DENCODE_FRAMEDUMPS="$(usex ffmpeg)"
+		-DFASTLOG="$(usex log)"
+		-DOPROFILING="$(usex profile)"
+		-DWX="$(usex wxwidgets)"
+		-DEVDEV="$(usex evdev)"
+		-DLTO="$(usex lto)"
+		-DPCH="$(usex pch)"
+		-DQT2="$(usex qt5)"
+		-DSDL="$(usex sdl)"
+		-DEGL="$(usex egl)"
+		-DUPNP="$(usex upnp)"
 	)
 
 	cmake-utils_src_configure
