@@ -6,7 +6,7 @@ diff -urN libva-vdpau-driver-0.7.4/src/vdpau_driver.c libva-vdpau-driver-0.7.4.c
      vdpau_gate_exit(driver_data);
  
 -    if (driver_data->vdp_dpy) {
-+    if (!driver_data->x_fallback && driver_data->vdp_dpy) {
++    if ((!driver_data->x_fallback) && driver_data->vdp_dpy) {
          XCloseDisplay(driver_data->vdp_dpy);
          driver_data->vdp_dpy = NULL;
      }
