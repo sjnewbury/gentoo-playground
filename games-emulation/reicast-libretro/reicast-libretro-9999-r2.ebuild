@@ -35,6 +35,7 @@ src_compile() {
 		"NO_THREADS=0"
 		"NO_JIT=0"
 		"DEBUG=0"
+		"OPTFLAGS=${CFLAGS}"
 	)
 	emake "${myemakeargs[@]}" || die "emake failed"
 }
