@@ -73,6 +73,7 @@ RDEPEND=">=media-libs/libsfml-2.1
 DEPEND="${RDEPEND}
 	>=dev-util/cmake-2.8.8
 	>=sys-devel/gcc-4.9.0
+	dev-cpp/gtest
 	app-arch/zip
 	media-libs/freetype
 	sys-devel/gettext
@@ -95,6 +96,8 @@ pkg_pretend() {
 
 src_prepare() {
 	default
+
+	epatch "${FILESDIR}/${P}-retry-open-channels.patch"
 
 	sed -i -e 's/missing-variable-declarations/missing-declarations/g' CMakeLists.txt || die
 

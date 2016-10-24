@@ -1,0 +1,46 @@
+--- Source/Core/Core/HW/WiimoteReal/IOLinux.cpp~	2016-10-18 20:47:51.000000000 +0100
++++ Source/Core/Core/HW/WiimoteReal/IOLinux.cpp	2016-10-20 09:53:10.394504501 +0100
+@@ -143,10 +143,16 @@
+   if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
+       connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
+   {
+-    WARN_LOG(WIIMOTE, "Unable to open output socket to Wiimote: %s", strerror(errno));
+-    close(m_cmd_sock);
+-    m_cmd_sock = -1;
+-    return false;
++    // If opening channel fails sleep and try again
++    sleep(1);
++    if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
++      connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
++    {
++      WARN_LOG(WIIMOTE, "Unable to open output socket to Wiimote: %s", strerror(errno));
++      close(m_cmd_sock);
++      m_cmd_sock = -1;
++      return false;
++    }
+   }
+ 
+   // Input channel
+@@ -154,11 +160,17 @@
+   if ((m_int_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
+       connect(m_int_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
+   {
+-    WARN_LOG(WIIMOTE, "Unable to open input socket from Wiimote: %s", strerror(errno));
+-    close(m_int_sock);
+-    close(m_cmd_sock);
+-    m_int_sock = m_cmd_sock = -1;
+-    return false;
++    // If opening channel fails sleep and try again
++    sleep(1);
++    if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
++      connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
++    {
++      WARN_LOG(WIIMOTE, "Unable to open input socket from Wiimote: %s", strerror(errno));
++      close(m_int_sock);
++      close(m_cmd_sock);
++      m_int_sock = m_cmd_sock = -1;
++      return false;
++    }
+   }
+ 
+   return true;
