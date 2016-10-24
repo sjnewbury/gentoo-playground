@@ -1,0 +1,11 @@
+--- ./libraries/source/spidermonkey/build.sh.orig	2016-10-19 23:26:46.458556702 +0100
++++ ./libraries/source/spidermonkey/build.sh	2016-10-19 23:28:30.043884113 +0100
+@@ -98,7 +98,7 @@
+ perl -i.bak -pe 's/(SHARED_LIBRARY_NAME\s+=).*/$1 '\''mozjs38-ps-release'\''/' moz.build
+ mkdir -p build-release
+ cd build-release
+-CXXFLAGS="${CXXFLAGS} ${TLCXXFLAGS}" ../configure ${CONF_OPTS} --with-nspr-libs="$NSPR_LIBS" --with-nspr-cflags="$NSPR_INCLUDES" --enable-optimize  # --enable-gczeal --enable-debug-symbols
++CXXFLAGS="${TLCXXFLAGS} ${CXXFLAGS}" ../configure ${CONF_OPTS} --with-nspr-libs="$NSPR_LIBS" --with-nspr-cflags="$NSPR_INCLUDES" --enable-optimize  # --enable-gczeal --enable-debug-symbols
+ ${MAKE} ${MAKE_OPTS}
+ cd ..
+ 
