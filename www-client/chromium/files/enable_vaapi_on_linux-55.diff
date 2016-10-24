@@ -548,7 +548,7 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
  bool GpuProcessPolicy::PreSandboxHook() {
    // Warm up resources needed by the policy we're about to enable and
    // eventually start a broker process.
-@@ -300,24 +345,76 @@
+@@ -300,24 +345,77 @@
      // inside the sandbox, so preload them now.
      if (IsAcceleratedVaapiVideoEncodeEnabled() ||
          IsAcceleratedVideoDecodeEnabled()) {
@@ -573,14 +573,15 @@ diff -urN /var/tmp/portage/www-client/chromium-55.0.2859.0/work/chromium-55.0.28
 +          char *va_search_path = getenv("LIBVA_DRIVERS_PATH");
 +          char *va_driver_name = getenv("LIBVA_DRIVER_NAME");
 +          char *saveptr, *driver_dir;
-+          VADisplayContextP pDisplayContext =
++          va_driver_name = strdup((const char*)va_driver_name);
++          if (!va_driver_name) {
++            VADisplayContextP pDisplayContext =
 +                               static_cast<VADisplayContextP>(va_display);
-+          pDisplayContext->vaGetDriverName(
++            pDisplayContext->vaGetDriverName(
 +                  static_cast<VADisplayContextP>(va_display), &va_driver_name);
-+          if (va_driver_name) {
-+            va_driver_name = strdup((const char*)va_driver_name);
-+          } else
-+              return true;
++          }
++          if (!va_driver_name)
++                    return true;
 +
 +          if (!va_search_path)
 +                va_search_path = (char*)VA_DRIVERS_PATH;
