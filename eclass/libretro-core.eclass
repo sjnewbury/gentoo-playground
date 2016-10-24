@@ -74,6 +74,8 @@ libretro-core_src_prepare() {
 			-iname $(find ${S} -type f -name 'Makefile*') \
 			&& einfo "  Success!"
 	fi
+	export OPTFLAGS="${CFLAGS}"
+
 	default_src_prepare
 }
 
