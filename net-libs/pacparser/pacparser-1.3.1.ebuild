@@ -1,16 +1,16 @@
 # Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/net-libs/pacparser/pacparser-1.3.1.ebuild,v 1.4 2015/04/08 18:04:58 mgorny Exp $
+# $Id$
 
 EAPI=5
 
-PYTHON_COMPAT=( python{2_7,3_3,3_4} )
+PYTHON_COMPAT=( python{2_7,3_4} )
 
 inherit eutils python-r1 multilib
 
 DESCRIPTION="Library to parse proxy auto-config files"
-HOMEPAGE="http://code.google.com/p/pacparser/"
-SRC_URI="http://${PN}.googlecode.com/files/${P}.tar.gz"
+HOMEPAGE="https://github.com/pacparser/pacparser"
+SRC_URI="https://${PN}.googlecode.com/files/${P}.tar.gz"
 
 LICENSE="LGPL-3"
 SLOT="0"
@@ -36,13 +36,13 @@ src_prepare() {
 }
 
 src_compile() {
-	emake -C src
-	use python && python_foreach_impl emake -C src pymod
+	emake -j1 -C src
+	use python && python_foreach_impl emake -j1 -C src pymod
 }
 
 src_test() {
-	emake -C src testpactester
-	use python && emake -C src test-pymod
+	emake -j1 -C src testpactester
+	use python && emake -j1 -C src test-pymod
 }
 
 src_install() {
