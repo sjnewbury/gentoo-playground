@@ -68,13 +68,25 @@ libretro-core_src_unpack() {
 libretro-core_src_prepare() {
 	if [ -f "${S}"/Makefile ]; then
 		einfo "Attempting to hack flags to Gentooize libretro core..."
-		# Expand CFLAGS to prevent potential self-references
+		# Expand *FLAGS to prevent potential self-references
 		sed \
-			-e "s/-O3/${CFLAGS}/g" \
+			-e "s/-O[[:digit:]]/${CFLAGS}/g" \
+			-e "s/-Wl,.*-no-undefined/-Wl,--no-undefined ${LDFLAGS} ${LIBS}/g" \
 			-iname $(find ${S} -type f -name 'Makefile*') \
 			&& einfo "  Success!"
 	fi
+	if [ -f "${S}"/target-libretro/Makefile ]; then
+		einfo "Adding target-libretro link flags..."
+		sed \
+			-e "s/-O[[:digit:]]/${CFLAGS}/g" \
+			-e "s/-Wl,.*-no-undefined/-Wl,--no-undefined ${LDFLAGS} ${LIBS}/g" \
+			-iname $(find ${S}/target-libretro -type f -name 'Makefile*') \
+			&& einfo "  Success!"
+	fi
 	export OPTFLAGS="${CFLAGS}"
+
+#			-e "s/-ldl/${CFLAGS} ${LDFLAGS} -ldl ${LIBS}/g" \
+
 
 	default_src_prepare
 }
