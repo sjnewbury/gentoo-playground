@@ -1,0 +1,23 @@
+--- ./configure~	1999-05-20 10:07:51.000000000 +0100
++++ ./configure	2016-11-10 06:46:20.310480538 +0000
+@@ -436,13 +436,13 @@
+   echo "# Generated automatically from `basename $file`.in by configure." > $file
+   sed -e "
+ $prsub
+-s,@CC@,$CC,
+-s,@CPP@,$CPP,
+-s,@INSTALL@,$INSTALL,
+-s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,
+-s,@INSTALL_DATA@,$INSTALL_DATA,
+-s,@LIBS@,$LIBS,
+-s,@srcdir@,$srcdir,
++s|@CC@|$CC|
++s|@CPP@|$CPP|
++s|@INSTALL@|$INSTALL|
++s|@INSTALL_PROGRAM@|$INSTALL_PROGRAM|
++s|@INSTALL_DATA@|$INSTALL_DATA|
++s|@LIBS@|$LIBS|
++s|@srcdir@|$srcdir|
+ " $top_srcdir/${file}.in >> $file
+ done
+ 
