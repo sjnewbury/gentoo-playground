@@ -21,7 +21,7 @@ EGIT_REPO_URI="https://github.com/ufoai/ufoai.git"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc x86"
-IUSE="debug dedicated editor sse compile-maps"
+IUSE="debug dedicated editor sse +download-maps"
 
 # Dependencies and more instructions can be found here:
 # http://ufoai.ninex.info/wiki/index.php/Compile_for_Linux
@@ -71,20 +71,20 @@ src_prepare() {
 	# System version of lua is just called lua
 	sed -i -e 's/lua5.1/lua/g' build/default.mk || die "sed 2 failed"
 
-	if ! use compile-maps; then
+	if use download-maps; then
 		einfo "Looking for existing installation..."
 		if has_version "${CATEGORY}/${PN}"; then
 			einfo "Found already installed version!"
-			einfo "Copying installed maps from "${GAMES_PREFIX_OPT}/${PN/-}"/maps..."
+			ebegin "Copying installed maps from "${GAMES_PREFIX_OPT}/${PN/-}"/maps"
 			if [[ -d "${GAMES_PREFIX_OPT}/${PN/-}"/maps ]]; then
-			cat <<EOT | rsync --progress -am \
-				"${GAMES_PREFIX_OPT}/${PN/-}"/maps/ \
-				"${S}"/base/maps/ --filter='. -'
+				cat <<EOT | rsync --progress -am \
+					"${GAMES_PREFIX_OPT}/${PN/-}"/maps/ \
+					"${S}"/base/maps/ --filter='. -'
 + */
 + *.bsp
 - *
 EOT
-
+			eend $?
  			else
 				ewarn "Failed to access existing maps! Probably access permissions.  Will download a new set."
 			fi
@@ -118,7 +118,7 @@ src_configure() {
 		--localedir=${EPREFIX}/usr/share/locale/
 		--prefix=${GAMES_PREFIX}"
 
-	if ( use editor || use compile-maps || [[ -n $FORCE_COMPILE ]] ); then
+	if ( use editor || ! use download-maps || [[ -n $FORCE_COMPILE ]] ); then
 		myconf="${myconf}
 		--enable-ufo2map"
 	fi
@@ -134,7 +134,7 @@ src_compile() {
 	emake
 
 	# Compile maps or pre-compiled
-	if ( use compile-maps || [[ -n $FORCE_COMPILE ]] ); then
+	if ( use download-maps && [[ -n $FORCE_COMPILE ]] ); then
 		emake maps
 	else
 		einfo "Using pre-compiled maps"
@@ -181,7 +181,13 @@ src_install() {
 
 	prepgamesdirs
 
-	# Allow "other" users to read compiled maps
-	find "${ED}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -type d -exec chmod o+rx '{}' \;
-	find "${ED}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -name '*.bsp' -exec chmod o+r '{}' \;
+}
+
+pkg_postinst() {
+	ebegin "Allow \"other\" access to map directories"
+	find "${ROOT}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -type d -exec chmod o+rx '{}' \;
+	eend $?
+	ebegin "Allow \"other\" to read maps"
+	find "${ROOT}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -name '*.bsp' -exec chmod o+r '{}' \;
+	eend $?
 }

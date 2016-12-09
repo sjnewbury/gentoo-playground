@@ -4,5 +4,6 @@
 <herd>games</herd>
 <use>
     <flag name='editor'>Build map editor</flag>
+    <flag name='download-maps'>Download pre-compiled maps from the Internet</flag>
 </use>
 </pkgmetadata>
