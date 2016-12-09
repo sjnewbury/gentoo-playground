@@ -42,6 +42,8 @@ src_prepare() {
 }
 
 src_compile() {
+	addpredict /dev/nvidia-uvm
+
 	if [[ ${PV} == 9999* ]]; then
 
 		# Based on dist/build.sh
