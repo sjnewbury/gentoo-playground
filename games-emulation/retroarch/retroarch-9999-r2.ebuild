@@ -186,8 +186,8 @@ src_configure() {
 		$(use_enable egl) \
 		$(use_enable fbo) \
 		$(use_enable ffmpeg) \
-		$(use_enable gles2 gles) \
-		$(use_enable gles3) \
+		$(use_enable gles2 opengles) \
+		$(use_enable gles3 opengles3) \
 		$(use_enable jack) \
 		$(use_enable kms) \
 		$(use_enable libass ssa) \
@@ -207,7 +207,7 @@ src_configure() {
 		$(use_enable udev) \
 		$(use_enable v4l2) \
 		$(use_enable vulkan) \
-		$(use_enable vulkan vulkan_khr_display) \
+		$(use_enable vulkan vulkan_display) \
 		$(use_enable wayland) \
 		$(use_enable X x11) \
 		$(use_enable xinerama) \
@@ -216,7 +216,7 @@ src_configure() {
 		$(use_enable xv xvideo) \
 		$(use_enable zlib) \
 		--enable-dynamic \
-		--enable-netplay \
+		--enable-networking \
 		--disable-vg \
 		--with-man_dir="${EROOT}"usr/share/man/man1
 }
