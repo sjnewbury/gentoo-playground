@@ -1,0 +1,11 @@
+--- openarena-engine-source-0.8.8/code/jpeg-6b/jdatasrc.c~	2016-10-30 21:08:04.000000000 +0000
++++ openarena-engine-source-0.8.8/code/jpeg-6b/jdatasrc.c	2016-10-30 21:15:51.033382505 +0000
+@@ -190,7 +190,7 @@
+  */
+ 
+ GLOBAL void
+-jpeg_mem_src (j_decompress_ptr cinfo, unsigned char *inbuf, unsigned long size)
++jpeg_mem_src (j_decompress_ptr cinfo, const unsigned char *inbuf, unsigned long size)
+ {
+   my_src_ptr src;
+ 
