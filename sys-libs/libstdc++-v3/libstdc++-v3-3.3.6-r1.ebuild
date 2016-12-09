@@ -109,7 +109,7 @@ do_filter_flags() {
 	strip-flags
 }
 
-PATCH_VER="1.8"
+PATCH_VER="1.9"
 
 DESCRIPTION="Compatibility package for running binaries linked against a pre gcc 3.4 libstdc++"
 HOMEPAGE="http://gcc.gnu.org/libstdc++/"
