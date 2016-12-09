@@ -43,6 +43,9 @@ src_prepare() {
 }
 
 src_install() {
+	# workaround
+	[[ -f modules.conf ]] || touch modules.conf
+
 	default
 	newinitd "${FILESDIR}"/tuned.initd  tuned
 
