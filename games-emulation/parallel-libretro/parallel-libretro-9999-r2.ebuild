@@ -24,6 +24,11 @@ IUSE=""
 DEPEND="media-libs/mesa:0=[vulkan]"
 RDEPEND="${DEPEND}"
 
+src_prepare() {
+	default
+	sed -i -e 's/-O2 -g//g' $(find -name 'Makefile*')
+}
+
 src_compile() {
 	#this one could get some love from arm owners
 	myemakeargs=(
