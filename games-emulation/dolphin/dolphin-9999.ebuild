@@ -98,6 +98,7 @@ src_prepare() {
 	default
 
 	epatch "${FILESDIR}/${P}-retry-open-channels.patch"
+	epatch "${FILESDIR}/${P}-microphone.patch"
 
 	sed -i -e 's/missing-variable-declarations/missing-declarations/g' CMakeLists.txt || die
 
@@ -117,9 +118,6 @@ src_prepare() {
 	fi
 	if use !openal; then
 		sed -i -e '/include(FindOpenAL/d' CMakeLists.txt || die
-	fi
-	if use !portaudio; then
-		sed -i -e '/CMAKE_REQUIRED_LIBRARIES portaudio/d' CMakeLists.txt || die
 	fi
 	if use !pulseaudio; then
 		sed -i -e '/check_lib(PULSEAUDIO/d' CMakeLists.txt || die
@@ -172,14 +170,15 @@ src_configure() {
 		-DENCODE_FRAMEDUMPS="$(usex ffmpeg)"
 		-DFASTLOG="$(usex log)"
 		-DOPROFILING="$(usex profile)"
-		-DWX="$(usex wxwidgets)"
-		-DEVDEV="$(usex evdev)"
-		-DLTO="$(usex lto)"
-		-DPCH="$(usex pch)"
-		-DQT2="$(usex qt5)"
-		-DSDL="$(usex sdl)"
-		-DEGL="$(usex egl)"
-		-DUPNP="$(usex upnp)"
+		-DDISABLE_WX="$(usex wxwidgets OFF ON)"
+		-DENABLE_EVDEV="$(usex evdev)"
+		-DENABLE_LTO="$(usex lto)"
+		-DENABLE_PCH="$(usex pch)"
+		-DENABLE_QT2="$(usex qt5)"
+		-DENABLE_SDL="$(usex sdl)"
+		-DUSE_EGL="$(usex egl)"
+		-DUSE_UPNP="$(usex upnp)"
+		-DENABLE_MICROPHONE="$(usex portaudio)"
 	)
 
 	cmake-utils_src_configure
