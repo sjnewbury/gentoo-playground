@@ -4,7 +4,7 @@
 
 EAPI=5
 
-inherit games check-reqs git-r3
+inherit games check-reqs git-2
 
 MY_PN="${PN%-data}"
 DESCRIPTION="Xonotic data files"
@@ -29,24 +29,35 @@ DEPEND="
 "
 RESTRICT="test"
 
-if use !client; then
-	CHECKREQS_DISK_BUILD="3000M"
-	CHECKREQS_DISK_USR="320M"
-else
-	if use zip; then
-		CHECKREQS_DISK_BUILD="3850M"
-		CHECKREQS_DISK_USR="1830M"
-	else
-		CHECKREQS_DISK_BUILD="7020M"
-		CHECKREQS_DISK_USR="3520M"
-	fi
-fi
-
 pkg_pretend() {
+	if use !client; then
+		CHECKREQS_DISK_BUILD="3000M"
+		CHECKREQS_DISK_USR="320M"
+	else
+		if use zip; then
+			CHECKREQS_DISK_BUILD="3850M"
+			CHECKREQS_DISK_USR="1830M"
+		else
+			CHECKREQS_DISK_BUILD="7020M"
+			CHECKREQS_DISK_USR="3520M"
+		fi
+	fi
 	check-reqs_pkg_pretend
 }
 
 pkg_setup() {
+	if use !client; then
+		CHECKREQS_DISK_BUILD="3000M"
+		CHECKREQS_DISK_USR="320M"
+	else
+		if use zip; then
+			CHECKREQS_DISK_BUILD="3850M"
+			CHECKREQS_DISK_USR="1830M"
+		else
+			CHECKREQS_DISK_BUILD="7020M"
+			CHECKREQS_DISK_USR="3520M"
+		fi
+	fi
 	ewarn "You need at least 4 Gb diskspace for distfiles."
 	check-reqs_pkg_setup
 	games_pkg_setup
@@ -65,13 +76,13 @@ pkg_setup() {
 
 src_unpack() {
 	# root
-	git-r3_src_unpack
+	git-2_src_unpack
 
 	# Data
 	git_pk3_unpack() {
 		EGIT_REPO_URI="${BASE_URI}-${1}.pk3dir.git" \
-		EGIT_CHECKOUT_DIR="${S}/data/${MY_PN}-${1}.pk3dir" \
-		git-r3_src_unpack
+		EGIT_SOURCEDIR="${S}/data/${MY_PN}-${1}.pk3dir" \
+		git-2_src_unpack
 	}
 	git_pk3_unpack data
 	git_pk3_unpack maps
@@ -82,11 +93,6 @@ src_unpack() {
 	else
 		rm -rf "${S}"/data/font-*.pk3dir || die
 	fi
-	cd "${S}"
-	local new_commit_id=$(
-		git rev-parse --verify HEAD
-	)
-	export EGIT_VERSION=${new_commit_id}
 }
 
 src_prepare() {
