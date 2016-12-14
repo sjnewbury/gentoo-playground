@@ -42,9 +42,9 @@ index a6c6dd7..25bd263 100644
 +AM_CONDITIONAL([HAVE_LIBAVRESAMPLE], [test "x$HAVE_LIBAVRESAMPLE" = x1])
 +AS_IF([test "x$HAVE_LIBAVRESAMPLE" = "x1"], AC_DEFINE([HAVE_LIBAVRESAMPLE], 1, [Have libavresample]))
 +
- #### Xen support (optional) ####
+ #### gcov support (optional) #####
  
- AC_ARG_ENABLE([xen],
+ AC_ARG_ENABLE([gcov],
 @@ -1556,6 +1571,7 @@
  AS_IF([test "x$HAVE_ADRIAN_EC" = "x1"], ENABLE_ADRIAN_EC=yes, ENABLE_ADRIAN_EC=no)
  AS_IF([test "x$HAVE_SPEEX" = "x1"], ENABLE_SPEEX=yes, ENABLE_SPEEX=no)
