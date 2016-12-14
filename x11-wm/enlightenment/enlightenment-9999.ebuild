@@ -57,6 +57,7 @@ DEPEND="${RDEPEND}
 S="${WORKDIR}/${P/_/-}"
 
 src_prepare() {
+	epatch "${FILESDIR}"/bluez5.patch
 	[ ${PV} = 9999 ] && eautoreconf
 }
 
