@@ -127,6 +127,11 @@ src_prepare() {
 			xonotic-data.pk3dir/qcsrc/Makefile || die
 		popd || die
 	fi
+
+	# The build system uses $WORKDIR which conflicts with Portage!
+	sed -i \
+		-e 's/WORKDIR/XWORKDIR/g' \
+		$(find -type f -name '*.sh' -o -type f -name 'Makefile') || die
 }
 
 src_compile() {

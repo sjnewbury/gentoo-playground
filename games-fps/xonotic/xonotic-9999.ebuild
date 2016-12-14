@@ -4,7 +4,7 @@
 
 EAPI=5
 
-inherit eutils toolchain-funcs flag-o-matic git-2 games
+inherit eutils toolchain-funcs flag-o-matic git-2
 
 DESCRIPTION="Fork of Nexuiz, Deathmatch FPS based on DarkPlaces, an advanced Quake 1 engine"
 HOMEPAGE="http://www.xonotic.org/"
@@ -95,7 +95,7 @@ src_compile() {
 	emake \
 		STRIP=true \
 		CC="$(tc-getCC)" \
-		DP_FS_BASEDIR="${GAMES_DATADIR}/${PN}" \
+		DP_FS_BASEDIR="/usr/share/games/${PN}" \
 		DP_SOUND_API="ALSA" \
 		DP_LINK_ODE="shared" \
 		DP_LINK_CRYPTO="shared" \
@@ -111,27 +111,25 @@ src_compile() {
 
 src_install() {
 	if use opengl; then
-		dogamesbin darkplaces/${PN}-glx
+		dobin darkplaces/${PN}-glx
 		domenu misc/logos/xonotic-glx.desktop
 	fi
 	if use sdl; then
-		dogamesbin darkplaces/${PN}-sdl
+		dobin darkplaces/${PN}-sdl
 		domenu misc/logos/xonotic-sdl.desktop
 	fi
 	if use opengl || use sdl; then
 		newicon misc/logos/icons_png/${PN}_512.png ${PN}.png
 	fi
-	use server && dogamesbin darkplaces/${PN}-dedicated
+	use server && dobin darkplaces/${PN}-dedicated
 
 	dodoc Docs/*.txt
 	dohtml -r Docs
 
-	insinto "${GAMES_DATADIR}/${PN}"
+	insinto "/usr/share/games/${PN}"
 
 	# public key for d0_blind_id
 	doins key_0.d0pk
 
 	use server && doins -r server
-
-	prepgamesdirs
 }

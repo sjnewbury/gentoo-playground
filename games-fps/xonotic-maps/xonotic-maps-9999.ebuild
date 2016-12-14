@@ -25,6 +25,7 @@ DEPEND="
 S="${WORKDIR}"
 RESTRICT="test"
 
+
 pkg_pretend() {
 	if use unofficial; then
 		CHECKREQS_DISK_USR="1G"
@@ -54,14 +55,18 @@ pkg_setup() {
 }
 
 src_unpack() {
-	# Used git.eclass,v 1.50 as example
-	: ${MAPS_STORE_DIR:="${PORTAGE_ACTUAL_DISTDIR-${DISTDIR}}/xonotic-maps"}
+	# Used git-r3.eclass as example
+	local distdir=${PORTAGE_ACTUAL_DISTDIR:-${DISTDIR}}
+	: ${MAPS_STORE_DIR:=${distdir}/xonotic-maps}
+
 	# initial download, we have to create master maps storage directory and play
 	# nicely with sandbox
 	if [[ ! -d ${MAPS_STORE_DIR} ]] ; then
 		addwrite /
+		ebegin Creating MAPS_STORE_DIR ${MAPS_STORE_DIR}
 		mkdir -p "${MAPS_STORE_DIR}" \
 			|| die "can't mkdir ${MAPS_STORE_DIR}."
+		eend $?
 		export SANDBOX_WRITE="${SANDBOX_WRITE%%:/}"
 	fi
 	# allow writing into MAPS_STORE_DIR
@@ -145,8 +150,13 @@ src_unpack() {
 	done < install_maps.txt
 }
 
+src_prepare() { default; }
+src_configure() { :; }
+src_compile() { :; }
+
 src_install() {
-	insinto "${GAMES_DATADIR}/${MY_PN}/data"
+	[ -n ${MAPS_STORE_DIR} ] || die "Unable to determine MAPS_STORE_DIR"
+	insinto "/usr/share/games/${MY_PN}/data"
 	while read file; do
 		nonfatal doins "${MAPS_STORE_DIR}/${file}" || ewarn "installing \"${file}\" failed"
 	done < install_files.txt
