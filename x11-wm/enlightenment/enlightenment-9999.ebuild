@@ -27,7 +27,7 @@ E_MODULES_DEFAULT=(
 	teamwork temperature tiling winlist wizard xkbswitch
 )
 E_MODULES=(
-	packagkit wl-desktop-shell wl-drm wl-fb wl-x11 wl-wl wl-text-input
+	packagekit wl-desktop-shell wl-drm wl-fb wl-x11 wl-wl wl-text-input
 )
 IUSE_E_MODULES=(
 	"${E_MODULES_DEFAULT[@]/#/+enlightenment_modules_}"
@@ -84,7 +84,6 @@ src_configure() {
 	if use wayland; then
 		config+=(	--enable-wl-drm
 				--enable-wayland
-				--enable-wayland-clients
 				--enable-xwayland
 				--enable-wl-desktop-shell
 		) 
