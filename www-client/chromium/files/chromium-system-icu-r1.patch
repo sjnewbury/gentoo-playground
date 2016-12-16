@@ -1,0 +1,14 @@
+--- ./third_party/WebKit/Source/platform/text/CharacterEmoji.cpp~	2016-12-10 02:04:00.000000000 +0000
++++ ./third_party/WebKit/Source/platform/text/CharacterEmoji.cpp	2016-12-15 22:48:52.369877260 +0000
+@@ -185,7 +185,11 @@
+ 
+ static void applyPatternAndFreeze(icu::UnicodeSet* unicodeSet,
+                                   const char* pattern) {
++#if defined(USING_SYSTEM_ICU) || (U_ICU_VERSION_MAJOR_NUM <= 57)
++  UErrorCode err = U_ZERO_ERROR;
++#else
+   ICUError err;
++#endif
+   // Use ICU's invariant-character initialization method.
+   unicodeSet->applyPattern(icu::UnicodeString(pattern, -1, US_INV), err);
+   unicodeSet->freeze();
