@@ -40,5 +40,5 @@ src_compile() {
 		$(usex profile_balanced "profile=balanced" "")
 		$(usex profile_performance "profile=performance" "")
 	)
-	emake "${myemakeargs[@]}" -f makefile.libretro || die "emake failed"
+	libretro-core_src_compile
 }
