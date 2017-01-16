@@ -1,4 +1,4 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -19,6 +19,8 @@ else
 	inherit flag-o-matic libretro
 fi
 
+IUSE+="custom-cflags debug"
+
 # @ECLASS-VARIABLE: LIBRETRO_CORE_NAME
 # @DESCRIPTION:
 # Name of this Libretro core. The libretro-core_src_install() phase function
@@ -33,7 +35,7 @@ fi
 # "${S}/${LIBRETRO_CORE_NAME}_libretro.so".
 LIBRETRO_CORE_LIB_FILE=
 
-EXPORT_FUNCTIONS src_unpack src_prepare src_install
+EXPORT_FUNCTIONS src_unpack src_prepare src_compile src_install
 
 # @FUNCTION: libretro-core_src_unpack
 # @DESCRIPTION:
@@ -64,31 +66,45 @@ libretro-core_src_unpack() {
 # @DESCRIPTION:
 # The libretro-core src_prepare function which is exported.
 #
-# This function retrieves the remote Libretro core info files.
+# This function prepares the source by making custom modifications.
 libretro-core_src_prepare() {
-	if [ -f "${S}"/Makefile ]; then
-		einfo "Attempting to hack flags to Gentooize libretro core..."
-		# Expand *FLAGS to prevent potential self-references
-		sed \
-			-e "s/-O[[:digit:]]/${CFLAGS}/g" \
-			-e "s/-Wl,.*-no-undefined/-Wl,--no-undefined ${LDFLAGS} ${LIBS}/g" \
-			-iname $(find ${S} -type f -name 'Makefile*') \
-			&& einfo "  Success!"
+	if use custom-cflags; then
+		local flags_modified=0
+		ebegin "Attempting to hack Makefiles to use custom-cflags"
+		for makefile in "${S}"/?akefile* "${S}"/target-libretro/?akefile*; do
+			# * Expand *FLAGS to prevent potential self-references
+			# * Where LDFLAGS directly define the link version 
+			#   script append LDFLAGS and LIBS
+			# * Where SHARED is used to provide shared linking
+			#   flags ensure final link command includes LDFLAGS
+			#   and LIBS
+			# * Always use $(CFLAGS) when calling $(CC)
+			sed \
+				-e "/CFLAGS.*=/s/-O[[:digit:]]/${CFLAGS}/g" \
+				-e "/LDFLAGS.*=/s/\(-Wl,-*-version-script=link.T\)/\1 ${LDFLAGS} ${LIBS}/g" \
+				-e "/\$(CC)/s/\(\$(SHARED)\)/\1 ${LDFLAGS} ${LIBS}/" \
+				-e 's/\(\$(CC)\)/\1 \$(CFLAGS)/g' \
+				-i "${makefile}" \
+				&> /dev/null && flags_modified=1
+		done
+		[[ ${flags_modified} == 1 ]] && true || false
+		eend $?
+		export OPTFLAGS="${CFLAGS}"
 	fi
-	if [ -f "${S}"/target-libretro/Makefile ]; then
-		einfo "Adding target-libretro link flags..."
-		sed \
-			-e "s/-O[[:digit:]]/${CFLAGS}/g" \
-			-e "s/-Wl,.*-no-undefined/-Wl,--no-undefined ${LDFLAGS} ${LIBS}/g" \
-			-iname $(find ${S}/target-libretro -type f -name 'Makefile*') \
-			&& einfo "  Success!"
-	fi
-	export OPTFLAGS="${CFLAGS}"
-
-#			-e "s/-ldl/${CFLAGS} ${LDFLAGS} -ldl ${LIBS}/g" \
-
 
 	default_src_prepare
+}
+
+# @FUNCTION: libretro-core_src_compile
+# @DESCRIPTION:
+# The libretro-core src_compile function which is exported.
+#
+# This function compiles the shared library for this Libretro core.
+libretro-core_src_compile() {
+	use custom-cflags || filter-flags -O*
+	emake 	CC=$(tc-getCC) CXX=$(tc-getCXX) LD=$(tc-getLD) \
+		$(usex debug "DEBUG=1" "") "${myemakeargs[@]}" \
+		$([ -f makefile.libretro ] && echo '-f makefile.libretro')
 }
 
 # @FUNCTION: libretro-core_src_install
