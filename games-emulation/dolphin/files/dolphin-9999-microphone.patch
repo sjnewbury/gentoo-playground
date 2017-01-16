@@ -1,14 +1,14 @@
---- ./CMakeLists.txt.orig	2016-11-04 20:07:31.914490860 +0000
-+++ ./CMakeLists.txt	2016-11-04 23:38:06.502612977 +0000
+--- ./CMakeLists.txt.orig	2017-01-16 10:09:20.336834372 +0000
++++ ./CMakeLists.txt	2017-01-16 10:10:38.167338460 +0000
 @@ -15,6 +15,7 @@
  option(ENABLE_LTO "Enables Link Time Optimization" OFF)
  option(ENABLE_GENERIC "Enables generic build that should run on any little-endian host" OFF)
  option(ENABLE_HEADLESS "Enables running Dolphin as a headless variant" OFF)
 +option(ENABLE_MICROPHONE "Enables Wii microphone support" ON)
- 
- # Maintainers: if you consider blanket disabling this for your users, please
- # consider the following points:
-@@ -554,7 +555,7 @@
+ option(ENABLE_ALSA "Enables ALSA sound backend" ON)
+ option(ENABLE_AO "Enables libao sound backend" ON)
+ option(ENABLE_PULSEAUDIO "Enables PulseAudio sound backend" ON)
+@@ -571,7 +572,7 @@
  
  endif()
  
