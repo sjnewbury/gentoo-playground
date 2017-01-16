@@ -104,7 +104,8 @@ libretro-core_src_compile() {
 	use custom-cflags || filter-flags -O*
 	emake 	CC=$(tc-getCC) CXX=$(tc-getCXX) LD=$(tc-getLD) \
 		$(usex debug "DEBUG=1" "") "${myemakeargs[@]}" \
-		$([ -f makefile.libretro ] && echo '-f makefile.libretro')
+		$([ -f makefile.libretro ] && echo '-f makefile.libretro') \
+		$([ -f Makefile.libretro ] && echo '-f Makefile.libretro')
 }
 
 # @FUNCTION: libretro-core_src_install
