@@ -16,7 +16,7 @@ LICENSE="BSD-2 GPL-2 LGPL-2.1 ZLIB"
 [ "${PV}" = 9999 ] || KEYWORDS="~amd64 ~x86"
 SLOT="0"
 
-IUSE="+X avahi cxx-bindings debug doc drm egl fbcon +fontconfig fribidi gif gles glib gnutls gstreamer harfbuzz ibus jp2k nls +opengl ssl physics +png pulseaudio scim sdl static-libs systemd test tiff tslib v4l2 wayland webp xim xine xpm"
+IUSE="+X avahi cxx-bindings debug doc drm egl fbcon +fontconfig fribidi gif gles glib gnutls gstreamer harfbuzz ibus jp2k nls +opengl ssl physics +png pulseaudio scim sdl static-libs systemd test tiff tslib v4l2 wayland webp xim xine xpm pixman xpresent"
 
 COMMON_DEP="
 	dev-lang/luajit:2
@@ -37,6 +37,7 @@ COMMON_DEP="
 		x11-libs/libXrandr
 		x11-libs/libXrender
 		x11-libs/libXtst
+		xpresent? ( x11-libs/libXpresent )
 		gles? (
 			media-libs/mesa[egl,gles2]
 			x11-libs/libXrender
@@ -168,6 +169,28 @@ src_configure() {
 			--disable-drm
 		)
 	fi
+	# bug 501074
+	if use pixman; then
+		config+=(
+			--enable-pixman
+			--enable-pixman-font
+			--enable-pixman-rect
+			--enable-pixman-line
+			--enable-pixman-poly
+			--enable-pixman-image
+			--enable-pixman-image-scale-sample
+		)
+	else
+		config+=(
+			--disable-pixman
+			--disable-pixman-font
+			--disable-pixman-rect
+			--disable-pixman-line
+			--disable-pixman-poly
+			--disable-pixman-image
+			--disable-pixman-image-scale-sample
+		)
+	fi
 	config+=(
 		$(use_enable avahi)
 		$(use_enable cxx-bindings cxx-bindings)
@@ -190,6 +213,7 @@ src_configure() {
 		$(use_enable v4l2)
 		$(use_enable xim)
 		$(use_enable xine)
+		$(use_enable xpresent)
 
 		# image loders
 		--enable-image-loader-bmp
@@ -219,16 +243,6 @@ src_configure() {
 		--disable-multisense
 		--disable-tizen
 #		--disable-xinput2
-		--disable-xpresent
-
-		# bug 501074
-		--disable-pixman
-		--disable-pixman-font
-		--disable-pixman-rect
-		--disable-pixman-line
-		--disable-pixman-poly
-		--disable-pixman-image
-		--disable-pixman-image-scale-sample
 
 		--with-profile=$(usex debug debug release)
 		--with-glib=$(usex glib yes no)
