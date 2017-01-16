@@ -18,7 +18,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
-IUSE="cups gnome gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +tcmalloc widevine"
+IUSE="cups gnome gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +tcmalloc widevine wayland"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 
 # Native Client binaries are compiled with different set of flags, bug #452066.
@@ -79,6 +79,8 @@ COMMON_DEPEND="
 	>=media-libs/libwebp-0.4.0:=
 	sys-libs/zlib:=[minizip]
 	kerberos? ( virtual/krb5 )
+	wayland? ( >=dev-libs/wayland-1.9
+		   >=dev-libs/wayland-protocols-1.9 )	
 "
 # For nvidia-drivers blocker, see bug #413637 .
 RDEPEND="${COMMON_DEPEND}
@@ -169,6 +171,8 @@ PATCHES=(
 	"${FILESDIR}/${PN}-55-missing-include.patch"
 	"${FILESDIR}/${PN}-gn-r10.patch"
 	"${FILESDIR}/${PN}-system-icu-r1.patch"
+	"${FILESDIR}/display_compositor-fix.patch"
+	"${FILESDIR}/ozone-fullscreen-fix.patch"
 )
 
 pre_build_checks() {
@@ -301,6 +305,8 @@ src_prepare() {
 		third_party/sqlite
 		third_party/tcmalloc
 		third_party/usrsctp
+		third_party/wayland
+		third_party/wayland-protocols
 		third_party/web-animations-js
 		third_party/webdriver
 		third_party/webrtc
@@ -330,6 +336,7 @@ src_prepare() {
 	# VAAPI
 	# TODO: Make optional?
 	keeplibs+=( third_party/libva )
+
 	# Fixup VA driver path.  It's hardwired because it needs loading
 	# directly from the sandbox.  It would be better to have this
 	# work from the chromium build system side, but never mind...
@@ -454,6 +461,13 @@ src_configure() {
 	# Disable fatal linker warnings, bug 506268.
 	myconf_gn+=" fatal_linker_warnings=false"
 
+	if use wayland; then
+		myconf_gn+=" use_ozone=true"
+		myconf_gn+=" ozone_auto_platforms=false"
+		myconf_gn+=" ozone_platform_x11=true ozone_platform_wayland=true"
+		myconf_gn+=" enable_package_mash_services = true"
+		myconf_gn+=" enable_xdg_shell=true xkbcommon=true"
+	fi
 	# Avoid CFLAGS problems, bug #352457, bug #390147.
 	if ! use custom-cflags; then
 		replace-flags "-Os" "-O2"
