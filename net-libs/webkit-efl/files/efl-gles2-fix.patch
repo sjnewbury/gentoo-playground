@@ -1,0 +1,11 @@
+--- ./Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp~	2017-01-07 09:12:11.000000000 +0000
++++ ./Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2017-01-07 10:44:57.299885012 +0000
+@@ -398,7 +398,7 @@
+         variables.push_back(varyingSymbol);
+ 
+     GC3Dint maxVaryingVectors = 0;
+-#if !PLATFORM(IOS) && !((PLATFORM(WIN) || PLATFORM(GTK)) && USE(OPENGL_ES_2))
++#if !PLATFORM(IOS) && !((PLATFORM(WIN) || (PLATFORM(GTK)) || PLATFORM(EFL)) && USE(OPENGL_ES_2))
+     GC3Dint maxVaryingFloats = 0;
+     ::glGetIntegerv(GL_MAX_VARYING_FLOATS, &maxVaryingFloats);
+     maxVaryingVectors = maxVaryingFloats / 4;

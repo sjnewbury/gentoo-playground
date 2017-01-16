@@ -1,0 +1,11 @@
+--- ./Source/WebCore/css/StyleRule.cpp~	2017-01-08 00:09:11.000000000 +0000
++++ /var/tmp/portage/net-libs/webkit-efl-9999/work/webkit-efl-9999/Source/WebCore/css/StyleRule.cpp	2017-01-08 08:56:13.019392735 +0000
+@@ -451,7 +451,7 @@
+ 
+ #if ENABLE(CSS_DEVICE_ADAPTATION)
+ StyleRuleViewport::StyleRuleViewport(Ref<StyleProperties>&& properties)
+-    : StyleRuleBase(Viewport, 0)
++    : StyleRuleBase(Viewport)
+     , m_properties(WTFMove(properties))
+ {
+ }

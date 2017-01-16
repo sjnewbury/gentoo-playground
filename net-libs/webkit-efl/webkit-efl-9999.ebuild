@@ -2,13 +2,20 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI="5"
+EAPI="6"
 CMAKE_MAKEFILE_GENERATOR="ninja"
 GCONF_DEBUG="no"
 PYTHON_COMPAT=( python2_7 )
 USE_RUBY="ruby20 ruby21 ruby22 ruby23"
 
 inherit check-reqs cmake-utils eutils flag-o-matic gnome2 pax-utils python-any-r1 ruby-single toolchain-funcs versionator virtualx git-r3
+
+PATCHES=(
+	"${FILESDIR}"/efl-gles2-fix.patch
+	"${FILESDIR}"/efl-wayland.patch
+	"${FILESDIR}"/use-system-egl-headers.patch
+	"${FILESDIR}"/StyleRule-fix.patch
+)
 
 MY_P="webkit-efl-${PV}"
 DESCRIPTION="Open source web browser engine"
@@ -21,7 +28,7 @@ LICENSE="LGPL-2+ BSD"
 SLOT="1" # soname version of libwebkit2gtk-4.0
 KEYWORDS="~alpha amd64 ~arm ~ia64 ~ppc ~ppc64 ~sparc x86 ~amd64-fbsd ~x86-fbsd ~x86-freebsd ~amd64-linux ~ia64-linux ~x86-linux ~x86-macos"
 
-IUSE="aqua coverage doc +egl +geoloc gles2 gnome-keyring +gstreamer +introspection +jit nsplugin +opengl spell wayland +webgl X"
+IUSE="coverage doc +egl +geoloc gles2 +gstreamer +introspection +jit nsplugin spell wayland +webgl X"
 # seccomp
 
 # webgl needs gstreamer, bug #560612
@@ -30,10 +37,8 @@ REQUIRED_USE="
 	gles2? ( egl )
 	introspection? ( gstreamer )
 	nsplugin? ( X )
-	webgl? ( ^^ ( gles2 opengl ) )
-	!webgl? ( ?? ( gles2 opengl ) )
-	webgl? ( gstreamer )
-	|| ( aqua wayland X )
+	webgl? ( gles2 gstreamer )
+	^^ ( wayland X )
 "
 
 # Tests fail to link for inexplicable reasons
@@ -64,19 +69,18 @@ RDEPEND="
 	egl? ( media-libs/mesa[egl] )
 	geoloc? ( >=app-misc/geoclue-2.1.5:2.0 )
 	gles2? ( media-libs/mesa[gles2] )
-	gnome-keyring? ( app-crypt/libsecret )
 	gstreamer? (
 		>=media-libs/gstreamer-1.2:1.0
 		>=media-libs/gst-plugins-base-1.2:1.0
-		>=media-libs/gst-plugins-bad-1.5.0:1.0[opengl?] )
+		>=media-libs/gst-plugins-bad-1.5.0:1.0[gles2?] )
 	introspection? ( >=dev-libs/gobject-introspection-1.32.0:= )
 	nsplugin? ( >=x11-libs/gtk+-2.24.10:2 )
-	opengl? ( virtual/opengl
-		x11-libs/cairo[opengl] )
+	gles2? ( virtual/opengl
+		x11-libs/cairo[gles2] )
 	spell? ( >=app-text/enchant-0.22:= )
 	wayland? ( dev-libs/efl[wayland] )
 	webgl? (
-		x11-libs/cairo[opengl]
+		x11-libs/cairo[gles2]
 		x11-libs/libXcomposite
 		x11-libs/libXdamage )
 	X? (
@@ -132,7 +136,7 @@ pkg_pretend() {
 			die "You need at least GCC 4.9.x or Clang >= 3.3 for C++11-specific compiler flags"
 		fi
 
-		if [[ $(tc-getCXX) == *g++* && $(gcc-version) < 4.9 ]] ; then
+		if [[ ( $(tc-getCXX) == *g++* && $(gcc-version) < 4.9 ) && $(tc-getCXX) != clang* ]] ; then
 			die 'The active compiler needs to be gcc 4.9 (or newer)'
 		fi
 	fi
@@ -183,6 +187,21 @@ src_configure() {
 	# Multiple rendering bugs on youtube, github, etc without this, bug #547224
 	append-flags $(test-flags -fno-strict-aliasing)
 
+	# WebKit coding standards could do with some work
+	if [[ $(gcc-major-version) > 6 ]]; then
+		append-cppflags -Wno-error=expansion-to-defined
+		append-flags -Wno-error=implicit-fallthrough
+		append-flags -Wno-error=suggest-attribute=format
+	fi
+	if [[ $(gcc-major-version) > 5 ]]; then
+		append-flags -Wno-error=nonnull-compare
+	fi
+	append-flags -Wno-error=return-type
+	append-flags -Wno-error=array-bounds
+	append-flags -Wno-error=parentheses
+	append-flags -Wno-error=deprecated-declarations
+	append-flags -Wno-error=unknown-pragmas -Wno-error=unused-parameter
+
 	local ruby_interpreter=""
 
 	if has_version "virtual/rubygems[ruby_targets_ruby23]"; then
@@ -202,32 +221,22 @@ src_configure() {
 	#
 	# opengl needs to be explicetly handled, bug #576634
 
-	local opengl_enabled
-	if use opengl || use gles2; then
-		opengl_enabled=ON
-	else
-		opengl_enabled=OFF
-	fi
-
 	local mycmakeargs=(
-		$(cmake-utils_use_enable doc GTKDOC)
-		$(cmake-utils_use_enable test API_TESTS)
-		$(cmake-utils_use_enable geoloc GEOLOCATION)
+		-DENABLE_GTKDOC="$(usex doc)"
+		-DENABLE_API_TESTS="$(usex test)"
+		-DENABLE_GEOLOCATION="$(usex geoloc)"
 		$(cmake-utils_use_find_package gles2 OpenGLES2)
-		$(cmake-utils_use_enable gles2 GLES2)
-		$(cmake-utils_use_enable gnome-keyring CREDENTIAL_STORAGE)
-		$(cmake-utils_use_enable gstreamer VIDEO)
-		$(cmake-utils_use_enable gstreamer WEB_AUDIO)
-		$(cmake-utils_use_enable introspection)
-		$(cmake-utils_use_enable jit)
-		$(cmake-utils_use_enable nsplugin PLUGIN_PROCESS_GTK2)
-		$(cmake-utils_use_enable spell SPELLCHECK SPELLCHECK)
-		$(cmake-utils_use_enable wayland WAYLAND_TARGET)
-		$(cmake-utils_use_enable webgl WEBGL)
-		$(cmake-utils_use_find_package egl EGL)
-		$(cmake-utils_use_find_package opengl OpenGL)
-		$(cmake-utils_use_enable X X11_TARGET)
-		-DENABLE_OPENGL=${opengl_enabled}
+		-DENABLE_GLES2="$(usex gles2)"
+		-DENABLE_VIDEO="$(usex gstreamer)"
+		-DENABLE_WEB_AUDIO="$(usex gstreamer)"
+		-DENABLE_INTROSPECTION="$(usex introspection)"
+		-DENABLE_JIT="$(usex jit)"
+		-DENABLE_PLUGIN_PROCESS_GTK2="$(usex nsplugin)"
+		-DENABLE_SPELLCHECK="$(usex spell)"
+		-DENABLE_WAYLAND="$(usex wayland)"
+		-DENABLE_WEBGL="$(usex webgl)"
+		-DENABLE_EGL="$(usex egl)"
+		-DENABLE_X11_TARGET="$(usex X)"
 		-DCMAKE_BUILD_TYPE=Release
 		-DPORT=Efl
 		${ruby_interpreter}
