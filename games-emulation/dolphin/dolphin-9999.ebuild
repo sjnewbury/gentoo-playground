@@ -64,6 +64,7 @@ RDEPEND=">=media-libs/libsfml-2.1
 	)
 	sdl? ( media-libs/libsdl2[haptic,joystick] )
 	upnp? ( >=net-libs/miniupnpc-1.7 )
+	dev-perl/X11-Protocol
 	"
 #	wxwidgets? (
 #				dev-libs/glib:2
