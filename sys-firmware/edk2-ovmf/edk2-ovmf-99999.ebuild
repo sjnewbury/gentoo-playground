@@ -6,27 +6,27 @@ EAPI=5
 
 PYTHON_COMPAT=( python2_7 )
 
-inherit eutils multiprocessing toolchain-funcs python-r1
+inherit eutils multiprocessing toolchain-funcs python-r1 flag-o-matic
 
 DESCRIPTION="EDK II Open Source UEFI Firmware"
 HOMEPAGE="http://tianocore.sourceforge.net"
 
 LICENSE="BSD-2"
 SLOT="0"
-IUSE="debug +qemu +secure-boot"
+IUSE="debug +qemu +secure-boot custom-cflags"
 
 if [[ ${PV} == 99999 ]]; then
-	inherit subversion
-	ESVN_REPO_URI="https://svn.code.sf.net/p/edk2/code/trunk/edk2"
-	KEYWORDS="-* ~amd64"
+	inherit git-r3
+	EGIT_REPO_URI="https://github.com/tianocore/edk2"
+	KEYWORDS=""
 else
-	MY_P="edk2-${PV}"
-	S="${WORKDIR}/${MY_P}"
-	SRC_URI="http://storage.core-os.net/mirror/snapshots/${MY_P}.tar.xz"
+	inherit git-r3
+	EGIT_REPO_URI="https://github.com/tianocore/edk2"
+	EGIT_BRANCH=UDK${PV}
 	KEYWORDS="-* amd64"
 fi
 
-OPENSSL_PV="1.0.2d"
+OPENSSL_PV="1.0.2j"
 OPENSSL_P="openssl-${OPENSSL_PV}"
 SRC_URI+=" mirror://openssl/source/${OPENSSL_P}.tar.gz"
 
@@ -35,13 +35,29 @@ DEPEND=">=dev-lang/nasm-2.0.7
 	${PYTHON_DEPS}"
 RDEPEND="qemu? ( app-emulation/qemu )"
 
+src_unpack() {
+	git-r3_src_unpack
+	default
+}
+
 src_prepare() {
+	use custom-cflags || strip-flags
+
+	epatch "${FILESDIR}"/edk2-dereference-StringPtr.patch
+
 	# This build system is impressively complicated, needless to say
 	# it does things that get confused by PIE being enabled by default.
 	# Add -nopie to a few strategic places... :)
 	if gcc-specs-pie; then
 		epatch "${FILESDIR}/edk2-nopie.patch"
 	fi
+
+	sed -i \
+		-e '/BUILD_CFLAGS/s/\(BUILD_CFLAGS\) = \(.*\)$/\1 = $(CFLAGS) \2/g' \
+		-e '/BUILD_CXXFLAGS/s/\(BUILD_CXXFLAGS\) = \(.*\)$/\1 = $(CXXFLAGS) \2/g' \
+		-e '/BUILD_CPPFLAGS/s/\(BUILD_CPPFLAGS\) = \(.*\)$/\1 = $(CPPFLAGS) \2/g' \
+		-e '/BUILD_LFLAGS/s/\(BUILD_LFLAGS\) = \(.*\)$/\1 = $(LDFLAGS) \2/g' \
+		BaseTools/Source/C/Makefiles/*.makefile
 
 	if use secure-boot; then
 		local openssllib="${S}/CryptoPkg/Library/OpensslLib"
@@ -57,18 +73,19 @@ src_prepare() {
 }
 
 src_configure() {
-	./edksetup.sh || die
 
 	TARGET_NAME=$(usex debug DEBUG RELEASE)
 	TARGET_TOOLS="GCC$(gcc-version | tr -d .)"
 	case ${TARGET_TOOLS} in
-		GCC[5-6]*) TARGET_TOOLS=GCC49 ;;
+		GCC[6-7]*) TARGET_TOOLS=GCC5 ;;
 	esac
 	case $ARCH in
 		amd64)	TARGET_ARCH=X64 ;;
 		#x86)	TARGET_ARCH=IA32 ;;
 		*)		die "Unsupported $ARCH" ;;
 	esac
+
+	. edksetup.sh || die
 }
 
 src_compile() {
