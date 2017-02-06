@@ -19,7 +19,7 @@ inherit autotools gnome2 gnome2-utils libtool git-r3
 # Stolen from git.eclass
 EXPORTED_FUNCTIONS="src_unpack pkg_postinst"
 case "${EAPI:-0}" in
-    2|3|4|5) EXPORTED_FUNCTIONS="${EXPORTED_FUNCTIONS} src_prepare" ;;
+    2|3|4|5|6) EXPORTED_FUNCTIONS="${EXPORTED_FUNCTIONS} src_prepare" ;;
     0|1) ;;
     *) die "Unknown EAPI, Bug eclass maintainers." ;;
 esac
@@ -75,6 +75,7 @@ gnome2-live_get_var() {
 # Calls git-r3_src_unpack, and unpacks ${A} if required.
 # Also calls gnome2-live_src_prepare for older EAPI.
 gnome2-live_src_unpack() {
+	default
 	if test -n "${A}"; then
 		unpack ${A}
 	fi
@@ -88,6 +89,7 @@ gnome2-live_src_unpack() {
 # Creates blank ChangeLog and necessary macro dirs. Runs various autotools
 # programs if required, and finally runs eautoreconf.
 gnome2-live_src_prepare() {
+	default
 	# Blame git.eclass
 	cd "${S}"
 
