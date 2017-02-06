@@ -1,4 +1,4 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -18,7 +18,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
-IUSE="cups gnome gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +tcmalloc widevine wayland"
+IUSE="component-build cups gconf gnome-keyring gtk3 +hangouts kerberos neon pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-libvpx +tcmalloc widevine wayland"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 
 # Native Client binaries are compiled with different set of flags, bug #452066.
@@ -33,21 +33,24 @@ COMMON_DEPEND="
 	cups? ( >=net-print/cups-1.3.11:= )
 	>=dev-libs/elfutils-0.149
 	dev-libs/expat:=
-	dev-libs/glib:=
+	dev-libs/glib:2
 	dev-libs/icu:=
 	>=dev-libs/jsoncpp-0.5.0-r1:=
+	dev-libs/libxml2:=[icu]
+	dev-libs/libxslt:=
 	dev-libs/nspr:=
 	>=dev-libs/nss-3.14.3:=
 	>=dev-libs/re2-0.2016.05.01:=
-	gnome? ( >=gnome-base/gconf-2.24.0:= )
+	gconf? ( >=gnome-base/gconf-2.24.0:= )
 	gnome-keyring? ( >=gnome-base/libgnome-keyring-3.12:= )
 	>=media-libs/alsa-lib-1.0.19:=
 	media-libs/fontconfig:=
 	media-libs/freetype:=
+	>=media-libs/harfbuzz-1.3.1:=[icu(+)]
 	media-libs/libexif:=
 	media-libs/libjpeg-turbo:=
 	media-libs/libpng:=
-	media-libs/libvpx:=[svc]
+	system-libvpx? ( media-libs/libvpx:=[svc] )
 	media-libs/speex:=
 	pulseaudio? ( media-sound/pulseaudio:= )
 	system-ffmpeg? ( >=media-video/ffmpeg-3:= )
@@ -56,7 +59,7 @@ COMMON_DEPEND="
 	>=sys-libs/libcap-2.22:=
 	virtual/udev
 	x11-libs/cairo:=
-	x11-libs/gdk-pixbuf:=
+	x11-libs/gdk-pixbuf:2
 	x11-libs/libdrm
 	x11-libs/libX11:=
 	x11-libs/libXcomposite:=
@@ -72,10 +75,7 @@ COMMON_DEPEND="
 	x11-libs/libXtst:=
 	x11-libs/pango:=
 	app-arch/snappy:=
-	dev-libs/libxml2:=[icu]
-	dev-libs/libxslt:=
 	media-libs/flac:=
-	>=media-libs/harfbuzz-0.9.41:=[icu(+)]
 	>=media-libs/libwebp-0.4.0:=
 	sys-libs/zlib:=[minizip]
 	kerberos? ( virtual/krb5 )
@@ -116,8 +116,6 @@ DEPEND="${COMMON_DEPEND}
 		dev-python/beautifulsoup:python-2[${PYTHON_USEDEP}]
 		>=dev-python/beautifulsoup-4.3.2:4[${PYTHON_USEDEP}]
 		dev-python/html5lib[${PYTHON_USEDEP}]
-		dev-python/jinja[${PYTHON_USEDEP}]
-		dev-python/ply[${PYTHON_USEDEP}]
 		dev-python/simplejson[${PYTHON_USEDEP}]
 	')
 "
@@ -127,8 +125,6 @@ python_check_deps() {
 	has_version --host-root "dev-python/beautifulsoup:python-2[${PYTHON_USEDEP}]" &&
 	has_version --host-root ">=dev-python/beautifulsoup-4.3.2:4[${PYTHON_USEDEP}]" &&
 	has_version --host-root "dev-python/html5lib[${PYTHON_USEDEP}]" &&
-	has_version --host-root "dev-python/jinja[${PYTHON_USEDEP}]" &&
-	has_version --host-root "dev-python/ply[${PYTHON_USEDEP}]" &&
 	has_version --host-root "dev-python/simplejson[${PYTHON_USEDEP}]"
 }
 
@@ -161,24 +157,15 @@ For other desktop environments, try one of the following:
 - x11-themes/tango-icon-theme
 "
 
-PATCHES=(
-	"${FILESDIR}/${PN}-system-ffmpeg-r4.patch"
-	"${FILESDIR}/${PN}-system-jinja-r14.patch"
-	"${FILESDIR}/${PN}-widevine-r1.patch"
-	"${FILESDIR}/enable_vaapi_on_linux-57.diff"
-	"${FILESDIR}/fix-gtk3-build.patch"
-	"${FILESDIR}/disable-openh264-57.diff"
-	"${FILESDIR}/${PN}-55-missing-include.patch"
-	"${FILESDIR}/${PN}-gn-r10.patch"
-	"${FILESDIR}/${PN}-system-icu-r1.patch"
-	"${FILESDIR}/display_compositor-fix.patch"
-	"${FILESDIR}/ozone-fullscreen-fix.patch"
-)
-
 pre_build_checks() {
 	if [[ ${MERGE_TYPE} != binary ]]; then
+		local -x CPP="$(tc-getCXX) -E"
+		if tc-is-clang && ! version_is_at_least "3.9.1" "$(clang-fullversion)"; then
+			# bugs: #601654
+			die "At least clang 3.9.1 is required"
+		fi
 		if tc-is-gcc && ! version_is_at_least 5 "$(gcc-major-version)"; then
-			# bugs: #535730, #525374, #518668
+			# bugs: #535730, #525374, #518668, #600288
 			die "At least gcc 5 is required"
 		fi
 	fi
@@ -189,6 +176,9 @@ pre_build_checks() {
 	eshopts_push -s extglob
 	if is-flagq '-g?(gdb)?([1-9])'; then
 		CHECKREQS_DISK_BUILD="25G"
+		if ! use component-build; then
+			CHECKREQS_MEMORY="16G"
+		fi
 	fi
 	eshopts_pop
 	check-reqs_pkg_setup
@@ -208,6 +198,19 @@ pkg_setup() {
 }
 
 src_prepare() {
+	local PATCHES=(
+#		"${FILESDIR}/${PN}-system-jinja-r14.patch"
+		"${FILESDIR}/${PN}-widevine-r1.patch"
+		"${FILESDIR}/${PN}-FORTIFY_SOURCE.patch"
+		"${FILESDIR}/enable_vaapi_on_linux-57.diff"
+		"${FILESDIR}/fix-gtk3-build.patch"
+		"${FILESDIR}/disable-openh264-57.diff"
+		"${FILESDIR}/${PN}-55-missing-include.patch"
+		"${FILESDIR}/${PN}-system-icu-r1.patch"
+	)
+
+	use system-ffmpeg && PATCHES+=( "${FILESDIR}/${PN}-system-ffmpeg-r4.patch" )
+
 	default
 
 	local keeplibs=(
@@ -260,6 +263,7 @@ src_prepare() {
 		third_party/hunspell
 		third_party/iccjpeg
 		third_party/inspector_protocol
+		third_party/jinja2
 		third_party/jstemplate
 		third_party/khronos
 		third_party/leveldatabase
@@ -276,6 +280,7 @@ src_prepare() {
 		third_party/libyuv
 		third_party/lss
 		third_party/lzma_sdk
+		third_party/markupsafe
 		third_party/mesa
 		third_party/modp_b64
 		third_party/mt19937ar
@@ -295,6 +300,7 @@ src_prepare() {
 		third_party/pdfium/third_party/libpng16
 		third_party/pdfium/third_party/libtiff
 		third_party/pdfium/third_party/zlib_v128
+		third_party/ply
 		third_party/polymer
 		third_party/protobuf
 		third_party/protobuf/third_party/six
@@ -349,6 +355,10 @@ src_prepare() {
 	if ! use system-ffmpeg; then
 		keeplibs+=( third_party/ffmpeg )
 	fi
+	if ! use system-libvpx; then
+		keeplibs+=( third_party/libvpx )
+		keeplibs+=( third_party/libvpx/source/libvpx/third_party/x86inc )
+	fi
 
 	# Remove most bundled libraries. Some are still needed.
 	build/linux/unbundle/remove_bundled_libraries.py "${keeplibs[@]}" --do-remove || die
@@ -359,6 +369,10 @@ src_configure() {
 
 	# GN needs explicit config for Debug/Release as opposed to inferring it from build directory.
 	myconf_gn+=" is_debug=false"
+
+	# Component build isn't generally intended for use by end users. It's mostly useful
+	# for development and debugging.
+	myconf_gn+=" is_component_build=$(usex component-build true false)"
 
 	# Disable nacl, we can't build without pnacl (http://crbug.com/269560).
 	myconf_gn+=" enable_nacl=false"
@@ -379,7 +393,6 @@ src_configure() {
 		icu
 		libjpeg
 		libpng
-		libvpx
 		libwebp
 		libxml
 		libxslt
@@ -393,6 +406,9 @@ src_configure() {
 		myconf_gn+=" use_openh264=false"
 		gn_system_libraries+=( ffmpeg )
 	fi
+	if use system-libvpx; then
+		gn_system_libraries+=( libvpx )
+	fi
 	build/linux/unbundle/replace_gn_files.py --system-libraries "${gn_system_libraries[@]}" || die
 
 	# Optional dependencies.
@@ -400,7 +416,7 @@ src_configure() {
 	myconf_gn+=" enable_hangout_services_extension=$(usex hangouts true false)"
 	myconf_gn+=" enable_widevine=$(usex widevine true false)"
 	myconf_gn+=" use_cups=$(usex cups true false)"
-	myconf_gn+=" use_gconf=$(usex gnome true false)"
+	myconf_gn+=" use_gconf=$(usex gconf true false)"
 	myconf_gn+=" use_gnome_keyring=$(usex gnome-keyring true false)"
 	myconf_gn+=" use_gtk3=$(usex gtk3 true false)"
 	myconf_gn+=" use_kerberos=$(usex kerberos true false)"
@@ -616,9 +632,10 @@ src_install() {
 	insinto "${CHROMIUM_HOME}"
 	doins out/Release/*.bin
 	doins out/Release/*.pak
+	doins out/Release/*.so
 
 	# Needed by bundled icu
-	#doins out/Release/icudtl.dat
+	# doins out/Release/icudtl.dat
 
 	doins -r out/Release/locales
 	doins -r out/Release/resources
@@ -650,14 +667,12 @@ src_install() {
 	sed -e "/^Exec/s/$/ %U/" -i "${ED}"/usr/share/applications/*.desktop || die
 
 	# Install GNOME default application entry (bug #303100).
-	if use gnome; then
-		dodir /usr/share/gnome-control-center/default-apps
-		insinto /usr/share/gnome-control-center/default-apps
-		newins "${FILESDIR}"/chromium-browser.xml chromium-browser${CHROMIUM_SUFFIX}.xml
-		if [[ "${CHROMIUM_SUFFIX}" != "" ]]; then
-			sed "s:chromium-browser:chromium-browser${CHROMIUM_SUFFIX}:g" -i \
-				"${ED}"/usr/share/gnome-control-center/default-apps/chromium-browser${CHROMIUM_SUFFIX}.xml
-		fi
+	dodir /usr/share/gnome-control-center/default-apps
+	insinto /usr/share/gnome-control-center/default-apps
+	newins "${FILESDIR}"/chromium-browser.xml chromium-browser${CHROMIUM_SUFFIX}.xml
+	if [[ "${CHROMIUM_SUFFIX}" != "" ]]; then
+		sed "s:chromium-browser:chromium-browser${CHROMIUM_SUFFIX}:g" -i \
+			"${ED}"/usr/share/gnome-control-center/default-apps/chromium-browser${CHROMIUM_SUFFIX}.xml
 	fi
 
 	readme.gentoo_create_doc

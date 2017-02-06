@@ -1,5 +1,18 @@
 Description: Enables using VA-API hardware acceleration in Linux. The patch for bpf_gpu_policy_linux.cc initially came from https://codereview.chromium.org/15955009/diff/92001/content/common/sandbox_linux/bpf_gpu_policy_linux.cc. The code in bpf_gpu_policy_linux.cc was then updated by Steven Newbury to support Nvidia drivers.
 
+Index: dev/chrome/browser/about_flags.cc
+===================================================================
+--- dev.orig/chrome/browser/about_flags.cc
++++ dev/chrome/browser/about_flags.cc
+@@ -958,7 +958,7 @@ const FeatureEntry kFeatureEntries[] = {
+         "disable-accelerated-video-decode",
+         IDS_FLAGS_ACCELERATED_VIDEO_DECODE_NAME,
+         IDS_FLAGS_ACCELERATED_VIDEO_DECODE_DESCRIPTION,
+-        kOsMac | kOsWin | kOsCrOS,
++        kOsAll,
+         SINGLE_DISABLE_VALUE_TYPE(switches::kDisableAcceleratedVideoDecode),
+     },
+ #if defined(USE_ASH)
 Index: dev/content/common/BUILD.gn
 ===================================================================
 --- dev.orig/content/common/BUILD.gn
@@ -577,6 +590,49 @@ Index: dev/media/gpu/va_stub_header.fragment
  #endif
  
  }
+Index: dev/media/gpu/vaapi_video_decode_accelerator.cc
+===================================================================
+--- dev.orig/media/gpu/vaapi_video_decode_accelerator.cc
++++ dev/media/gpu/vaapi_video_decode_accelerator.cc
+@@ -359,17 +359,17 @@ bool VaapiVideoDecodeAccelerator::Initia
+ 
+   base::AutoLock auto_lock(lock_);
+   DCHECK_EQ(state_, kUninitialized);
+-  DVLOG(2) << "Initializing VAVDA, profile: " << profile;
++  VLOG(1) << "Initializing VAVDA, profile: " << profile;
+ 
+ #if defined(USE_X11)
+   if (gl::GetGLImplementation() != gl::kGLImplementationDesktopGL) {
+-    DVLOG(1) << "HW video decode acceleration not available without "
++    VLOG(1) << "HW video decode acceleration not available without "
+                 "DesktopGL (GLX).";
+     return false;
+   }
+ #elif defined(USE_OZONE)
+   if (gl::GetGLImplementation() != gl::kGLImplementationEGLGLES2) {
+-    DVLOG(1) << "HW video decode acceleration not available without "
++    VLOG(1) << "HW video decode acceleration not available without "
+              << "EGLGLES2.";
+     return false;
+   }
+@@ -379,7 +379,7 @@ bool VaapiVideoDecodeAccelerator::Initia
+       VaapiWrapper::kDecode, profile, base::Bind(&ReportToUMA, VAAPI_ERROR));
+ 
+   if (!vaapi_wrapper_.get()) {
+-    DVLOG(1) << "Failed initializing VAAPI for profile " << profile;
++    VLOG(1) << "Failed initializing VAAPI for profile " << profile;
+     return false;
+   }
+ 
+@@ -394,7 +394,7 @@ bool VaapiVideoDecodeAccelerator::Initia
+     vp9_accelerator_.reset(new VaapiVP9Accelerator(this, vaapi_wrapper_.get()));
+     decoder_.reset(new VP9Decoder(vp9_accelerator_.get()));
+   } else {
+-    DLOG(ERROR) << "Unsupported profile " << profile;
++    VLOG(1) << "Unsupported profile " << profile;
+     return false;
+   }
+ 
 Index: dev/media/gpu/vaapi_wrapper.cc
 ===================================================================
 --- dev.orig/media/gpu/vaapi_wrapper.cc
@@ -633,36 +689,3 @@ Index: dev/media/gpu/vaapi_wrapper.cc
        return false;
      }
    }
---- ./media/gpu/vaapi_jpeg_decode_accelerator.cc~	2017-02-02 23:05:00.000000000 +0000
-+++ ./media/gpu/vaapi_jpeg_decode_accelerator.cc	2017-02-05 17:36:33.732981146 +0000
-@@ -12,7 +12,7 @@
- 
- #include "base/bind.h"
- #include "base/logging.h"
--#include "base/metrics/histogram.h"
-+#include "base/metrics/histogram_macros.h"
- #include "base/threading/thread_task_runner_handle.h"
- #include "base/trace_event/trace_event.h"
- #include "gpu/ipc/service/gpu_channel.h"
---- ./media/gpu/vaapi_video_encode_accelerator.cc~	2017-02-02 23:05:00.000000000 +0000
-+++ ./media/gpu/vaapi_video_encode_accelerator.cc	2017-02-05 17:35:55.928983422 +0000
-@@ -12,7 +12,7 @@
- #include "base/bind.h"
- #include "base/callback.h"
- #include "base/macros.h"
--#include "base/metrics/histogram.h"
-+#include "base/metrics/histogram_macros.h"
- #include "base/numerics/safe_conversions.h"
- #include "base/single_thread_task_runner.h"
- #include "base/threading/thread_task_runner_handle.h"
---- ./media/gpu/vaapi_video_decode_accelerator.cc~	2017-02-02 23:05:00.000000000 +0000
-+++ ./media/gpu/vaapi_video_decode_accelerator.cc	2017-02-05 17:35:34.841942415 +0000
-@@ -12,7 +12,7 @@
- #include "base/files/scoped_file.h"
- #include "base/logging.h"
- #include "base/macros.h"
--#include "base/metrics/histogram.h"
-+#include "base/metrics/histogram_macros.h"
- #include "base/stl_util.h"
- #include "base/strings/string_util.h"
- #include "base/synchronization/waitable_event.h"
