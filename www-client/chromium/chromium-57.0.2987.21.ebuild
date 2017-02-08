@@ -93,7 +93,7 @@ RDEPEND="${COMMON_DEPEND}
 	gtk3? ( x11-libs/gtk+:3 )
 	selinux? ( sec-policy/selinux-chromium )
 	tcmalloc? ( !<x11-drivers/nvidia-drivers-331.20 )
-	widevine? ( www-plugins/chrome-binary-plugins[widevine(-)] )
+	widevine? ( !www-plugins/chrome-binary-plugins[widevine(-)] )
 "
 # dev-vcs/git - https://bugs.gentoo.org/593476
 DEPEND="${COMMON_DEPEND}
@@ -207,6 +207,7 @@ src_prepare() {
 		"${FILESDIR}/disable-openh264-57.diff"
 		"${FILESDIR}/${PN}-55-missing-include.patch"
 		"${FILESDIR}/${PN}-system-icu-r1.patch"
+		"${FILESDIR}/revert-ssse3-required.patch"
 	)
 
 	use system-ffmpeg && PATCHES+=( "${FILESDIR}/${PN}-system-ffmpeg-r4.patch" )
