@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+# Copyright 1999-2004 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Id$
+
+depend() {
+	need localmount
+}
+
+checkconfig() {
+	if [ ! -f /etc/memlockd.cfg ] ; then
+		eerror "Please create /etc/memlockd.cfg"
+		return 1
+	fi
+	return 0
+}
+
+start() {
+	checkconfig || return $?
+
+	ebegin "Starting memlockd"
+	start-stop-daemon --start --exec /usr/sbin/memlockd \
+	    --pidfile /var/run/memlockd.pid
+	eend $? "Failed to start memlockd"
+}
+
+stop() {
+	ebegin "Stopping memlockd"
+	start-stop-daemon --stop \
+		--pidfile /var/run/memlockd.pid \
+		--exec /usr/sbin/memlockd
+	eend $? "Failed to stop memlockd"
+}

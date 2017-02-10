@@ -1,0 +1,9 @@
+[Unit]
+Description=Keep critical files locked in memory
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/memlockd
+
+[Install]
+WantedBy=multi-user.target
