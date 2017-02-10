@@ -185,6 +185,7 @@ src_install() {
 
 pkg_postinst() {
 	ebegin "Allow \"other\" access to map directories"
+	chmod o+rx "${ROOT}/${GAMES_PREFIX_OPT}/${PN/-}"
 	find "${ROOT}/${GAMES_PREFIX_OPT}/${PN/-}/maps" -type d -exec chmod o+rx '{}' \;
 	eend $?
 	ebegin "Allow \"other\" to read maps"
