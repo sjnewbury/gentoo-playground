@@ -102,7 +102,6 @@ src_prepare() {
 	#epatch "${FILESDIR}"/${PN}-9999-pulse-sample-formats.patch
 	if use realtime; then
 		epatch "${FILESDIR}"/${PN}-9999-rtopt.patch
-		epatch "${FILESDIR}"/${PN}-0.19-rtopt-fix.patch
 	fi
 
 	if has_version dev-libs/libcdio-paranoia; then
@@ -115,7 +114,7 @@ src_prepare() {
 }
 
 src_configure() {
-	local mpdconf="--disable-despotify --disable-documentation --disable-roar
+	local mpdconf="--disable-documentation --disable-roar
 		--enable-largefile --enable-tcp --enable-un
 		--docdir=${EPREFIX}/usr/share/doc/${PF}"
 
