@@ -1,0 +1,22 @@
+--- ./Source/Core/DolphinWX/GameListCtrl.cpp.orig	2017-02-19 21:53:36.727716909 +0000
++++ ./Source/Core/DolphinWX/GameListCtrl.cpp	2017-02-19 21:58:05.977706819 +0000
+@@ -642,6 +642,11 @@
+   return a << 24 | b << 16 | g << 8 | r;
+ }
+ 
++static wxColour contrast_text(const wxColour& bgc)
++{
++  return (((0.299 * bgc.Red()) + ((0.587 * bgc.Green()) + (0.114 * bgc.Blue())))) > 186 ? *wxBLACK : *wxWHITE;
++}
++
+ void CGameListCtrl::SetBackgroundColor()
+ {
+   for (long i = 0; i < GetItemCount(); i++)
+@@ -650,6 +655,7 @@
+                                        wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)) :
+                                wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+     CGameListCtrl::SetItemBackgroundColour(i, color);
++    SetItemTextColour(i, contrast_text(color));
+   }
+ }
+ 
