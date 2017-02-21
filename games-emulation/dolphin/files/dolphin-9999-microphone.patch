@@ -1,3 +1,12 @@
+From: Steven Newbury <steve@snewbury.org.uk>
+Subject: [PATCH] Allow buiding without microphone suppport
+Date: Sun, 19 Feb 2017 08:01:00 UTC
+
+Unconditional microphone support means portaudio isn't optional.
+Make microphone optional to restore the possibility of building
+without the extra dependency on portaudio.
+---
+
 --- ./CMakeLists.txt.orig	2017-01-16 10:09:20.336834372 +0000
 +++ ./CMakeLists.txt	2017-01-16 10:10:38.167338460 +0000
 @@ -15,6 +15,7 @@

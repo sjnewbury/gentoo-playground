@@ -1,5 +1,20 @@
---- Source/Core/Core/HW/WiimoteReal/IOLinux.cpp~	2016-10-18 20:47:51.000000000 +0100
-+++ Source/Core/Core/HW/WiimoteReal/IOLinux.cpp	2016-10-20 09:53:10.394504501 +0100
+From: Steven Newbury <steve@snewbury.org.uk>
+Subject: [PATCH] Retry opening of wiimote channels on initial failure
+Date: Sun, 19 Feb 2017 08:03:00 UTC
+
+It's not uncommon on some Bluetooth controllers for a
+peripheral device to be "present" before it's "ready".
+There is a window where connection can fail because the
+device communication didn't succeed initially, but 
+will always work on retry after a short delay.
+
+I'm not the original author of this patch and I can't
+remember where I found it.  I can confirm that it
+works perfectly for me though...
+---
+
+--- ./Source/Core/Core/HW/WiimoteReal/IOLinux.cpp~	2016-10-18 20:47:51.000000000 +0100
++++ ./Source/Core/Core/HW/WiimoteReal/IOLinux.cpp	2016-10-20 09:53:10.394504501 +0100
 @@ -143,10 +143,16 @@
    if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
        connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
