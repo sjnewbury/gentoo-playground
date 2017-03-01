@@ -138,6 +138,7 @@ src_prepare() {
 	mv Externals/glslang . || die
 	mv Externals/Vulkan . || die
 	mv Externals/hidapi . || die
+	mv Externals/cpp-optparse . || die
 	rm -r Externals/* || die "Failed to delete Externals dir."
 	mv Bochs_disasm Externals || die
 	mv SOIL Externals || die
@@ -147,6 +148,7 @@ src_prepare() {
 	mv glslang Externals || die
 	mv Vulkan Externals || die
 	mv hidapi Externals || die
+	mv cpp-optparse Externals || die
 
 	remove_locale() {
 		# Ensure preservation of the backup locale when no valid LINGUA is set

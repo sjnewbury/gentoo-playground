@@ -1,43 +1,67 @@
+From ac0f5f56a318cb412a0788444202a7bea18136a1 Mon Sep 17 00:00:00 2001
 From: Steven Newbury <steve@snewbury.org.uk>
+Date: Sun, 19 Feb 2017 08:03:00 +0000
 Subject: [PATCH] Retry opening of wiimote channels on initial failure
-Date: Sun, 19 Feb 2017 08:03:00 UTC
 
-It's not uncommon on some Bluetooth controllers for a
-peripheral device to be "present" before it's "ready".
-There is a window where connection can fail because the
-device communication didn't succeed initially, but 
-will always work on retry after a short delay.
+There seems to be a race condition between a peripheral device
+connecting to the bluetooth controller and it being ready to use.
+It's very short and it depends upon the controller, some appear
+to connect synchronously and block until the device is ready,
+others report the device upon discovery but do not allow
+communication straight away. I don't know which is the correct
+behaviour, or whether it depends on the peripheral, controller
+or both. Anyway, Dolphin waits for a remote to appear and
+immediately attempts to open the communication channels, this can
+fail because the device isn't ready yet, delay, try again,
+and it works.
 
-I'm not the original author of this patch and I can't
-remember where I found it.  I can confirm that it
-works perfectly for me though...
+I'm not the original author of this patch and I can't remember
+where I found it.  I can confirm that it works perfectly for me
+on a bluetooth controller where otherwise it's impossible to
+connect (Dell 380 Bluetooth 4.0).
 ---
+ Source/Core/Core/HW/WiimoteReal/IOLinux.cpp | 39 ++++++++++++++++++++---------
+ 1 file changed, 27 insertions(+), 12 deletions(-)
 
---- ./Source/Core/Core/HW/WiimoteReal/IOLinux.cpp~	2016-10-18 20:47:51.000000000 +0100
-+++ ./Source/Core/Core/HW/WiimoteReal/IOLinux.cpp	2016-10-20 09:53:10.394504501 +0100
-@@ -143,10 +143,16 @@
-   if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
-       connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
+diff --git a/Source/Core/Core/HW/WiimoteReal/IOLinux.cpp b/Source/Core/Core/HW/WiimoteReal/IOLinux.cpp
+index 573dba02b6..071fcc131c 100644
+--- a/Source/Core/Core/HW/WiimoteReal/IOLinux.cpp
++++ b/Source/Core/Core/HW/WiimoteReal/IOLinux.cpp
+@@ -137,28 +137,43 @@ bool WiimoteLinux::ConnectInternal()
+   addr.l2_family = AF_BLUETOOTH;
+   addr.l2_bdaddr = m_bdaddr;
+   addr.l2_cid = 0;
++  int retry;
+ 
+   // Output channel
+   addr.l2_psm = htobs(WM_OUTPUT_CHANNEL);
+-  if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
+-      connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
++  retry = 0;
++  while ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
++        connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
    {
 -    WARN_LOG(WIIMOTE, "Unable to open output socket to Wiimote: %s", strerror(errno));
 -    close(m_cmd_sock);
 -    m_cmd_sock = -1;
 -    return false;
 +    // If opening channel fails sleep and try again
-+    sleep(1);
-+    if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
-+      connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
++    if (retry == 2)
 +    {
 +      WARN_LOG(WIIMOTE, "Unable to open output socket to Wiimote: %s", strerror(errno));
 +      close(m_cmd_sock);
 +      m_cmd_sock = -1;
 +      return false;
 +    }
++    retry++;
++    sleep(1);
    }
  
    // Input channel
-@@ -154,11 +160,17 @@
-   if ((m_int_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
+   addr.l2_psm = htobs(WM_INPUT_CHANNEL);
+-  if ((m_int_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
++  retry = 0;
++  while ((m_int_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
        connect(m_int_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
    {
 -    WARN_LOG(WIIMOTE, "Unable to open input socket from Wiimote: %s", strerror(errno));
@@ -45,10 +69,8 @@ works perfectly for me though...
 -    close(m_cmd_sock);
 -    m_int_sock = m_cmd_sock = -1;
 -    return false;
-+    // If opening channel fails sleep and try again
-+    sleep(1);
-+    if ((m_cmd_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP)) == -1 ||
-+      connect(m_cmd_sock, (sockaddr*)&addr, sizeof(addr)) < 0)
++  // If opening channel fails sleep and try again
++    if (retry == 2)
 +    {
 +      WARN_LOG(WIIMOTE, "Unable to open input socket from Wiimote: %s", strerror(errno));
 +      close(m_int_sock);
@@ -56,6 +78,11 @@ works perfectly for me though...
 +      m_int_sock = m_cmd_sock = -1;
 +      return false;
 +    }
++    retry++;
++    sleep(1);
    }
  
    return true;
+-- 
+2.11.1
+

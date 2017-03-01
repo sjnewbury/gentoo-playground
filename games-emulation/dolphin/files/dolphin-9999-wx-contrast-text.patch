@@ -1,4 +1,4 @@
-From 418c40e0f70e50fb7477ed5d88c95ce9b8b21db6 Mon Sep 17 00:00:00 2001
+From 014d2e491c3765951ce64d1bd80171d63c46e142 Mon Sep 17 00:00:00 2001
 From: Steven Newbury <steve@snewbury.org.uk>
 Date: Sun, 19 Feb 2017 08:02:00 +0000
 Subject: [PATCH] Always use visible text in GameList
@@ -10,24 +10,15 @@ to become unreadble.
 Use the common luminance approximation algorithm to
 determine whether black text should be used instead.
 ---
- Source/Core/DolphinWX/GameListCtrl.cpp | 22 ++++++++++++++++------
+ Source/Core/DolphinWX/GameListCtrl.cpp | 17 +++++++++++++----
  Source/Core/DolphinWX/GameListCtrl.h   |  2 +-
- 2 files changed, 17 insertions(+), 7 deletions(-)
+ 2 files changed, 14 insertions(+), 5 deletions(-)
 
 diff --git a/Source/Core/DolphinWX/GameListCtrl.cpp b/Source/Core/DolphinWX/GameListCtrl.cpp
-index 657a3d44ef..c74b8f80e4 100644
+index a6ea42048f..6ba0fcbe2a 100644
 --- a/Source/Core/DolphinWX/GameListCtrl.cpp
 +++ b/Source/Core/DolphinWX/GameListCtrl.cpp
-@@ -465,8 +465,6 @@ void CGameListCtrl::ReloadList()
-     for (int i = 0; i < (int)m_ISOFiles.size(); i++)
-     {
-       InsertItemInReportView(i);
--      if (SConfig::GetInstance().m_ColorCompressed && m_ISOFiles[i]->IsCompressed())
--        SetItemTextColour(i, wxColour(0xFF0000));
-     }
- 
-     // Sort items by Title
-@@ -628,8 +626,8 @@ void CGameListCtrl::InsertItemInReportView(long index)
+@@ -624,8 +624,8 @@ void CGameListCtrl::InsertItemInReportView(long index)
        UpdateItemAtColumn(item_index, i);
    }
  
@@ -38,7 +29,7 @@ index 657a3d44ef..c74b8f80e4 100644
  }
  
  static wxColour blend50(const wxColour& c1, const wxColour& c2)
-@@ -642,7 +640,15 @@ static wxColour blend50(const wxColour& c1, const wxColour& c2)
+@@ -638,7 +638,15 @@ static wxColour blend50(const wxColour& c1, const wxColour& c2)
    return a << 24 | b << 16 | g << 8 | r;
  }
  
@@ -55,18 +46,15 @@ index 657a3d44ef..c74b8f80e4 100644
  {
    for (long i = 0; i < GetItemCount(); i++)
    {
-@@ -650,6 +656,10 @@ void CGameListCtrl::SetBackgroundColor()
+@@ -646,6 +654,7 @@ void CGameListCtrl::SetBackgroundColor()
                                         wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)) :
                                 wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
      CGameListCtrl::SetItemBackgroundColour(i, color);
-+    if (SConfig::GetInstance().m_ColorCompressed && m_ISOFiles[i]->IsCompressed())
-+      SetItemTextColour(i, *wxBLUE);
-+    else
-+      SetItemTextColour(i, ContrastText(color));
++    SetItemTextColour(i, ContrastText(color));
    }
  }
  
-@@ -800,7 +810,7 @@ void CGameListCtrl::OnColumnClick(wxListEvent& event)
+@@ -796,7 +805,7 @@ void CGameListCtrl::OnColumnClick(wxListEvent& event)
      SortItems(wxListCompare, last_sort);
    }
  
