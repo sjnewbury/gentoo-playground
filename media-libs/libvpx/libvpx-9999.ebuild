@@ -49,8 +49,17 @@ REQUIRED_USE="
 if [[ ${PV} != *9999* ]]; then
 	src_prepare() {
 		eapply "${FILESDIR}/libvpx-1.3.0-sparc-configure.patch" # 501010
+		eapply "${FILESDIR}/libvpx-1.6.1-x32.patch"
+		default
+	}
+else
+	src_prepare() {
+		eapply "${FILESDIR}/libvpx-1.6.1-x32.patch"
+		default
 	}
 fi
+
+
 
 multilib_src_configure() {
 	unset CODECS #357487

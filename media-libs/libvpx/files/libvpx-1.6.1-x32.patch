@@ -1,0 +1,11 @@
+--- ./third_party/x86inc/x86inc.asm~	2017-03-02 22:30:13.000000000 +0000
++++ ./third_party/x86inc/x86inc.asm	2017-03-03 08:53:37.476978841 +0000
+@@ -71,6 +71,8 @@
+     %define FORMAT_ELF 1
+ %elifidn __OUTPUT_FORMAT__,elf32
+     %define FORMAT_ELF 1
++%elifidn __OUTPUT_FORMAT__,elfx32
++    %define FORMAT_ELF 1
+ %elifidn __OUTPUT_FORMAT__,elf64
+     %define FORMAT_ELF 1
+ %endif
