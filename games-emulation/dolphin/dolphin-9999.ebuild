@@ -99,8 +99,6 @@ src_prepare() {
 	default
 
 	epatch "${FILESDIR}/${P}-retry-open-channels.patch"
-	epatch "${FILESDIR}/${P}-microphone.patch"
-	epatch "${FILESDIR}/${P}-wx-contrast-text.patch"
 
 	sed -i -e 's/missing-variable-declarations/missing-declarations/g' CMakeLists.txt || die
 
