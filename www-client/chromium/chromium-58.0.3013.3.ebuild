@@ -93,7 +93,7 @@ RDEPEND="${COMMON_DEPEND}
 	gtk3? ( x11-libs/gtk+:3 )
 	selinux? ( sec-policy/selinux-chromium )
 	tcmalloc? ( !<x11-drivers/nvidia-drivers-331.20 )
-	widevine? ( !www-plugins/chrome-binary-plugins[widevine(-)] )
+	widevine? ( www-plugins/chrome-binary-plugins[widevine(-)] )
 "
 # dev-vcs/git - https://bugs.gentoo.org/593476
 DEPEND="${COMMON_DEPEND}
@@ -600,7 +600,6 @@ src_install() {
 	fi
 
 	doexe out/Release/chromedriver
-	use widevine && doexe out/Release/libwidevinecdmadapter.so
 
 	# if ! use arm; then
 	#	doexe out/Release/nacl_helper{,_bootstrap} || die
@@ -635,6 +634,11 @@ src_install() {
 	pushd out/Release/locales > /dev/null || die
 	chromium_remove_language_paks
 	popd
+
+	if use widevine; then
+		# These will be provided by chrome-binary-plugins
+		rm out/Release/libwidevinecdm*.so || die
+	fi
 
 	insinto "${CHROMIUM_HOME}"
 	doins out/Release/*.bin
