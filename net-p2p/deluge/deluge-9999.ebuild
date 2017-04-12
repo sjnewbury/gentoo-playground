@@ -33,7 +33,7 @@ REQUIRED_USE="
 	libnotify? ( gtk )
 "
 
-CDEPEND=">=net-libs/rb_libtorrent-0.14.9[python,${PYTHON_USEDEP}]"
+CDEPEND=">=net-libs/libtorrent-rasterbar-1.1.3[python,${PYTHON_USEDEP}]"
 DEPEND="${CDEPEND}
 	dev-python/setuptools[${PYTHON_USEDEP}]
 	dev-util/intltool"
