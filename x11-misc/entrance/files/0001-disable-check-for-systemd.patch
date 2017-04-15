@@ -1,0 +1,36 @@
+From bd0486e720178009cc839cb813d669f4b4fc0051 Mon Sep 17 00:00:00 2001
+From: Ralph Sennhauser <sera@gentoo.org>
+Date: Sun, 16 Feb 2014 11:15:52 +0100
+Subject: [PATCH] disable check for systemd
+
+Gentoo installs unit files unconditionally so long this is all that is
+needed for systemd support. A blocker could be used should the version
+of systemd be a concern.
+---
+ configure.ac | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 4b9d39c..aaf80a8 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -155,11 +155,11 @@ if test "x${enable_pam}" = "xyes" ; then
+ fi
+ 
+ # Systemd
+-if test "x${enable_systemd}" = "xyes" ; then
+-   PKG_CHECK_EXISTS([systemd >= 192],
+-      [enable_systemd="yes"],
+-      [enable_systemd="no"])
+-fi
++#if test "x${enable_systemd}" = "xyes" ; then
++#   PKG_CHECK_EXISTS([systemd >= 192],
++#      [enable_systemd="yes"],
++#      [enable_systemd="no"])
++#fi
+ AM_CONDITIONAL(HAVE_SYSTEMD, [test "x${enable_systemd}" = "xyes"])
+ 
+ ### Checks for header files
+-- 
+1.8.3.2
+

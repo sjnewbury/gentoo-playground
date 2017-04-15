@@ -10,7 +10,7 @@ inherit eutils
 DESCRIPTION="Enlightenment Foundation Core Libraries"
 HOMEPAGE="http://www.enlightenment.org/"
 EGIT_REPO_URI="git://git.enlightenment.org/core/${PN}.git"
-[ "${PV}" = 9999 ] || SRC_URI="http://download.enlightenment.org/rel/libs/${PN}/${P/_/-}.tar.bz2"
+[ "${PV}" = 9999 ] || SRC_URI="http://download.enlightenment.org/rel/libs/${PN}/${P/_/-}.tar.gz"
 
 LICENSE="BSD-2 GPL-2 LGPL-2.1 ZLIB"
 [ "${PV}" = 9999 ] || KEYWORDS="~amd64 ~x86"
@@ -118,6 +118,10 @@ src_prepare() {
 }
 
 src_configure() {
+	# if efreetd isn't already running it gets spawned as root with
+	# default XDG_RUNTIME_DIR for example: /run/user/0
+	export XDG_RUNTIME_DIR="${T}"
+
 	local config=()
 
 	# gnutls / openssl
