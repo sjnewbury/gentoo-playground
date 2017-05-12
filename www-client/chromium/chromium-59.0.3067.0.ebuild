@@ -96,6 +96,7 @@ RDEPEND="${COMMON_DEPEND}
 	widevine? ( www-plugins/chrome-binary-plugins[widevine(-)] )
 "
 # dev-vcs/git - https://bugs.gentoo.org/593476
+# sys-apps/sandbox - https://crbug.com/586444
 DEPEND="${COMMON_DEPEND}
 	>=app-arch/gzip-1.7
 	!arm? (
@@ -214,6 +215,7 @@ src_prepare() {
 		"${FILESDIR}/${PN}-dma-buf-r1.patch"
 		"${FILESDIR}/${PN}-system-ffmpeg-r5.patch"
 		"${FILESDIR}/${PN}-system-libjpeg-r1.patch"
+		"${FILESDIR}/${PN}-system-icu-r1.patch"
 	)
 
 	default
@@ -309,7 +311,6 @@ src_prepare() {
 		third_party/pdfium/third_party/bigint
 		third_party/pdfium/third_party/freetype
 		third_party/pdfium/third_party/lcms2-2.6
-		third_party/pdfium/third_party/libjpeg
 		third_party/pdfium/third_party/libopenjpeg20
 		third_party/pdfium/third_party/libpng16
 		third_party/pdfium/third_party/libtiff
@@ -393,6 +394,8 @@ src_configure() {
 	# Component build isn't generally intended for use by end users. It's mostly useful
 	# for development and debugging.
 	myconf_gn+=" is_component_build=$(usex component-build true false)"
+
+	myconf_gn+=" use_allocator=$(usex tcmalloc \"tcmalloc\" \"none\")"
 
 	# Disable nacl, we can't build without pnacl (http://crbug.com/269560).
 	myconf_gn+=" enable_nacl=false"
@@ -567,9 +570,7 @@ src_configure() {
 	touch chrome/test/data/webui/i18n_process_css_test.html || die
 
 	einfo "Configuring Chromium..."
-	# TODO: bootstrapped gn binary hangs when using tcmalloc with portage's sandbox.
-	tools/gn/bootstrap/bootstrap.py -v --gn-gen-args "${myconf_gn} use_allocator=\"none\"" || die
-	myconf_gn+=" use_allocator=$(usex tcmalloc \"tcmalloc\" \"none\")"
+	tools/gn/bootstrap/bootstrap.py -v --gn-gen-args "${myconf_gn}" || die
 	out/Release/gn gen --args="${myconf_gn}" out/Release || die
 }
 
