@@ -13,6 +13,10 @@ EGIT_REPO_URI=https://github.com/sjnewbury/omega-ng.git
 LICENSE="LGPL"
 SLOT="0"
 
+IUSE="gzip center-on-player"
+
+RDEPEND="gzip? ( app-arch/gzip )"
+
 DEPEND="${RDEPEND}
 	sys-libs/ncurses
 	virtual/pkgconfig"
@@ -21,6 +25,12 @@ src_prepare() {
 	sed	-e "/^#define OMEGALIB/s:\./lib/:${GAMES_DATADIR}/${PN}/:" \
 		-e "/^#define OMEGASTATE/s:\./lib/:${GAMES_STATEDIR}/${PN}/:" \
 		-i defs.h || die
+
+	use gzip && ( sed -e "/^\/\*.*#define COMPRESS_SAVE_FILES/s/\/\*\(.*\)\*\//\1/" \
+		-i defs.h || die )
+
+	use center-on-player && ( sed -e "/^\/\*.*#define CENTER_ON_PLAYER/s/\/\*\(.*\)\*\//\1/" \
+		-i defs.h || die )
 }
 
 src_install() {
