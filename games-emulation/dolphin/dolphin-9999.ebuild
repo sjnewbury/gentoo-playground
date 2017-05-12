@@ -128,6 +128,7 @@ src_prepare() {
 	# - Bochs-disasm: Don't know what it is.
 	# - gtest: Their build set up solely relies on the build in gtest.
 	# - xxhash: Not on the tree.
+	# - soundtouch:  Needs to be built for short, not float.
 	mv Externals/SOIL . || die
 	mv Externals/Bochs_disasm . || die
 	mv Externals/gtest . || die
@@ -137,6 +138,7 @@ src_prepare() {
 	mv Externals/Vulkan . || die
 	mv Externals/hidapi . || die
 	mv Externals/cpp-optparse . || die
+	mv Externals/soundtouch . || die
 	rm -r Externals/* || die "Failed to delete Externals dir."
 	mv Bochs_disasm Externals || die
 	mv SOIL Externals || die
@@ -147,6 +149,7 @@ src_prepare() {
 	mv Vulkan Externals || die
 	mv hidapi Externals || die
 	mv cpp-optparse Externals || die
+	mv soundtouch Externals || die
 
 	remove_locale() {
 		# Ensure preservation of the backup locale when no valid LINGUA is set
