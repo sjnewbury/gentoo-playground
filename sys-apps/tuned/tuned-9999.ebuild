@@ -9,12 +9,12 @@ PYTHON_COMPAT=( python2_7 )
 inherit python-single-r1 systemd
 
 DESCRIPTION="Daemon for monitoring and adaptive tuning of system devices"
-HOMEPAGE="https://fedorahosted.org/tuned/"
+HOMEPAGE="http://www.tuned-project.org/"
 if [ ${PV} == 9999 ]; then
 	inherit git-r3
-	EGIT_REPO_URI=git://git.fedorahosted.org/git/tuned
+	EGIT_REPO_URI=https://github.com/redhat-performance/tuned.git
 else
-	SRC_URI="https://fedorahosted.org/releases/t/u/tuned/${P}.tar.bz2"
+	SRC_URI="https://github.com/redhat-performance/tuned/archive/v${PV}.tar.gz"
 	KEYWORDS="~amd64 ~x86"
 fi
 LICENSE="GPL-2"
