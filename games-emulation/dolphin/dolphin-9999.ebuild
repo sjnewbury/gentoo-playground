@@ -31,6 +31,7 @@ RDEPEND=">=media-libs/libsfml-2.1
 	>net-libs/enet-1.3.7
 	>=net-libs/mbedtls-2.1.1
 	dev-libs/lzo
+	dev-libs/pugixml
 	media-libs/libpng:=
 	sys-libs/glibc
 	sys-libs/readline:=
@@ -98,7 +99,7 @@ pkg_pretend() {
 src_prepare() {
 	default
 
-	epatch "${FILESDIR}/${P}-retry-open-channels.patch"
+	#epatch "${FILESDIR}/${P}-retry-open-channels.patch"
 
 	sed -i -e 's/missing-variable-declarations/missing-declarations/g' CMakeLists.txt || die
 
@@ -139,6 +140,8 @@ src_prepare() {
 	mv Externals/hidapi . || die
 	mv Externals/cpp-optparse . || die
 	mv Externals/soundtouch . || die
+	mv Externals/cubeb . || die
+	mv Externals/pugixml . || die
 	rm -r Externals/* || die "Failed to delete Externals dir."
 	mv Bochs_disasm Externals || die
 	mv SOIL Externals || die
@@ -150,6 +153,8 @@ src_prepare() {
 	mv hidapi Externals || die
 	mv cpp-optparse Externals || die
 	mv soundtouch Externals || die
+	mv cubeb Externals || die
+	mv pugixml Externals || die
 
 	remove_locale() {
 		# Ensure preservation of the backup locale when no valid LINGUA is set
