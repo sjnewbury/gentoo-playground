@@ -23,19 +23,8 @@ of any of these ebuilds, let me know.  Also feel free to open
 Gentoo bugzilla entries for new ebuilds from this repository,
 just do please drop me a note.
 
-<h2>libretro</h2>
-
-Currently there are some RetroArch/libretro ebuilds included
-which are fixed/tweaked versions of ebuilds from abendbrot's
-overlay.  I haven't provided any ebuilds I haven't modified,
-so if you want to use libretro/RetroArch I recommend adding
-abendbrot's overlay. 
-
-
-<b>WARNING! WARNING!</b> Some ebuilds in this repo supercede those in Portage
-and have KEYWORDS copied from their Portage counterparts.  Until I rectify
-this or alternatively provide a local mask in this repo, I recommend
-adding a local mask for */*::gentoo-playground, then unmasking specific
-packages as needed.
-
-I would accept pull requests to rectify this situation.
+<b>I have recently removed nearly all ebuilds from this repo
+since it suffered from severe bit-rot and neglect.  I am 
+gradually adding back ebuilds I am prepared to maintain or
+if there is a request for them, but I'm going to try to keep
+it clean.</b>
