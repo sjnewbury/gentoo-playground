@@ -1,9 +1,0 @@
-[Unit]
-Description=Entrance Display Manager
-After=systemd-user-session-service plymouth-quit.service
-
-[Service]
-ExecStart=/usr/sbin/entrance --nodaemon
-
-[Install]
-Alias=display-manager.service
