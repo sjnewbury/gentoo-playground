@@ -1,0 +1,21 @@
+--- configure.orig	2013-06-03 05:45:13.833879421 +0100
++++ configure	2013-06-03 05:42:33.392747693 +0100
+@@ -6,6 +6,8 @@
+ CONFIG_H=config.h
+ MAKEFILE_LOCAL=Makefile.local
+ 
++PACKAGE="${PROGRAM}"
++PACKAGE_VERSION=$(grep UFO_VERSION src/common/common.h | sed -e 's/.*UFO_VERSION \"\(.*\)\"/\1/')
+ DEBUG=1
+ UNIVERSAL=
+ HARD_LINKED_GAME=
+@@ -99,6 +101,8 @@
+ }
+ 
+ config_h() {
++	add_to_config_h PACKAGE "Name of this package (ufoai)"
++	add_to_config_h PACKAGE_VERSION "Package release version"
+ 	add_to_config_h PARANOID "Enable paranoid build"
+ 	add_to_config_h HARD_LINKED_GAME "Enable hard linked game"
+ 	add_to_config_h HARD_LINKED_CGAME "Enable hard linked cgame"
+ 
