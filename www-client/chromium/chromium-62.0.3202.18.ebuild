@@ -26,6 +26,7 @@ COMMON_DEPEND="
 	dev-libs/expat:=
 	dev-libs/glib:2
 	system-icu? ( >=dev-libs/icu-59:= )
+	>=dev-libs/libxml2-2.9.5:=[icu]
 	dev-libs/libxslt:=
 	dev-libs/nspr:=
 	>=dev-libs/nss-3.14.3:=
@@ -96,7 +97,6 @@ DEPEND="${COMMON_DEPEND}
 	>=dev-util/ninja-1.7.2
 	>=net-libs/nodejs-4.6.1
 	sys-apps/hwids[usb(+)]
-	tcmalloc? ( !<sys-apps/sandbox-2.11 )
 	>=sys-devel/bison-2.4.3
 	sys-devel/flex
 	virtual/pkgconfig
@@ -145,10 +145,10 @@ PATCHES=(
 	"${FILESDIR}/${PN}-widevine-r1.patch"
 	"${FILESDIR}/${PN}-FORTIFY_SOURCE-r2.patch"
 	"${FILESDIR}/${PN}-gcc5-r2.patch"
-	"${FILESDIR}/${PN}-gn-bootstrap-r16.patch"
-	"${FILESDIR}/${PN}-system-icu-r2.patch"
-	"${FILESDIR}/${PN}-intel-vaapi.patch"
-	"${FILESDIR}/${PN}-intel-vaapi-fix.patch"
+	"${FILESDIR}/${PN}-gn-bootstrap-r17.patch"
+	"${FILESDIR}/${PN}-glibc2.26-r1.patch"
+#	"${FILESDIR}/${PN}-intel-vaapi.patch"
+#	"${FILESDIR}/${PN}-intel-vaapi-fix.patch"
 	"${FILESDIR}/fix-gtk3-build.patch"
 	"${FILESDIR}/revert-ssse3-required.patch"
 	"${FILESDIR}/skia-avx2.patch"
@@ -243,6 +243,7 @@ src_prepare() {
 		third_party/ced
 		third_party/cld_2
 		third_party/cld_3
+		third_party/crc32c
 		third_party/cros_system_api
 		third_party/devscripts
 		third_party/dom_distiller_js
@@ -270,7 +271,7 @@ src_prepare() {
 		third_party/libsrtp
 		third_party/libudev
 		third_party/libwebm
-		third_party/libxml
+		third_party/libxml/chromium
 		third_party/libyuv
 		third_party/lss
 		third_party/lzma_sdk
@@ -331,17 +332,6 @@ src_prepare() {
 		third_party/yasm/run_yasm.py
 	)
 
-	# VAAPI
-
-	# Fixup VA driver path.  It's hardwired because it needs loading
-	# directly from the sandbox.  It would be better to have this
-	# work from the chromium build system side, but never mind...
-	sed -i \
-		-e "s/\/usr\/lib\/x86_64-linux-gnu\/dri/\/usr\/$(get_abi_var LIBDIR amd64)\/va\/drivers/" \
-		-e "s/\/usr\/lib\/i386-linux-gnu\/dri/\/usr\/$(get_abi_var LIBDIR x86)\/va\/drivers/" \
-		-e "s/\/usr\/lib\/aarch64-linux-gnu\/dri/\/usr\/$(get_abi_var LIBDIR arm64)\/va\/drivers/" \
-		content/common/sandbox_linux/bpf_gpu_policy_linux.cc || die "Failed modifying VA driver paths"
-
 	if ! use system-ffmpeg; then
 		keeplibs+=( third_party/ffmpeg third_party/opus )
 	fi
@@ -395,7 +385,6 @@ src_configure() {
 	# TODO: freetype (https://bugs.chromium.org/p/pdfium/issues/detail?id=733).
 	# TODO: use_system_hunspell (upstream changes needed).
 	# TODO: use_system_libsrtp (bug #459932).
-	# TODO: xml (bug #616818).
 	# TODO: use_system_protobuf (bug #525560).
 	# TODO: use_system_ssl (http://crbug.com/58087).
 	# TODO: use_system_sqlite (http://crbug.com/22208).
@@ -408,6 +397,7 @@ src_configure() {
 		libjpeg
 		libpng
 		libwebp
+		libxml
 		libxslt
 		re2
 		snappy
@@ -524,6 +514,8 @@ src_configure() {
 
 	# https://bugs.gentoo.org/588596
 	append-cxxflags $(test-flags-CXX -fno-delete-null-pointer-checks)
+
+	append-cxxflags $(test-flags-CXX -std=gnu++17)
 
 	# Bug 491582.
 	export TMPDIR="${WORKDIR}/temp"
