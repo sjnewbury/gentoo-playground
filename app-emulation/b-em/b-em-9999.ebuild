@@ -12,7 +12,7 @@ EGIT_REPO_URI=https://github.com/stardot/b-em.git
 
 SLOT=0
 
-DEPEND="media-libs/allegro:4
+DEPEND="media-libs/allegro:0
 	media-libs/openal
 	media-libs/freealut
 	sys-libs/zlib"
