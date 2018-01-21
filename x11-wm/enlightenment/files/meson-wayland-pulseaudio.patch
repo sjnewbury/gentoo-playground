@@ -1,0 +1,10 @@
+--- ./meson.build~	2017-12-03 17:38:24.000000000 +0000
++++ ./meson.build	2017-12-03 17:53:32.755003714 +0000
+@@ -271,6 +271,7 @@
+   dir_wayland_protocols = wayland_protocols.get_pkgconfig_variable('pkgdatadir')
+   wayland_version = '>= 1.11.0'
+   dep_wayland = [ dependency('ecore-wl2'),
++                  dependency('ecore-audio'),
+                   dependency('efl-wl'),
+                   dependency('wayland-server' , version: wayland_version),
+                   dependency('wayland-client' , version: wayland_version),

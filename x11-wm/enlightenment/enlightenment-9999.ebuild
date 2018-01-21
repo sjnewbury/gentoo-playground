@@ -2,14 +2,14 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=5
+EAPI=6
 
-inherit eutils
-[ "${PV}" = 9999 ] && inherit git-r3 autotools
+inherit eutils meson
+[ "${PV}" = 9999 ] && inherit git-r3
 
-DESCRIPTION="Enlightenment DR21 window manager"
+DESCRIPTION="Enlightenment window manager"
 HOMEPAGE="http://www.enlightenment.org/"
-EGIT_REPO_URI="git://git.enlightenment.org/core/${PN}.git"
+EGIT_REPO_URI="https://git.enlightenment.org/core/${PN}.git"
 [ "${PV}" = 9999 ] || SRC_URI="http://download.enlightenment.org/rel/apps/${PN}/${P/_/-}.tar.xz"
 
 LICENSE="BSD-2"
@@ -57,47 +57,48 @@ DEPEND="${RDEPEND}
 S="${WORKDIR}/${P/_/-}"
 
 src_prepare() {
-	epatch "${FILESDIR}"/bluez5.patch
-	[ ${PV} = 9999 ] && eautoreconf
+	eapply "${FILESDIR}"/bluez5.patch
+	eapply "${FILESDIR}"/meson-wayland-pulseaudio.patch
+	default
 }
 
 src_configure() {
-	local config=(
-		--disable-simple-x11
+	local emesonargs=(
+		-Dsimple-x11=false
+		-Dconf=true
+		-Ddevice-udev=true # instead of hal
+		-Dfiles=true
+		-Dinstall-enlightenment-menu=true
+		-Dinstall-sysactions=true
 
-		--enable-conf
-		--enable-device-udev # instead of hal
-		--enable-files
-		--enable-install-enlightenment-menu
-		--enable-install-sysactions
-
-		$(use_enable doc)
-		$(use_enable egl wayland-egl)
-		$(use_enable nls)
-		$(use_enable pam)
-		$(use_enable static-libs static)
-		$(use_enable systemd)
-		$(use_enable ukit mount-udisks)
-		$(use_enable eeze mount-eeze)
+		-Ddoc=$(usex doc true false)
+		-Dwayland-egl=$(usex egl true false)
+		-Dnls=$(usex nls true false)
+		-Dpam=$(usex pam true false)
+		-Dstatic=$(usex static-libs true false)
+		-Dsystemd=$(usex systemd true false)
+		-Dmount-udisks=$(usex ukit true false)
+		-Dmount-eeze=$(usex eeze true false)
 	)
 
 	if use wayland; then
-		config+=(	--enable-wl-drm
-				--enable-wayland
-				--enable-xwayland
-				--enable-wl-desktop-shell
+		emesonargs+=(	-Dwl-drm=true
+				-Dwayland=true
+				-Dxwayland=true
+				-Dwl-desktop-shell=true
 		) 
 	fi
 
 	local i
-	for i in ${E_MODULES_DEFAULT} ${E_MODULES}; do
-		config+=( $(use_enable enlightenment_modules_${i} ${i}) )
+	for i in ${E_MODULES_DEFAULT[@]} ${E_MODULES[@]}; do
+		emesonargs+=( -D${i}=$(usex enlightenment_modules_${i} true false))
 	done
 
-	econf "${config[@]}"
+	meson_src_configure
 }
 
 src_install() {
 	default
+	meson_src_install
 	prune_libtool_files
 }
