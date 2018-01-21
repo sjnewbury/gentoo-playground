@@ -4,12 +4,12 @@
 
 EAPI="5"
 
-inherit eutils
+inherit eutils gnome2-utils xdg-utils
 [ "${PV}" = 9999 ] && inherit git-r3 autotools
 
 DESCRIPTION="Enlightenment Foundation Core Libraries"
 HOMEPAGE="http://www.enlightenment.org/"
-EGIT_REPO_URI="git://git.enlightenment.org/core/${PN}.git"
+EGIT_REPO_URI="https://git.enlightenment.org/core/${PN}.git"
 [ "${PV}" = 9999 ] || SRC_URI="http://download.enlightenment.org/rel/libs/${PN}/${P/_/-}.tar.gz"
 
 LICENSE="BSD-2 GPL-2 LGPL-2.1 ZLIB"
@@ -113,6 +113,8 @@ S="${WORKDIR}/${P/_/-}"
 src_prepare() {
 	#epatch "${FILESDIR}/${P}-gnutls34.patch"
 	#epatch "${FILESDIR}/${P}-emile-buildfix.patch"
+
+	sed -i -e '/Libs:/s/ -lintl//g' pc/ecore.pc.in || die "sed failed"
 
 	[ ${PV} = 9999 ] && eautoreconf
 }
@@ -268,3 +270,14 @@ src_install() {
 	default
 	prune_libtool_files
 }
+
+pkg_postinst() {
+	gnome2_icon_cache_update
+	xdg_mimeinfo_database_update
+}
+
+pkg_postrm() {
+	gnome2_icon_cache_update
+	xdg_mimeinfo_database_update
+}
+
