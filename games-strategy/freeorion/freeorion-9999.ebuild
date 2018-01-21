@@ -13,7 +13,7 @@ HOMEPAGE="http://www.freeorion.org"
 if [[ ${PV} = 9999* ]]; then
 	inherit git-r3
 	SRC_URI=
-	EGIT_REPO_URI="git://github.com/${PN}/${PN}"
+	EGIT_REPO_URI="https://github.com/${PN}/${PN}"
 else
 	SRC_URI="https://github.com/${PN}/${PN}/releases/download/v${PV}/FreeOrion_v0.4.5_2015-09-01.f203162_Source.tar.gz -> ${P}.tar.gz"
 fi
