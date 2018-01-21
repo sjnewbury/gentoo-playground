@@ -8,7 +8,7 @@ inherit autotools eutils gnome2-utils games git-r3
 DESCRIPTION="Chromium B.S.U. - an arcade game"
 HOMEPAGE="http://chromium-bsu.sourceforge.net/"
 #SRC_URI="mirror://sourceforge/chromium-bsu/${P}.tar.gz"
-EGIT_REPO_URI=git://git.code.sf.net/p/chromium-bsu/code
+EGIT_REPO_URI=https://git.code.sf.net/p/chromium-bsu/code
 LICENSE="Clarified-Artistic"
 SLOT="0"
 #KEYWORDS="amd64 ppc x86"
