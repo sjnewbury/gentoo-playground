@@ -1,0 +1,12 @@
+--- ./src/config.cpp~	2013-01-12 07:04:30.000000000 +0000
++++ ./src/config.cpp	2018-02-14 21:42:43.509882723 +0000
+@@ -196,6 +196,9 @@
+ 		} else if (strcmp (line,"nbvid")==0) {
+ 			fscanf (cfgFile, "%d", &temp);
+ 			processor->setNBVid (temp);
++		} else if (strcmp (line,"nbfid")==0) {
++			fscanf (cfgFile, "%d", &temp);
++			processor->setNBFid (temp);
+ 		} else if (strcmp (line,"altvid")==0) {
+ 			fscanf (cfgFile, "%d", &temp);
+ 			processor->setAltVid (temp);
