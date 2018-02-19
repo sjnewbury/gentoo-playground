@@ -1,0 +1,106 @@
+--- ./configure.ac.orig	2018-02-15 08:03:09.152431817 +0000
++++ ./configure.ac	2018-02-15 08:05:28.989380936 +0000
+@@ -354,6 +354,10 @@
+ 
+ AS_IF([test "x$EMSCRIPTEN" = "x" -a "$host_os" != "pnacl"], [
+ 
++AC_ARG_ENABLE(mmx, [AS_HELP_STRING(--disable-mmx,Do not use mmx code)],
++  AS_IF([test "x$enableval" = "xyes"], check_mmx="yes", check_mmx="no"),
++  check_mmx="yes")
++AS_IF([test "$check_mmx" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-mmmx], [CFLAGS="$CFLAGS -mmmx"])
+   AC_MSG_CHECKING(for MMX instructions set)
+@@ -366,7 +370,12 @@
+      AX_CHECK_COMPILE_FLAG([-mmmx], [CFLAGS_MMX="-mmmx"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
+-
++  ])
++  
++AC_ARG_ENABLE(sse2, [AS_HELP_STRING(--disable-sse2,Do not use sse2 code)],
++  AS_IF([test "x$enableval" = "xyes"], check_sse2="yes", check_sse2="no"),
++  check_sse2="yes")
++AS_IF([test "$check_sse2" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-msse2], [CFLAGS="$CFLAGS -msse2"])
+   AC_MSG_CHECKING(for SSE2 instructions set)
+@@ -383,7 +392,12 @@
+      AX_CHECK_COMPILE_FLAG([-msse2], [CFLAGS_SSE2="-msse2"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
++AC_ARG_ENABLE(sse3, [AS_HELP_STRING(--disable-sse3,Do not use sse3 code)],
++  AS_IF([test "x$enableval" = "xyes"], check_sse3="yes", check_sse3="no"),
++  check_sse3="yes")
++AS_IF([test "$check_sse3" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-msse3], [CFLAGS="$CFLAGS -msse3"])
+   AC_MSG_CHECKING(for SSE3 instructions set)
+@@ -397,7 +411,12 @@
+      AX_CHECK_COMPILE_FLAG([-msse3], [CFLAGS_SSE3="-msse3"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
++AC_ARG_ENABLE(ssse3, [AS_HELP_STRING(--disable-ssse3,Do not use ssse3 code)],
++  AS_IF([test "x$enableval" = "xyes"], check_ssse3="yes", check_ssse3="no"),
++  check_ssse3="yes")
++AS_IF([test "$check_ssse3" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-mssse3], [CFLAGS="$CFLAGS -mssse3"])
+   AC_MSG_CHECKING(for SSSE3 instructions set)
+@@ -410,6 +429,7 @@
+      AX_CHECK_COMPILE_FLAG([-mssse3], [CFLAGS_SSSE3="-mssse3"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
+ AC_ARG_ENABLE(sse4_1, [AS_HELP_STRING(--disable-sse4_1,Do not use sse4.1 code)],
+   AS_IF([test "x$enableval" = "xyes"], check_sse4_1="yes", check_sse4_1="no"),
+@@ -429,6 +449,10 @@
+   CFLAGS="$oldcflags"
+   ])
+ 
++AC_ARG_ENABLE(avx, [AS_HELP_STRING(--disable-avx,Do not use avx code)],
++  AS_IF([test "x$enableval" = "xyes"], check_avx="yes", check_avx="no"),
++  check_avx="yes")
++AS_IF([test "$check_avx" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-mavx], [CFLAGS="$CFLAGS -mavx"])
+   AC_MSG_CHECKING(for AVX instructions set)
+@@ -444,7 +468,12 @@
+      AX_CHECK_COMPILE_FLAG([-mavx], [CFLAGS_AVX="-mavx"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
++AC_ARG_ENABLE(avx2, [AS_HELP_STRING(--disable-avx2,Do not use avx2 code)],
++  AS_IF([test "x$enableval" = "xyes"], check_avx2="yes", check_avx2="no"),
++  check_avx2="yes")
++AS_IF([test "$check_avx2" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-mavx2], [CFLAGS="$CFLAGS -mavx2"])
+   AC_MSG_CHECKING(for AVX2 instructions set)
+@@ -477,7 +506,12 @@
+      ],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
++AC_ARG_ENABLE(avx512f, [AS_HELP_STRING(--disable-avx512f,Do not use avx512f code)],
++  AS_IF([test "x$enableval" = "xyes"], check_avx512f="yes", check_avx512f="no"),
++  check_avx512f="yes")
++AS_IF([test "$check_avx512f" = "yes"],[
+   oldcflags="$CFLAGS"
+   AX_CHECK_COMPILE_FLAG([-mavx512f], [CFLAGS="$CFLAGS -mavx512f"])
+   AC_MSG_CHECKING(for AVX512F instructions set)
+@@ -496,6 +530,7 @@
+      AX_CHECK_COMPILE_FLAG([-mavx512f], [CFLAGS_AVX512F="-mavx512f"])],
+     [AC_MSG_RESULT(no)])
+   CFLAGS="$oldcflags"
++  ])
+ 
+ AC_ARG_ENABLE(aesni, [AS_HELP_STRING(--disable-aesni,Do not use aesni code)],
+   AS_IF([test "x$enableval" = "xyes"], check_aeni="yes", check_aesni="no"),
