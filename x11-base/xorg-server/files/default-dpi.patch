@@ -1,0 +1,123 @@
+--- ./hw/xfree86/man/xorg.conf.man.orig	2011-09-24 22:01:59.000000000 +0200
++++ ./hw/xfree86/man/xorg.conf.man	2011-09-24 22:02:25.000000000 +0200
+@@ -544,6 +544,12 @@
+ and are passed to clients.
+ Default: off.
+ .TP 7
++.BI "Option \*qDefaultDPI\*q  \*q" string \*q
++This option allows to set a fixed DPI which is reported for all screens or the
++special value \*qauto\*q which infers DPI from screen size read from DDC. The
++fallback in case DDC reading fails is 96.
++Default: 96.
++.TP 7
+ .BI "Option \*qDisableVidModeExtension\*q  \*q" boolean \*q
+ This disables the parts of the VidMode extension used by the xvidtune client
+ that can be used to change the video modes.
+--- ./hw/xfree86/common/xf86Globals.c.orig	2012-03-23 08:17:07.000000000 +0000
++++ ./hw/xfree86/common/xf86Globals.c	2012-03-23 08:42:03.581953830 +0000
+@@ -105,6 +105,7 @@
+     .ShareVTs = FALSE,
+     .dontZap = FALSE,
+     .dontZoom = FALSE,
++    .defaultDPI = DEFAULT_DPI,
+     .notrapSignals = FALSE,
+     .caughtSignal = FALSE,
+     .currentScreen = NULL,
+--- ./hw/xfree86/common/xf86Helper.c.orig	2012-03-23 08:17:07.000000000 +0000
++++ ./hw/xfree86/common/xf86Helper.c	2012-03-23 08:44:10.154848534 +0000
+@@ -981,10 +981,14 @@
+     else {
+         if (x > 0)
+             pScrn->xDpi = x;
++        else if (xf86Info.defaultDPI)
++            pScrn->xDpi = xf86Info.defaultDPI;
+         else
+             pScrn->xDpi = DEFAULT_DPI;
+         if (y > 0)
+             pScrn->yDpi = y;
++        else if (xf86Info.defaultDPI)
++            pScrn->yDpi = xf86Info.defaultDPI;
+         else
+             pScrn->yDpi = DEFAULT_DPI;
+     }
+--- ./hw/xfree86/common/xf86Privstr.h.orig	2012-03-23 08:17:07.000000000 +0000
++++ ./hw/xfree86/common/xf86Privstr.h	2012-03-23 08:44:53.279168440 +0000
+@@ -69,6 +69,7 @@
+     Bool ShareVTs;
+     Bool dontZap;
+     Bool dontZoom;
++    unsigned defaultDPI;
+     Bool notrapSignals;         /* don't exit cleanly - die at fault */
+     Bool caughtSignal;
+ 
+--- ./hw/xfree86/modes/xf86RandR12.c.orig	2012-03-23 08:17:07.000000000 +0000
++++ ./hw/xfree86/modes/xf86RandR12.c	2012-03-23 08:52:07.359108986 +0000
+@@ -790,7 +790,7 @@
+         }
+         else {
+             xf86OutputPtr output = xf86CompatOutput(pScrn);
+-
++            xf86CrtcPtr crtc = output->crtc;
+             if (output &&
+                 output->conf_monitor &&
+                 (output->conf_monitor->mon_width > 0 &&
+@@ -801,10 +801,24 @@
+                 mmWidth = output->conf_monitor->mon_width;
+                 mmHeight = output->conf_monitor->mon_height;
+             }
+-            else {
++            else if (!xf86Info.defaultDPI && crtc && crtc->mode.HDisplay &&
++                output->mm_width && output->mm_height) {
++                /*
++                 * If the output has a mode and a declared size, use that
++                 * to scale the screen size
++                 */
++                DisplayModePtr mode = &crtc->mode;
++                mmWidth = output->mm_width * width / mode->HDisplay;
++                mmHeight = output->mm_height * height / mode->VDisplay;
++            }
++            else if (xf86Info.defaultDPI) {
+                 /*
+                  * Otherwise, just set the screen to DEFAULT_DPI
+                  */
++                mmWidth = width * 25.4 / xf86Info.defaultDPI;
++                mmHeight = height * 25.4 / xf86Info.defaultDPI;
++            }
++            else {
+                 mmWidth = width * 25.4 / DEFAULT_DPI;
+                 mmHeight = height * 25.4 / DEFAULT_DPI;
+             }
+--- ./hw/xfree86/common/xf86Config.c.orig	2018-08-17 09:21:23.533586060 +0100
++++ ./hw/xfree86/common/xf86Config.c	2018-08-17 09:26:31.388346950 +0100
+@@ -646,6 +646,7 @@
+     FLAG_MAX_CLIENTS,
+     FLAG_IGLX,
+     FLAG_DEBUG,
++    FLAG_DEFAULT_DPI,
+ } FlagValues;
+ 
+ /**
+@@ -827,6 +828,14 @@
+         }
+     }
+ 
++    xf86Info.defaultDPI = DEFAULT_DPI;
++    if ((s = xf86GetOptValString(FlagOptions, FLAG_DEFAULT_DPI))) {
++	if (!xf86NameCmp(s, "auto")) {
++	    xf86Info.defaultDPI = 0;
++	} else {
++	    xf86Info.defaultDPI = strtoul(s, NULL, 0);
++	}
++    }
+ #ifdef GLXEXT
+     xf86Info.glxVisuals = XF86_GlxVisualsTypical;
+     xf86Info.glxVisualsFrom = X_DEFAULT;
+@@ -1297,6 +1306,8 @@
+      {0}, FALSE},
+     {LAYOUT_SINGLECARD, "SingleCard", OPTV_BOOLEAN,
+      {0}, FALSE},
++    { FLAG_DEFAULT_DPI,	"DefaultDPI", OPTV_STRING,
++     {0}, FALSE },
+     {-1, NULL, OPTV_NONE,
+      {0}, FALSE},
+ };

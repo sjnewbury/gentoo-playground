@@ -1,0 +1,66 @@
+From: Oleg Samarin <osamarin68@gmail.com>
+Subject: [PATCH] logind: creating a site without graphics
+
+Added capability of specifying "Seat" option in the ServerLayout section for using the layout in the seat
+
+
+diff -uNr xorg-server-1.12.3.old/hw/xfree86/common/xf86Config.c xorg-server-1.12.3/hw/xfree86/common/xf86Config.c
+--- xorg-server-1.12.3.old/hw/xfree86/common/xf86Config.c	2012-07-09 04:39:02.000000000 +0400
++++ xorg-server-1.12.3/hw/xfree86/common/xf86Config.c	2012-11-12 21:47:18.000000000 +0400
+@@ -1475,6 +1475,7 @@
+      * which layout section is the active one?
+      *
+      * If there is a -layout command line option, use that one, otherwise
++     * try to find a layout with the "Seat" option equal SeatId. If could not find
+      * pick the first one.
+      */
+     from = X_DEFAULT;
+@@ -1491,6 +1492,11 @@
+             return FALSE;
+         }
+         conf_layout = l;
++    } else if (SeatId != NULL) {
++        // try to find by seat
++        if ((l = xf86findLayoutByOption("Seat", SeatId, conf_layout)) != NULL) {
++            conf_layout = l;
++        }
+     }
+     xf86Msg(from, "ServerLayout \"%s\"\n", conf_layout->lay_identifier);
+     adjp = conf_layout->lay_adjacency_lst;
+diff -uNr xorg-server-1.12.3.old/hw/xfree86/parser/Layout.c xorg-server-1.12.3/hw/xfree86/parser/Layout.c
+--- xorg-server-1.12.3.old/hw/xfree86/parser/Layout.c	2012-07-06 09:17:19.000000000 +0400
++++ xorg-server-1.12.3/hw/xfree86/parser/Layout.c	2012-11-12 21:48:00.000000000 +0400
+@@ -532,3 +532,17 @@
+     }
+     return NULL;
+ }
++
++XF86ConfLayoutPtr
++xf86findLayoutByOption(const char *optionName, const char *optionValue, XF86ConfLayoutPtr list)
++{
++    char *value;
++    
++    while (list) {
++        value = xf86findOptionValue(list->lay_option_lst, optionName);
++        if (value != NULL && xf86nameCompare(value, optionValue) == 0)
++            return list;
++        list = list->list.next;
++    }
++    return NULL;
++}
+diff -uNr xorg-server-1.12.3.old/hw/xfree86/parser/xf86Parser.h xorg-server-1.12.3/hw/xfree86/parser/xf86Parser.h
+--- xorg-server-1.12.3.old/hw/xfree86/parser/xf86Parser.h	2012-06-26 08:12:50.000000000 +0400
++++ xorg-server-1.12.3/hw/xfree86/parser/xf86Parser.h	2012-11-12 21:42:18.000000000 +0400
+@@ -437,6 +437,12 @@
+                                                   XF86ConfDevicePtr p);
+ extern _X_EXPORT XF86ConfLayoutPtr xf86findLayout(const char *name,
+                                                   XF86ConfLayoutPtr list);
++extern _X_EXPORT XF86ConfLayoutPtr xf86findLayoutByOption(
++  const char *optionName, 
++  const char *optionValue, 
++  XF86ConfLayoutPtr list
++);
++
+ extern _X_EXPORT XF86ConfMonitorPtr xf86findMonitor(const char *ident,
+                                                     XF86ConfMonitorPtr p);
+ extern _X_EXPORT XF86ConfModesPtr xf86findModes(const char *ident,
