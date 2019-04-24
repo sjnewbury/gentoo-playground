@@ -57,10 +57,11 @@ src_prepare() {
 	epatch "${FILESDIR}"/"${PN}"-8.14.6-build-system.patch
 	epatch "${FILESDIR}"/sendmail-delivered_hdr.patch
 	epatch "${FILESDIR}"/libmilter-sharedlib.patch
-	epatch "${FILESDIR}"/"${PN}"-8.14.5+db-5.0.patch
-	epatch "${FILESDIR}"/sendmail-starttls-multi-crl.patch
-	epatch "${FILESDIR}"/${P}-unix-socket-relay.patch
-	epatch "${FILESDIR}"/${P}-maxdaemons.patch
+	#epatch "${FILESDIR}"/"${PN}"-8.14.5+db-5.0.patch
+	#epatch "${FILESDIR}"/sendmail-starttls-multi-crl.patch
+	epatch "${FILESDIR}"/${PN}-8.14.9-unix-socket-relay.patch
+	epatch "${FILESDIR}"/${PN}-8.14.9-maxdaemons.patch
+	epatch "${FILESDIR}"/redhat/*.patch
 
 	local confCC="$(tc-getCC)"
 	local confCCOPTS="${CFLAGS}"
