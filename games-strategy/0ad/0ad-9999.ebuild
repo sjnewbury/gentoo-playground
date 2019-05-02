@@ -79,38 +79,35 @@ src_prepare() {
 src_configure() {
 	local myconf=(
 		--with-system-nvtt
-		--with-system-miniupnpc
+#		--with-system-miniupnpc
 		--minimal-flags
-		--sdl
 		$(usex nvtt "" "--without-nvtt")
 		$(usex pch "" "--without-pch")
 		$(usex test "" "--without-tests")
 		$(usex sound "" "--without-audio")
 		$(usex editor "--atlas" "")
 		$(usex lobby "" "--without-lobby")
-		--collada
 		--bindir="${GAMES_BINDIR}"
 		--libdir="/usr/$(get_libdir)"/${PN}
 		--datadir="${GAMES_DATADIR}"/${PN}
 		)
 
-	# stock premake4 does not work, use the shipped one
-	emake -C "${S}"/build/premake/premake4/build/gmake.unix
+	# stock premake4/5 does not work, use the shipped one
+	emake -C "${S}"/build/premake/premake5/build/gmake.unix
 
 	# regenerate scripts.c so our patch applies
-	cd "${S}"/build/premake/premake4 || die
-	"${S}"/build/premake/premake4/bin/release/premake4 embed || die
+	cd "${S}"/build/premake/premake5 || die
+	"${S}"/build/premake/premake5/bin/release/premake5 embed || die
 
 	# rebuild premake again... this is the most stupid build system
-	emake -C "${S}"/build/premake/premake4/build/gmake.unix clean
-	emake -C "${S}"/build/premake/premake4/build/gmake.unix
+	emake -C "${S}"/build/premake/premake5/build/gmake.unix clean
+	emake -C "${S}"/build/premake/premake5/build/gmake.unix
 
 	# run premake to create build scripts
 	cd "${S}"/build/premake || die
-	"${S}"/build/premake/premake4/bin/release/premake4 \
-		--file="premake4.lua" \
+	"${S}"/build/premake/premake5/bin/release/premake5 \
+		--file="premake5.lua" \
 		--outpath="../workspaces/gcc/" \
-		--platform=$(usex amd64 "x64" "x32") \
 		--os=linux \
 		"${myconf[@]}" \
 		gmake || die "Premake failed"
