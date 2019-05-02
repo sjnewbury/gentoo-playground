@@ -12,7 +12,7 @@ EGIT_REPO_URI=https://github.com/stardot/b-em.git
 
 SLOT=0
 
-DEPEND="media-libs/allegro:0
+DEPEND=">=media-libs/allegro-5.1:5
 	media-libs/openal
 	media-libs/freealut
 	sys-libs/zlib"
@@ -29,5 +29,11 @@ src_prepare() {
 	# oldpc is defined as 32bit for x86 and 16bit for 6502
 	filter-flags -flto*
 
+	sed -i \
+		-e '/^bin_PROGRAMS/s/ jstest//'	\
+		-e '/^jstest/d' \
+		src/Makefile.am || die "sed failed"
+
 	AT_M4DIR=. eautoreconf
+
 }
