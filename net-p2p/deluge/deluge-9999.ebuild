@@ -5,6 +5,7 @@
 EAPI="6"
 
 PYTHON_COMPAT=( python2_7 )
+# python3_{6,7}
 DISTUTILS_SINGLE_IMPL=1
 PLOCALES="af ar ast be bg bn bs ca cs cy da de el en_AU en_CA en_GB eo es et eu fa fi fo fr fy ga gl he hi hr hu id is it iu ja ka kk km kn ko ku ky la lb lt lv mk ml ms nap nb nds nl nn oc pl pms pt pt_BR ro ru si sk sl sr sv ta te th tl tlh tr uk ur vi zh_CN zh_HK zh_TW"
 inherit distutils-r1 eutils systemd user l10n
@@ -14,10 +15,11 @@ HOMEPAGE="http://deluge-torrent.org/"
 
 if [[ ${PV} == 9999 ]]; then
 	inherit git-r3
-	EGIT_BRANCH=develop
-	EGIT_REPO_URI="https://deluge-torrent.org/${PN}.git
+	#EGIT_BRANCH=develop
+	EGIT_BRANCH=1.3-stable
+	EGIT_REPO_URI="git://deluge-torrent.org/${PN}.git
 		# no https support
-		git://git.deluge-torrent.org/${PN}"
+		https://git.deluge-torrent.org/${PN}"
 	SRC_URI=""
 	KEYWORDS=""
 else
@@ -39,12 +41,15 @@ DEPEND="${CDEPEND}
 	dev-python/setuptools[${PYTHON_USEDEP}]
 	dev-util/intltool"
 RDEPEND="${CDEPEND}
+	dev-python/rencode[${PYTHON_USEDEP}]
 	dev-python/chardet[${PYTHON_USEDEP}]
 	dev-python/pyopenssl[${PYTHON_USEDEP}]
 	dev-python/pyxdg[${PYTHON_USEDEP}]
 	dev-python/setproctitle[${PYTHON_USEDEP}]
-	>=dev-python/twisted-core-13.0[${PYTHON_USEDEP}]
-	>=dev-python/twisted-web-13.0[${PYTHON_USEDEP}]
+	dev-python/wheel[${PYTHON_USEDEP}]
+	|| ( >=dev-python/twisted-16.0.0[${PYTHON_USEDEP}]
+		>=dev-python/twisted-web-13.0[${PYTHON_USEDEP}]
+	)
 	geoip? ( dev-libs/geoip )
 	gtk? (
 		sound? ( dev-python/pygame[${PYTHON_USEDEP}] )
