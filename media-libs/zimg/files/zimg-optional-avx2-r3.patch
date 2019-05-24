@@ -1,0 +1,503 @@
+diff -urN zimg-9999/src/zimg/colorspace/x86/operation_impl_avx2.cpp zimg-9999.new/zimg-9999/src/zimg/colorspace/x86/operation_impl_avx2.cpp
+--- zimg-9999/src/zimg/colorspace/x86/operation_impl_avx2.cpp	2018-05-02 17:12:51.237011198 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/colorspace/x86/operation_impl_avx2.cpp	2018-05-02 17:07:36.548811297 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <algorithm>
+ #include <cstdint>
+ #include <vector>
+@@ -152,4 +154,7 @@
+ } // namespace colorspace
+ } // namespace zimg
+ 
++
++#endif //ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/colorspace/x86/operation_impl_x86.cpp zimg-9999.new/zimg-9999/src/zimg/colorspace/x86/operation_impl_x86.cpp
+--- zimg-9999/src/zimg/colorspace/x86/operation_impl_x86.cpp	2018-05-02 17:12:51.237011198 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/colorspace/x86/operation_impl_x86.cpp	2018-05-02 17:07:31.108727168 +0100
+@@ -47,8 +47,10 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512bw && caps.avx512dq)
+ 			ret = create_gamma_operation_avx512(transfer, params);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu_has_fast_f16_x86(cpu))
+ 			ret = create_gamma_operation_avx2(transfer, params);
++#endif
+ 		if (!ret && caps.sse2)
+ 			ret = create_gamma_operation_sse2(transfer, params);
+ 	} else {
+@@ -56,8 +58,10 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_gamma_operation_avx512(transfer, params);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu >= CPUClass::X86_AVX2)
+ 			ret = create_gamma_operation_avx2(transfer, params);
++#endif
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+ 			ret = create_gamma_operation_sse2(transfer, params);
+ 	}
+@@ -75,8 +79,10 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512bw && caps.avx512dq)
+ 			ret = create_inverse_gamma_operation_avx512(transfer, params);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu_has_fast_f16_x86(cpu))
+ 			ret = create_inverse_gamma_operation_avx2(transfer, params);
++#endif
+ 		if (!ret && caps.sse2)
+ 			ret = create_inverse_gamma_operation_sse2(transfer, params);
+ 	} else {
+@@ -84,8 +90,10 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_inverse_gamma_operation_avx512(transfer, params);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu >= CPUClass::X86_AVX2)
+ 			ret = create_inverse_gamma_operation_avx2(transfer, params);
++#endif
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+ 			ret = create_inverse_gamma_operation_sse2(transfer, params);
+ 	}
+diff -urN zimg-9999/src/zimg/common/x86/avx2_util.h zimg-9999.new/zimg-9999/src/zimg/common/x86/avx2_util.h
+--- zimg-9999/src/zimg/common/x86/avx2_util.h	2018-05-02 17:12:51.237011198 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/common/x86/avx2_util.h	2018-05-02 17:07:25.431972711 +0100
+@@ -2,6 +2,8 @@
+ 
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #ifndef ZIMG_X86_AVX2_UTIL_H_
+ #define ZIMG_X86_AVX2_UTIL_H_
+ 
+@@ -114,4 +116,6 @@
+ 
+ #endif // ZIMG_X86_AVX2_UTIL_H_
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/depth/x86/depth_convert_avx2.cpp zimg-9999.new/zimg-9999/src/zimg/depth/x86/depth_convert_avx2.cpp
+--- zimg-9999/src/zimg/depth/x86/depth_convert_avx2.cpp	2018-05-02 17:12:51.240344583 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/depth/x86/depth_convert_avx2.cpp	2018-05-02 17:07:26.805327283 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <algorithm>
+ #include <cstdint>
+ #include <immintrin.h>
+@@ -122,4 +124,6 @@
+ } // namespace depth
+ } // namespace zimg
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/depth/x86/depth_convert_x86.cpp zimg-9999.new/zimg-9999/src/zimg/depth/x86/depth_convert_x86.cpp
+--- zimg-9999/src/zimg/depth/x86/depth_convert_x86.cpp	2018-05-02 17:12:51.240344583 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/depth/x86/depth_convert_x86.cpp	2018-05-02 17:07:32.195410640 +0100
+@@ -40,6 +40,7 @@
+ 		return nullptr;
+ }
+ 
++#ifdef ZIMG_X86_AVX2
+ depth_convert_func select_depth_convert_func_avx2(PixelType pixel_in, PixelType pixel_out)
+ {
+ 	if (pixel_in == PixelType::BYTE && pixel_out == PixelType::HALF)
+@@ -53,6 +54,7 @@
+ 	else
+ 		return nullptr;
+ }
++#endif // ZIMG_X86_AVX2
+ 
+ #ifdef ZIMG_X86_AVX512
+ depth_convert_func select_depth_convert_func_avx512(PixelType pixel_in, PixelType pixel_out)
+@@ -99,8 +101,10 @@
+ 		if (!func && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512bw && caps.avx512vl)
+ 			func = select_depth_convert_func_avx512(format_in.type, format_out.type);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!func && caps.avx2 && caps.fma)
+ 			func = select_depth_convert_func_avx2(format_in.type, format_out.type);
++#endif
+ 		if (!func && caps.sse2)
+ 			func = select_depth_convert_func_sse2(format_in.type, format_out.type);
+ 	} else {
+@@ -108,8 +112,10 @@
+ 		if (!func && cpu >= CPUClass::X86_AVX512)
+ 			func = select_depth_convert_func_avx512(format_in.type, format_out.type);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!func && cpu >= CPUClass::X86_AVX2)
+ 			func = select_depth_convert_func_avx2(format_in.type, format_out.type);
++#endif
+ 		if (!func && cpu >= CPUClass::X86_SSE2)
+ 			func = select_depth_convert_func_sse2(format_in.type, format_out.type);
+ 	}
+@@ -142,9 +148,10 @@
+ 	X86Capabilities caps = query_x86_capabilities();
+ 	bool value = format_in.type == PixelType::HALF || format_out.type == PixelType::HALF;
+ 
++#ifdef ZIMG_X86_AVX2
+ 	if ((cpu_is_autodetect(cpu) && caps.avx2) || cpu >= CPUClass::X86_AVX2)
+ 		value = value && pixel_is_float(format_in.type) && pixel_is_float(format_out.type);
+-
++#endif
+ 	return value;
+ }
+ 
+diff -urN zimg-9999/src/zimg/depth/x86/dither_avx2.cpp zimg-9999.new/zimg-9999/src/zimg/depth/x86/dither_avx2.cpp
+--- zimg-9999/src/zimg/depth/x86/dither_avx2.cpp	2018-05-02 17:12:51.240344583 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/depth/x86/dither_avx2.cpp	2018-05-02 17:07:27.205333469 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cstdint>
+ #include <immintrin.h>
+ #include "common/align.h"
+@@ -206,4 +208,6 @@
+ } // namespace depth
+ } // namespace zimg
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/depth/x86/dither_x86.cpp zimg-9999.new/zimg-9999/src/zimg/depth/x86/dither_x86.cpp
+--- zimg-9999/src/zimg/depth/x86/dither_x86.cpp	2018-05-02 17:12:51.240344583 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/depth/x86/dither_x86.cpp	2018-05-02 17:07:33.522097823 +0100
+@@ -33,6 +33,7 @@
+ 		return nullptr;
+ }
+ 
++#ifdef ZIMG_X86_AVX2
+ dither_convert_func select_ordered_dither_func_avx2(PixelType pixel_in, PixelType pixel_out)
+ {
+ 	if (pixel_in == PixelType::BYTE && pixel_out == PixelType::BYTE)
+@@ -54,6 +55,7 @@
+ 	else
+ 		return nullptr;
+ }
++#endif
+ 
+ #ifdef ZIMG_X86_AVX512
+ dither_convert_func select_ordered_dither_func_avx512(PixelType pixel_in, PixelType pixel_out)
+@@ -92,8 +94,10 @@
+ 		if (!func && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512bw && caps.avx512vl)
+ 			func = select_ordered_dither_func_avx512(pixel_in.type, pixel_out.type);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!func && caps.avx2 && caps.fma)
+ 			func = select_ordered_dither_func_avx2(pixel_in.type, pixel_out.type);
++#endif
+ 		if (!func && caps.sse2)
+ 			func = select_ordered_dither_func_sse2(pixel_in.type, pixel_out.type);
+ 	} else {
+@@ -101,8 +105,10 @@
+ 		if (!func && cpu >= CPUClass::X86_AVX512)
+ 			func = select_ordered_dither_func_avx512(pixel_in.type, pixel_out.type);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!func && cpu >= CPUClass::X86_AVX2)
+ 			func = select_ordered_dither_func_avx2(pixel_in.type, pixel_out.type);
++#endif
+ 		if (!func && cpu >= CPUClass::X86_SSE2)
+ 			func = select_ordered_dither_func_sse2(pixel_in.type, pixel_out.type);
+ 	}
+@@ -146,13 +152,17 @@
+ 	std::unique_ptr<graph::ImageFilter> ret;
+ 
+ 	if (cpu_is_autodetect(cpu)) {
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && caps.avx2 && caps.f16c && caps.fma)
+ 			ret = create_error_diffusion_avx2(width, height, pixel_in, pixel_out);
++#endif
+ 		if (!ret && caps.sse2)
+ 			ret = create_error_diffusion_sse2(width, height, pixel_in, pixel_out, cpu);
+ 	} else {
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu >= CPUClass::X86_AVX2)
+ 			ret = create_error_diffusion_avx2(width, height, pixel_in, pixel_out);
++#endif
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+ 			ret = create_error_diffusion_sse2(width, height, pixel_in, pixel_out, cpu);
+ 	}
+diff -urN zimg-9999/src/zimg/depth/x86/error_diffusion_avx2.cpp zimg-9999.new/zimg-9999/src/zimg/depth/x86/error_diffusion_avx2.cpp
+--- zimg-9999/src/zimg/depth/x86/error_diffusion_avx2.cpp	2018-05-02 17:12:51.240344583 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/depth/x86/error_diffusion_avx2.cpp	2018-05-02 17:07:27.602006270 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <algorithm>
+ #include <climits>
+ #include <stdexcept>
+@@ -573,4 +575,6 @@
+ } // namespace depth
+ } // namespace zimg
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/resize/x86/resize_impl_avx2.cpp zimg-9999.new/zimg-9999/src/zimg/resize/x86/resize_impl_avx2.cpp
+--- zimg-9999/src/zimg/resize/x86/resize_impl_avx2.cpp	2018-05-02 17:12:51.243677968 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/resize/x86/resize_impl_avx2.cpp	2018-05-02 17:07:27.985345532 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <algorithm>
+ #include <climits>
+ #include <cstdint>
+@@ -1679,4 +1681,6 @@
+ } // namespace resize
+ } // namespace zimg
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/src/zimg/resize/x86/resize_impl_x86.cpp zimg-9999.new/zimg-9999/src/zimg/resize/x86/resize_impl_x86.cpp
+--- zimg-9999/src/zimg/resize/x86/resize_impl_x86.cpp	2018-05-02 17:12:51.243677968 +0100
++++ zimg-9999.new/zimg-9999/src/zimg/resize/x86/resize_impl_x86.cpp	2018-05-02 17:07:34.755450230 +0100
+@@ -18,8 +18,11 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512dq && caps.avx512bw && caps.avx512vl)
+ 			ret = create_resize_impl_h_avx512(context, height, type, depth);
+ #endif
++
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && caps.avx2)
+ 			ret = create_resize_impl_h_avx2(context, height, type, depth);
++#endif
+ 		if (!ret && caps.avx)
+ 			ret = create_resize_impl_h_avx(context, height, type, depth);
+ 		if (!ret && caps.sse2)
+@@ -31,8 +34,10 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_resize_impl_h_avx512(context, height, type, depth);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu >= CPUClass::X86_AVX2)
+ 			ret = create_resize_impl_h_avx2(context, height, type, depth);
++#endif
+ 		if (!ret && cpu >= CPUClass::X86_AVX)
+ 			ret = create_resize_impl_h_avx(context, height, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+@@ -54,8 +59,10 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512dq && caps.avx512bw && caps.avx512vl)
+ 			ret = create_resize_impl_v_avx512(context, width, type, depth);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && caps.avx2)
+ 			ret = create_resize_impl_v_avx2(context, width, type, depth);
++#endif
+ 		if (!ret && caps.avx)
+ 			ret = create_resize_impl_v_avx(context, width, type, depth);
+ 		if (!ret && caps.sse2)
+@@ -67,8 +74,10 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_resize_impl_v_avx512(context, width, type, depth);
+ #endif
++#ifdef ZIMG_X86_AVX2
+ 		if (!ret && cpu >= CPUClass::X86_AVX2)
+ 			ret = create_resize_impl_v_avx2(context, width, type, depth);
++#endif
+ 		if (!ret && cpu >= CPUClass::X86_AVX)
+ 			ret = create_resize_impl_v_avx(context, width, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+diff -urN zimg-9999/test/colorspace/x86/colorspace_avx2_test.cpp zimg-9999.new/zimg-9999/test/colorspace/x86/colorspace_avx2_test.cpp
+--- zimg-9999/test/colorspace/x86/colorspace_avx2_test.cpp	2018-05-02 17:12:51.243677968 +0100
++++ zimg-9999.new/zimg-9999/test/colorspace/x86/colorspace_avx2_test.cpp	2018-05-02 17:07:28.358684639 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cmath>
+ #include "common/cpuinfo.h"
+ #include "common/pixel.h"
+@@ -89,4 +91,6 @@
+ 	          expected_sha1[3], expected_togamma_snr);
+ }
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/test/depth/x86/depth_convert_avx2_test.cpp zimg-9999.new/zimg-9999/test/depth/x86/depth_convert_avx2_test.cpp
+--- zimg-9999/test/depth/x86/depth_convert_avx2_test.cpp	2018-05-02 17:12:51.247011352 +0100
++++ zimg-9999.new/zimg-9999/test/depth/x86/depth_convert_avx2_test.cpp	2018-05-02 17:07:28.688689742 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cmath>
+ #include "common/cpuinfo.h"
+ #include "common/pixel.h"
+@@ -82,4 +84,6 @@
+ 	test_case_depth_convert(pixel_in, pixel_out, expected_sha1, INFINITY);
+ }
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/test/depth/x86/dither_avx2_test.cpp zimg-9999.new/zimg-9999/test/depth/x86/dither_avx2_test.cpp
+--- zimg-9999/test/depth/x86/dither_avx2_test.cpp	2018-05-02 17:12:51.247011352 +0100
++++ zimg-9999.new/zimg-9999/test/depth/x86/dither_avx2_test.cpp	2018-05-02 17:07:29.018694846 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cmath>
+ #include "common/cpuinfo.h"
+ #include "common/pixel.h"
+@@ -134,4 +136,6 @@
+ 	test_case(pixel_in, pixel_out, expected_sha1, 120.0);
+ }
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/test/depth/x86/error_diffusion_avx2_test.cpp zimg-9999.new/zimg-9999/test/depth/x86/error_diffusion_avx2_test.cpp
+--- zimg-9999/test/depth/x86/error_diffusion_avx2_test.cpp	2018-05-02 17:12:51.247011352 +0100
++++ zimg-9999.new/zimg-9999/test/depth/x86/error_diffusion_avx2_test.cpp	2018-05-02 17:07:29.375367028 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cmath>
+ #include "common/cpuinfo.h"
+ #include "common/pixel.h"
+@@ -136,4 +138,6 @@
+ 	test_case(pixel_in, pixel_out, expected_sha1, 50.0);
+ }
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+diff -urN zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp zimg-9999.new/zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp
+--- zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp	2018-05-02 17:12:51.247011352 +0100
++++ zimg-9999.new/zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp	2018-05-02 17:07:29.825373988 +0100
+@@ -1,5 +1,7 @@
+ #ifdef ZIMG_X86
+ 
++#ifdef ZIMG_X86_AVX2
++
+ #include <cmath>
+ #include "common/cpuinfo.h"
+ #include "common/pixel.h"
+@@ -218,4 +220,6 @@
+ 	test_case(zimg::resize::LanczosFilter{ 4 }, false, w, dst_h, w, src_h, type, expected_sha1[3], expected_snr);
+ }
+ 
++#endif // ZIMG_X86_AVX2
++
+ #endif // ZIMG_X86
+--- ./configure.ac~	2018-05-02 17:17:53.000000000 +0100
++++ ./configure.ac	2018-05-02 18:36:23.521191475 +0100
+@@ -72,6 +72,24 @@
+         AX_CHECK_COMPILE_FLAG([-mtune=skylake-avx512], AC_SUBST([SKYLAKESPCFLAGS], [-mtune=skylake-avx512]))
+ 
+         AX_CHECK_COMPILE_FLAG(
++          [-mavx2],
++          [
++            AC_DEFINE([ZIMG_X86_AVX2])
++            enable_x86_simd_avx2=yes
++          ], [], [],
++          [AC_LANG_SOURCE([
++#include <immintrin.h>
++int main()
++{
++	volatile __m256 x = _mm256_setzero_ps();
++	x = _mm256_xor_si256(x, x);
++#if defined(__GNUC__) && defined(__x86_64__)
++	asm volatile ("" : : : "zmm0", "zmm1", "zmm2", "zmm3");
++#endif
++	return 0;
++}
++          ])])
++        AX_CHECK_COMPILE_FLAG(
+           [-mavx512f -mavx512pf -mavx512er -mavx512cd -mavx512vl -mavx512bw -mavx512dq -mavx512ifma -mavx512vbmi],
+           [
+             AC_DEFINE([ZIMG_X86_AVX512])
+@@ -96,6 +114,7 @@
+ AM_CONDITIONAL([EXAMPLES],       [test "x$enable_example" = "xyes"])
+ AM_CONDITIONAL([UNIT_TEST],      [test "x$enable_unit_test" = "xyes"])
+ AM_CONDITIONAL([X86SIMD],        [test "x$enable_x86_simd" = "xyes"])
++AM_CONDITIONAL([X86SIMD_AVX2], [test "x$enable_x86_simd_avx2" = "xyes"])
+ AM_CONDITIONAL([X86SIMD_AVX512], [test "x$enable_x86_simd_avx512" = "xyes"])
+ 
+ AS_CASE([$host_os],
+--- ./Makefile.am~	2018-05-02 17:17:53.000000000 +0100
++++ ./Makefile.am	2018-05-02 18:40:20.328186964 +0100
+@@ -184,9 +184,24 @@
+ libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2 -mf16c -mfma $(HASWELLCFLAGS)
+ libavx2_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/zimg
+ 
+-libzimg_internal_la_LIBADD += libsse.la libsse2.la libavx.la libf16c.la libavx2.la
++libzimg_internal_la_LIBADD += libsse.la libsse2.la libavx.la libf16c.la
+ endif # X86SIMD
+ 
++if X86SIMD_AVX2
++noinst_LTLIBRARIES += libavx2.la
++
++libavx2_la_SOURCES = \
++	src/zimg/colorspace/x86/operation_impl_avx2.cpp \
++	src/zimg/depth/x86/depth_convert_avx2.cpp \
++	src/zimg/depth/x86/dither_avx2.cpp \
++	src/zimg/resize/x86/resize_impl_avx2.cpp
++
++libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2 $(SKYLAKESPCFLAGS)
++libavx2_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/zimg
++
++libzimg_internal_la_LIBADD += libavx2.la
++endif # X86SIMD_AVX2
++
+ if X86SIMD_AVX512
+ noinst_LTLIBRARIES += libavx512.la
+ 
+@@ -337,23 +352,27 @@
+ if X86SIMD
+ test_unit_test_SOURCES += \
+ 	test/colorspace/x86/colorspace_avx_test.cpp \
+-	test/colorspace/x86/colorspace_avx2_test.cpp \
+ 	test/colorspace/x86/colorspace_sse_test.cpp \
+ 	test/colorspace/x86/colorspace_sse2_test.cpp \
+-	test/depth/x86/depth_convert_avx2_test.cpp \
+ 	test/depth/x86/depth_convert_sse2_test.cpp \
+-	test/depth/x86/dither_avx2_test.cpp \
+ 	test/depth/x86/dither_sse2_test.cpp \
+-	test/depth/x86/error_diffusion_avx2_test.cpp \
+ 	test/depth/x86/error_diffusion_sse2_test.cpp \
+ 	test/depth/x86/f16c_ivb_test.cpp \
+ 	test/depth/x86/f16c_sse2_test.cpp \
+ 	test/resize/x86/resize_impl_avx_test.cpp \
+-	test/resize/x86/resize_impl_avx2_test.cpp \
+ 	test/resize/x86/resize_impl_sse_test.cpp \
+ 	test/resize/x86/resize_impl_sse2_test.cpp
+ endif #X86SIMD
+ 
++if X86SIMD_AVX2
++test_unit_test_SOURCES += \
++	test/colorspace/x86/colorspace_avx2_test.cpp \
++	test/depth/x86/depth_convert_avx2_test.cpp \
++	test/depth/x86/dither_avx2_test.cpp \
++	test/depth/x86/error_diffusion_avx2_test.cpp \
++	test/resize/x86/resize_impl_avx2_test.cpp
++endif # X86SIMD_AVX2
++
+ if X86SIMD_AVX512
+ test_unit_test_SOURCES += \
+ 	test/colorspace/x86/colorspace_avx512_test.cpp \

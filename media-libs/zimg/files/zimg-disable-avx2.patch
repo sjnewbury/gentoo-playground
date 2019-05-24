@@ -1,0 +1,94 @@
+--- ./Makefile.am~	2018-04-29 23:18:19.000000000 +0100
++++ ./Makefile.am	2018-04-29 23:22:12.921278155 +0100
+@@ -120,13 +120,12 @@
+ 
+ 
+ if X86SIMD
+-noinst_LTLIBRARIES += libsse.la libsse2.la libavx.la libf16c.la libavx2.la
++noinst_LTLIBRARIES += libsse.la libsse2.la libavx.la libf16c.la
+ 
+ libzimg_internal_la_SOURCES += \
+ 	src/zimg/colorspace/x86/operation_impl_x86.cpp \
+ 	src/zimg/colorspace/x86/operation_impl_x86.h \
+ 	src/zimg/common/x86/avx_util.h \
+-	src/zimg/common/x86/avx2_util.h \
+ 	src/zimg/common/x86/avx512_util.h \
+ 	src/zimg/common/x86/avx512_msvc_compat.h \
+ 	src/zimg/common/x86/cpuinfo_x86.cpp \
+@@ -174,17 +173,7 @@
+ libf16c_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx -mf16c $(IVYBRIDGECFLAGS)
+ libf16c_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/zimg
+ 
+-libavx2_la_SOURCES = \
+-	src/zimg/colorspace/x86/operation_impl_avx2.cpp \
+-	src/zimg/depth/x86/depth_convert_avx2.cpp \
+-	src/zimg/depth/x86/dither_avx2.cpp \
+-	src/zimg/depth/x86/error_diffusion_avx2.cpp \
+-	src/zimg/resize/x86/resize_impl_avx2.cpp
+-
+-libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2 -mf16c -mfma $(HASWELLCFLAGS)
+-libavx2_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/src/zimg
+-
+-libzimg_internal_la_LIBADD += libsse.la libsse2.la libavx.la libf16c.la libavx2.la
++libzimg_internal_la_LIBADD += libsse.la libsse2.la libavx.la libf16c.la
+ endif # X86SIMD
+ 
+ if X86SIMD_AVX512
+@@ -337,19 +326,14 @@
+ if X86SIMD
+ test_unit_test_SOURCES += \
+ 	test/colorspace/x86/colorspace_avx_test.cpp \
+-	test/colorspace/x86/colorspace_avx2_test.cpp \
+ 	test/colorspace/x86/colorspace_sse_test.cpp \
+ 	test/colorspace/x86/colorspace_sse2_test.cpp \
+-	test/depth/x86/depth_convert_avx2_test.cpp \
+ 	test/depth/x86/depth_convert_sse2_test.cpp \
+-	test/depth/x86/dither_avx2_test.cpp \
+ 	test/depth/x86/dither_sse2_test.cpp \
+-	test/depth/x86/error_diffusion_avx2_test.cpp \
+ 	test/depth/x86/error_diffusion_sse2_test.cpp \
+ 	test/depth/x86/f16c_ivb_test.cpp \
+ 	test/depth/x86/f16c_sse2_test.cpp \
+ 	test/resize/x86/resize_impl_avx_test.cpp \
+-	test/resize/x86/resize_impl_avx2_test.cpp \
+ 	test/resize/x86/resize_impl_sse_test.cpp \
+ 	test/resize/x86/resize_impl_sse2_test.cpp
+ endif #X86SIMD
+--- ./src/zimg/resize/x86/resize_impl_x86.cpp~	2018-05-02 15:53:09.000000000 +0100
++++ ./src/zimg/resize/x86/resize_impl_x86.cpp	2018-05-02 15:55:06.204867745 +0100
+@@ -18,8 +18,6 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512dq && caps.avx512bw && caps.avx512vl)
+ 			ret = create_resize_impl_h_avx512(context, height, type, depth);
+ #endif
+-		if (!ret && caps.avx2)
+-			ret = create_resize_impl_h_avx2(context, height, type, depth);
+ 		if (!ret && caps.avx)
+ 			ret = create_resize_impl_h_avx(context, height, type, depth);
+ 		if (!ret && caps.sse2)
+@@ -31,8 +29,6 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_resize_impl_h_avx512(context, height, type, depth);
+ #endif
+-		if (!ret && cpu >= CPUClass::X86_AVX2)
+-			ret = create_resize_impl_h_avx2(context, height, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_AVX)
+ 			ret = create_resize_impl_h_avx(context, height, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
+@@ -54,8 +50,6 @@
+ 		if (!ret && cpu == CPUClass::AUTO_64B && caps.avx512f && caps.avx512dq && caps.avx512bw && caps.avx512vl)
+ 			ret = create_resize_impl_v_avx512(context, width, type, depth);
+ #endif
+-		if (!ret && caps.avx2)
+-			ret = create_resize_impl_v_avx2(context, width, type, depth);
+ 		if (!ret && caps.avx)
+ 			ret = create_resize_impl_v_avx(context, width, type, depth);
+ 		if (!ret && caps.sse2)
+@@ -67,8 +61,6 @@
+ 		if (!ret && cpu >= CPUClass::X86_AVX512)
+ 			ret = create_resize_impl_v_avx512(context, width, type, depth);
+ #endif
+-		if (!ret && cpu >= CPUClass::X86_AVX2)
+-			ret = create_resize_impl_v_avx2(context, width, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_AVX)
+ 			ret = create_resize_impl_v_avx(context, width, type, depth);
+ 		if (!ret && cpu >= CPUClass::X86_SSE2)
