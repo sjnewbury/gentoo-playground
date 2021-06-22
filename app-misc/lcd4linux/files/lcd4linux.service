@@ -1,0 +1,11 @@
+[Unit]
+Description=LCD4Linux LCD display and control Daemon
+After=syslog.target
+
+[Service]
+PIDFile=/run/lcd4linux.pid
+ExecStart=/usr/bin/lcd4linux -q -F -f /etc/lcd4linux/lcd4linux.conf -p /run/lcd4linux.pid
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

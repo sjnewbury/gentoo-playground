@@ -1,0 +1,11 @@
+--- powernowd.c~	2017-09-30 18:17:49.000000000 +0100
++++ powernowd.c	2017-09-30 18:52:57.101728281 +0100
+@@ -322,7 +322,7 @@
+ /*
+  * The heart of the program... decide to raise or lower the speed.
+  */
+-enum modes inline decide_speed(cpuinfo_t *cpu)
++enum modes static inline decide_speed(cpuinfo_t *cpu)
+ {
+ 	int err;
+ 	float pct;

@@ -1,0 +1,33 @@
+--- ./sendmail/conf.h~	2020-05-19 20:54:33.000000000 +0100
++++ ./sendmail/conf.h	2020-08-18 12:05:54.020605678 +0100
+@@ -114,7 +114,7 @@
+ # define MAXHDRSLEN	(32 * 1024)	/* max size of message headers */
+ #endif
+ #ifndef MAXDAEMONS
+-# define MAXDAEMONS	10		/* max number of ports to listen to */
++# define MAXDAEMONS	16		/* max number of ports to listen to */
+ 	/* XREF: conf.c: MAXDAEMONS != 10 */
+ #endif
+ #ifndef MAXINTERFACES
+--- ./sendmail/conf.c~	2020-06-04 07:27:49.000000000 +0100
++++ ./sendmail/conf.c	2020-08-18 12:05:53.577262963 +0100
+@@ -5876,7 +5876,7 @@
+ #if MATCHGECOS
+ 	"MATCHGECOS",
+ #endif
+-#if MAXDAEMONS != 10
++#if MAXDAEMONS != 16
+ 	"MAXDAEMONS=" SM_XSTR(MAXDAEMONS),
+ #endif
+ #if defined(MSGIDLOGLEN)
+--- ./doc/op/op.me~	2020-07-02 06:00:37.000000000 +0100
++++ ./doc/op/op.me	2020-08-18 12:05:53.073918978 +0100
+@@ -10297,7 +10297,7 @@
+ The maximum depth to which MIME messages may be nested
+ (that is, nested Message or Multipart documents;
+ this does not limit the number of components in a single Multipart document).
+-.ip "MAXDAEMONS [10]"
++.ip "MAXDAEMONS [16]"
+ The maximum number of sockets sendmail will open for accepting connections
+ on different ports.
+ .ip "MAXMACNAMELEN [25]"

@@ -1,0 +1,72 @@
+diff -urN visual-5.74_release.orig/include/python/num_util.hpp visual-5.74_release/include/python/num_util.hpp
+--- visual-5.74_release.orig/include/python/num_util.hpp	2012-04-11 22:03:37.000000000 +0100
++++ visual-5.74_release/include/python/num_util.hpp	2017-12-29 23:21:15.858411220 +0000
+@@ -72,7 +72,7 @@
+ // Eliminate references to numeric and numarray initiation, add numpy initiation
+ 
+ 
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ #include <boost/python/extract.hpp>
+ #include <numpy/arrayobject.h>
+ //#include <iostream>
+diff -urN visual-5.74_release.orig/include/python/numeric_texture.hpp visual-5.74_release/include/python/numeric_texture.hpp
+--- visual-5.74_release.orig/include/python/numeric_texture.hpp	2012-04-11 22:03:38.000000000 +0100
++++ visual-5.74_release/include/python/numeric_texture.hpp	2017-12-29 23:21:15.855077811 +0000
+@@ -5,7 +5,7 @@
+ #ifndef VPYTHON_PYTHON_NUMERIC_TEXTURE_HPP
+ #define VPYTHON_PYTHON_NUMERIC_TEXTURE_HPP
+ 
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ #include "util/texture.hpp"
+ #include "python/num_util.hpp"
+ #include "wrap_gl.hpp"
+diff -urN visual-5.74_release.orig/include/python/scalar_array.hpp visual-5.74_release/include/python/scalar_array.hpp
+--- visual-5.74_release.orig/include/python/scalar_array.hpp	2012-04-11 22:03:38.000000000 +0100
++++ visual-5.74_release/include/python/scalar_array.hpp	2017-12-29 23:21:15.855077811 +0000
+@@ -14,7 +14,7 @@
+ #include "util/vector.hpp"
+ #include <deque>
+ 
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ 
+ namespace cvisual { namespace python {
+ 
+diff -urN visual-5.74_release.orig/include/python/vector_array.hpp visual-5.74_release/include/python/vector_array.hpp
+--- visual-5.74_release.orig/include/python/vector_array.hpp	2012-04-11 22:03:37.000000000 +0100
++++ visual-5.74_release/include/python/vector_array.hpp	2017-12-29 23:21:15.855077811 +0000
+@@ -14,7 +14,7 @@
+ #include <deque>
+ #include "util/vector.hpp"
+ 
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ 
+ namespace cvisual { namespace python {
+ 	
+diff -urN visual-5.74_release.orig/include/util/vector.hpp visual-5.74_release/include/util/vector.hpp
+--- visual-5.74_release.orig/include/util/vector.hpp	2012-04-11 22:03:38.000000000 +0100
++++ visual-5.74_release/include/util/vector.hpp	2017-12-29 23:21:15.888411902 +0000
+@@ -7,7 +7,7 @@
+ // See the file authors.txt for a complete list of contributors.
+ 
+ #include "wrap_gl.hpp"
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ #include <iosfwd>
+ #include <cmath>
+ #include <cassert>
+diff -urN visual-5.74_release.orig/src/python/cvisualmodule.cpp visual-5.74_release/src/python/cvisualmodule.cpp
+--- visual-5.74_release.orig/src/python/cvisualmodule.cpp	2012-04-11 22:03:38.000000000 +0100
++++ visual-5.74_release/src/python/cvisualmodule.cpp	2017-12-29 23:21:15.908412357 +0000
+@@ -11,7 +11,7 @@
+ 
+ #include <boost/python/exception_translator.hpp>
+ #include <boost/python/module.hpp>
+-#include <boost/python/numeric.hpp>
++#include <boost/python/numpy.hpp>
+ #include <boost/python/def.hpp>
+ 
+ #define PY_ARRAY_UNIQUE_SYMBOL visual_PyArrayHandle

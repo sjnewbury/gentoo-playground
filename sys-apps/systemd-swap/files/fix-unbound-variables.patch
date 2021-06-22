@@ -1,0 +1,22 @@
+--- .//systemd-swap~	2020-07-01 08:51:14.000000000 +0000
++++ ./systemd-swap	2020-07-01 09:05:31.098410860 +0000
+@@ -307,7 +307,7 @@
+       mkdir -p "${WORK_DIR}/swapd/"
+       for device in $(blkid -t TYPE=swap -o device | grep -vE '(zram|loop)'); do
+         for used_device in $(swapon --show=NAME --noheadings); do
+-          [[ "${device}" == "${used_device}" ]] && unset device
++          [[ "${device}" == "${used_device}" ]] && device=
+         done
+         [[ ! -b "${device}" ]] && continue
+         UNIT_NAME=$(gen_swap_unit What="${device}" Options=discard Tag="swapd")
+--- ./systemd-swap~	2020-07-01 09:10:28.000000000 +0000
++++ ./systemd-swap	2020-07-02 23:02:08.014313694 +0000
+@@ -107,6 +107,8 @@
+ readonly ZSWAP_M="/sys/module/zswap"
+ readonly ZSWAP_M_P="/sys/module/zswap/parameters"
+ 
++declare Options=""
++
+ # shellcheck disable=SC2034
+ IFS=. read -r KMAJOR KMINOR _ <<< "$(uname -r)"
+ 

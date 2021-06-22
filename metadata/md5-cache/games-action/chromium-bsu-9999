@@ -1,0 +1,12 @@
+DEFINED_PHASES=compile configure install postinst postrm preinst prepare setup unpack
+DEPEND=media-fonts/dejavu media-libs/quesoglc media-libs/glpng virtual/opengl virtual/glu x11-libs/libXmu mixer? ( media-libs/sdl2-mixer ) !mixer? ( media-libs/freealut media-libs/openal ) nls? ( virtual/libintl ) sdl2? ( media-libs/libsdl2 media-libs/sdl2-image[png] ) !sdl2? ( media-libs/freeglut ) nls? ( sys-devel/gettext ) >=app-portage/elt-patches-20170815 || ( >=sys-devel/automake-1.16.1:1.16 >=sys-devel/automake-1.15.1:1.15 ) >=sys-devel/autoconf-2.69 >=sys-devel/libtool-2.4 >=dev-vcs/git-1.8.2.1[curl]
+DESCRIPTION=Chromium B.S.U. - an arcade game
+EAPI=5
+HOMEPAGE=http://chromium-bsu.sourceforge.net/
+IUSE=mixer nls +sdl2
+LICENSE=Clarified-Artistic
+PROPERTIES=live
+RDEPEND=media-fonts/dejavu media-libs/quesoglc media-libs/glpng virtual/opengl virtual/glu x11-libs/libXmu mixer? ( media-libs/sdl2-mixer ) !mixer? ( media-libs/freealut media-libs/openal ) nls? ( virtual/libintl ) sdl2? ( media-libs/libsdl2 media-libs/sdl2-image[png] ) !sdl2? ( media-libs/freeglut ) games-misc/games-envd
+SLOT=0
+_eclasses_=autotools	ea7865c8fba1ea8d3639f355fffe1a3c	base	2ec5c64f5de125f0c65a927c4c128fef	desktop	b1d22ac8bdd4679ab79c71aca235009d	epatch	a1bf4756dba418a7238f3be0cb010c54	estack	686eaab303305a908fd57b2fd7617800	eutils	fcb2aa98e1948b835b5ae66ca52868c5	games	be6b136152d095d3e15031e2c725eb3f	git-r3	809e27702c573cbba31c08ed00bbad33	gnome2-utils	532371cfcba45b2ab0d2950547c97d95	libtool	f143db5a74ccd9ca28c1234deffede96	ltprune	2729691420b6deeda2a90b1f1183fb55	multilib	1d91b03d42ab6308b5f4f6b598ed110e	preserve-libs	ef207dc62baddfddfd39a164d9797648	toolchain-funcs	512eb3367f507ebaa1d1d43ab7d66e6c	user	00484e1be1aac73e24fca1c99557a7d6	vcs-clean	2a0f74a496fa2b1552c4f3398258b7bf	xdg-utils	ff2ff954e6b17929574eee4efc5152ba
+_md5_=6d6aa83510f1b69608d1818d36b084d8

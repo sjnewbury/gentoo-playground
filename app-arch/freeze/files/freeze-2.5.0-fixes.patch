@@ -1,0 +1,146 @@
+--- ./freeze.c.orig	2018-11-26 08:59:00.326053957 +0000
++++ ./freeze.c	2018-11-26 09:29:17.444879319 +0000
+@@ -76,7 +76,7 @@
+     fprintf(stderr, "\n\
+       -c         Write output on stdout, don't remove original.\n\
+       -d         If given, melting is done instead.\n\
+-      -g         Use \"greedy\" parsing (1.5% worse, 40% faster).\n\
++      -g         Use \"greedy\" parsing (1.5%% worse, 40%% faster).\n\
+       -f         Forces output file to be generated, even if one already\n\
+                  exists, and even if no space is saved by freezeing.\n\
+       -i         Image mode.\n\
+@@ -134,6 +134,8 @@
+ RETSIGTYPE      (*bgnd_flag)();
+ 
+ void    writeerr(), copystat(), version(), tune_table();
++int     defopen(), checkstat(), foreground();
++
+ 
+ /*****************************************************************
+  *
+@@ -211,7 +213,7 @@
+ #endif
+ 
+ #ifndef DOS
+-  char   *malloc();
++  void   *malloc();
+ #endif
+ 
+   extern RETSIGTYPE onintr();
+@@ -918,7 +920,7 @@
+     } else if (statbuf.st_nlink > 1) {
+       fprintf(stderr, "%s: ", ifname);
+       fprintf(stderr, " has %d other links -- unchanged\n",
+-	statbuf.st_nlink - 1);
++	(int) statbuf.st_nlink - 1);
+       return exit_stat = 1;
+     }
+   }
+--- ./default.c.orig	2018-11-26 09:20:35.476042327 +0000
++++ ./default.c	2018-11-26 09:21:14.339787316 +0000
+@@ -37,7 +37,7 @@
+ char    *defread(pattern)
+ 	register char   *pattern;
+ {
+-	register        sz_patt;
++	register int    sz_patt;
+ 	register char   *cp;
+ 
+ 	if (!defd)
+--- ./freeze.h.orig	2018-11-26 08:54:01.619837784 +0000
++++ ./freeze.h	2018-11-26 09:28:32.881078151 +0000
+@@ -1,10 +1,14 @@
++#include <stdlib.h>
++#include <string.h>
+ #include <stdio.h>
++#include <unistd.h>
+ #include "config.h"
+ 
+ #ifdef HAVE_SYS_STDTYPES_H
+ # include <sys/stdtypes.h>
+ #endif
+ 
++#if 0
+ #ifndef __EMX__
+ #ifndef getc
+ # ifdef m88k                   /* Green Hill C library bug. */
+@@ -21,6 +25,7 @@
+ # endif
+ #endif
+ #endif
++#endif
+ 
+ #if !defined(MSDOS) && defined(__MSDOS__)
+ # define MSDOS
+--- ./huf.h.orig	2018-11-26 08:57:47.535323931 +0000
++++ ./huf.h	2018-11-26 09:24:00.781546788 +0000
+@@ -1,4 +1,6 @@
+ extern void StartHuff(), init(), write_header(), EncodeChar(), crpt_message();
+-extern int DecodeChar(), DecodePosition();
++extern int read_header(), DecodeChar(), DecodePosition();
++
++;
+ extern void EncodePosition();
+ #define MAX_FREQ        (us_t)0x8000 /* Tree update timing */
+--- ./huf.c.orig	2018-11-26 09:30:07.502071057 +0000
++++ ./huf.c	2018-11-26 09:30:36.239038973 +0000
+@@ -280,7 +280,7 @@
+ 
+ int DecodePosition ()
+ {
+-	register        i, j;
++	register int        i, j;
+ 	DefBits;
+ 
+ 	/* Upper 6 bits can be coded by a byte (8 bits) or less,
+--- ./statist.c.orig	2018-11-26 09:32:05.479973467 +0000
++++ ./statist.c	2018-11-26 09:42:31.566578016 +0000
+@@ -25,10 +25,11 @@
+ short used[T];
+ 
+ void freeze(), StartHuff();
++int findmin();
+ 
+ RETSIGTYPE giveres();
+ 
+-int main(argc, argv) char ** argv; {
++int main(int argc, char **argv) {
+ 	argv++;
+ 	while (argc > 1) {
+ 		if (**argv == '-') {
+@@ -176,7 +177,7 @@
+ 	j = sum;
+ 	percent = 0;
+ 	for (i = LOOKAHEAD; i >= 3; i--) {
+-		static pcs[] = { 999, 995, 990, 970, 950, 900, 800, 700, 500 };
++		static int pcs[] = { 999, 995, 990, 970, 950, 900, 800, 700, 500 };
+ 		j -= lens[i];
+ 		newpcs:
+ 		if (j <= sum * pcs[percent] / 1000) {
+@@ -261,7 +262,7 @@
+ 		}
+ 		in_count += i;
+ 		if ((in_count > indc_count)) {
+-			fprintf(stderr, "%5dK\b\b\b\b\b\b", in_count / 1024);
++			fprintf(stderr, "%5dK\b\b\b\b\b\b", (int) in_count / 1024);
+ 			fflush (stderr);
+ 			indc_count += 4096;
+ 		}
+@@ -273,7 +274,7 @@
+ 	}
+ }
+ 
+-void StartHuff(beg) {
++void StartHuff(int beg) {
+ 	int i;
+ 	for (i = beg; i < N_POS * 2 - 1; i++)
+ 		freq[i] = 0;
+@@ -281,7 +282,7 @@
+ 		used[i] = prnt[i] = 0;
+ }
+ 
+-int findmin(range) {
++int findmin(int range) {
+ 	long min = (1 << 30) - 1, argmin = -1, i;
+ 	for (i = 0; i < range; i++) {
+ 		if(!used[i] && freq[i] < min)

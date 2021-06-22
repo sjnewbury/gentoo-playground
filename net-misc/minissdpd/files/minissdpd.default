@@ -1,0 +1,18 @@
+# MiniSSDPd default configuration
+
+# Set this to the IPv4/interfaces you want the daemon to run on, separated by
+# space.
+# Notes:
+#  1. Specifying IP when built with IPv6 support is disabled by original
+#     author, so this option may not be available outside Debian.
+#  2. No `-6' should be used when IPv4 specified. You will be flooded by
+#     'peer [xxxx:xxxx]:1900 is not from a LAN' if you insist to do so.
+MiniSSDPd_INTERFACE_ADDRESS=""
+
+# This defines other options which you might want to use when
+# starting MiniSSDPd.
+MiniSSDPd_OTHER_OPTIONS=""
+
+### For IPv6 users:
+# 1. Change MiniSSDPd_INTERFACE_ADDRESS to the correct interface name
+# 2. Add `-6' to MiniSSDPd_OTHER_OPTIONS

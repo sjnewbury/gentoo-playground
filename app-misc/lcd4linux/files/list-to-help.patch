@@ -1,0 +1,22 @@
+--- ./plugins.m4~	2020-07-16 19:35:33.000000000 +0100
++++ ./plugins.m4	2020-07-16 19:46:11.165386250 +0100
+@@ -26,8 +26,8 @@
+ AC_MSG_CHECKING([which plugins to compile])
+ AC_ARG_WITH(
+   plugins, 
+-  [  --with-plugins=<list>   choose which plugins to compile.]
+-  [                        type --with-plugins=list for a list]	
++  [  --with-plugins=<help>   choose which plugins to compile.]
++  [                        type --with-plugins=help for a list]	
+   [                        of avaible plugins]
+   [                        plugins may be excluded with 'all,!<plugin>',]	
+   [                        (try 'all,\!<plugin>' if your shell complains...)],
+@@ -50,7 +50,7 @@
+    esac
+ 	
+    case "$plugin" in
+-      list)
++      help)
+          AC_MSG_RESULT(
+             [available plugins:]
+             [ apm,asterisk,button_exec,control,cpuinfo,dbus,diskstats,dvb,exec,event,]

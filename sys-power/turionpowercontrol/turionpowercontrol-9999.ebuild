@@ -24,6 +24,7 @@ DEPEND="sys-libs/ncurses"
 
 PATCHES=(
 	"${FILESDIR}/tpc-0.44-remove-MSVC_Round.patch"
+	"${FILESDIR}/tpc-${PV}-nbfid-cfg.patch"
 )
 
 src_compile() {

@@ -1,0 +1,14 @@
+BDEPEND=>=dev-vcs/git-1.8.2.1[curl]
+DEFINED_PHASES=compile install postinst prepare setup unpack
+DEPEND=media-libs/libsdl2 alsa? ( >=media-libs/alsa-lib-1.0.7 ) midi? ( media-libs/sdl2-mixer[timidity?] ) !midi? ( media-libs/sdl2-mixer ) opengl? ( virtual/opengl ) x86? ( asm? ( >=dev-lang/nasm-0.98.38 ) )
+DESCRIPTION=Hexen 2 port - Hammer of Thyrion
+EAPI=7
+HOMEPAGE=http://uhexen2.sourceforge.net/
+IUSE=alsa asm cdaudio debug dedicated demo hexenworld lights midi opengl optimize-cflags oss sdlaudio sdlcd tools timidity
+LICENSE=GPL-2
+PROPERTIES=live
+RDEPEND=!games-fps/uhexen2-cvs media-libs/libsdl2 alsa? ( >=media-libs/alsa-lib-1.0.7 ) midi? ( media-libs/sdl2-mixer[timidity?] ) !midi? ( media-libs/sdl2-mixer ) opengl? ( virtual/opengl ) demo? ( >=games-fps/hexen2-demodata-1.4.3 )
+SLOT=0
+SRC_URI=mirror://sourceforge/uhexen2/gamedata-all-1.29b.tgz hexenworld? ( mirror://sourceforge/uhexen2/hexenworld-pakfiles-0.15.tgz )
+_eclasses_=desktop	c0d27bf73aa08ca05b663dbd31fbef28	edos2unix	33e347e171066657f91f8b0c72ec8773	eutils	2d5b3f4b315094768576b6799e4f926e	flag-o-matic	c0964e43ba712cb933da5f65b958fa88	git-r3	b8e8c92aa5fe8df7187e466138eb4e52	l10n	8cdd85e169b835d518bc2fd59f780d8e	multilib	d410501a125f99ffb560b0c523cd3d1e	toolchain-funcs	24921b57d6561d87cbef4916a296ada4	wrapper	4251d4c84c25f59094fd557e0063a974
+_md5_=977887a26b6f155e097b05fe33d99b26

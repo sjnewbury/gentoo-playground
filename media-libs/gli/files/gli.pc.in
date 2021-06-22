@@ -1,0 +1,7 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+includedir=${prefix}/include
+
+Name: GLI
+Description: OpenGL Image
+Version: @GLI_VERSION@
+Cflags: -I${includedir}

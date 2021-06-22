@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>4nykey@gmail.com</email>
+	</maintainer>
+	<use>
+		<flag name="graphite">
+			Enable support for graphite type tables (Silf, Glat, Gloc)
+		</flag>
+		<flag name="interpolatable">
+			Enable support for finding wrong contour/component order between different masters
+		</flag>
+		<flag name="plot">
+			Enable support for visualizing DesignSpaceDocument and resulting VariationModel
+		</flag>
+		<flag name="reportlab">
+			Enable support for drawing glyphs as PNG images
+		</flag>
+		<flag name="symfont">
+			Enable support for symbolic font statistics analysis
+		</flag>
+		<flag name="ufo">
+			Enable support for reading and writing UFO source files
+		</flag>
+		<flag name="woff">
+			Enable compression support for WOFF 1.0/2.0 webfonts
+		</flag>
+	</use>
+</pkgmetadata>

@@ -1,0 +1,18 @@
+--- ./sommelier-xdg-shell.c~	2020-12-11 17:52:47.000000000 +0000
++++ ./sommelier-xdg-shell.c	2020-12-11 17:55:15.433834797 +0000
+@@ -368,6 +368,7 @@
+   xdg_toplevel_set_user_data(host_xdg_toplevel->proxy, host_xdg_toplevel);
+   xdg_toplevel_add_listener(host_xdg_toplevel->proxy, &sl_xdg_toplevel_listener,
+                             host_xdg_toplevel);
++  wl_surface_commit(host_xdg_toplevel->proxy);
+ }
+ 
+ static void sl_xdg_surface_get_popup(struct wl_client* client,
+@@ -397,6 +398,7 @@
+   xdg_popup_set_user_data(host_xdg_popup->proxy, host_xdg_popup);
+   xdg_popup_add_listener(host_xdg_popup->proxy, &sl_xdg_popup_listener,
+                          host_xdg_popup);
++  wl_surface_commit(host_xdg_popup->proxy);
+ }
+ 
+ static void sl_xdg_surface_set_window_geometry(struct wl_client* client,

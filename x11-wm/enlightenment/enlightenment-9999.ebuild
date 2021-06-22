@@ -36,7 +36,7 @@ IUSE_E_MODULES=(
 IUSE="doc +eeze egl nls pam pm-utils static-libs systemd ukit wayland ${IUSE_E_MODULES[@]}"
 
 RDEPEND="
-	>=dev-libs/efl-1.10.0[X,egl?,wayland?]
+	>=dev-libs/efl-1.10.0[X,wayland?]
 	>=media-libs/elementary-1.10.0
 	virtual/udev
 	x11-libs/libxcb
@@ -55,12 +55,6 @@ DEPEND="${RDEPEND}
 	doc? ( app-doc/doxygen )"
 
 S="${WORKDIR}/${P/_/-}"
-
-src_prepare() {
-	eapply "${FILESDIR}"/bluez5.patch
-	eapply "${FILESDIR}"/meson-wayland-pulseaudio.patch
-	default
-}
 
 src_configure() {
 	local emesonargs=(

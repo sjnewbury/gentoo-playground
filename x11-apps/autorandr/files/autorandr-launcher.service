@@ -1,0 +1,9 @@
+[Unit]
+Description=Register with Xserver for display changes
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/autorandr_launcher --verbose
+
+[Install]
+WantedBy=default.target

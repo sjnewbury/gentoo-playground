@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+if [ "$1" = "-t" ]; then
+	if [ -z "$2" ]; then
+		echo "MiniSSDPd_INTERFACE_ADDRESS unconfigured; refused to start"
+		exit 1
+	fi
+	exit 0
+fi
+
+listening_ip=
+for ip_or_iface in $1; do
+	listening_ip="${listening_ip} -i ${ip_or_iface}"
+done
+
+shift
+
+exec /usr/sbin/minissdpd $listening_ip $@

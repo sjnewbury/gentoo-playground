@@ -1,0 +1,67 @@
+--- ./sommelier.c~	2020-12-11 16:36:35.000000000 +0000
++++ ./sommelier.c	2020-12-11 16:40:13.141743996 +0000
+@@ -67,6 +67,9 @@
+ #ifndef VIRTWL_DEVICE
+ #error VIRTWL_DEVICE must be defined
+ #endif
++#ifndef DRM_DEVICE
++#error DRM_DEVICE must be defined
++#endif
+ #ifndef PEER_CMD_PREFIX
+ #error PEER_CMD_PREFIX must be defined
+ #endif
+@@ -3599,7 +3602,7 @@
+       .virtwl_socket_fd = -1,
+       .virtwl_ctx_event_source = NULL,
+       .virtwl_socket_event_source = NULL,
+-      .drm_device = NULL,
++      .drm_device = DRM_DEVICE,
+       .gbm = NULL,
+       .xwayland = 0,
+       .xwayland_pid = -1,
+--- ./meson.build~	2020-12-11 16:36:35.000000000 +0000
++++ ./meson.build	2020-12-11 16:41:49.187112972 +0000
+@@ -109,6 +109,7 @@
+     '-DXWAYLAND_SHM_DRIVER="' + get_option('xwayland_shm_driver') + '"',
+     '-DSHM_DRIVER="' + get_option('shm_driver') + '"',
+     '-DVIRTWL_DEVICE="' + get_option('virtwl_device') + '"',
++    '-DDRM_DEVICE="' + get_option('drm_device') + '"',
+     '-DPEER_CMD_PREFIX="' + peer_cmd_prefix + '"',
+     '-DFRAME_COLOR="' + get_option('frame_color') + '"',
+     '-DDARK_FRAME_COLOR="' + get_option('dark_frame_color') + '"',
+--- ./meson_options.txt~	2020-12-11 16:36:35.000000000 +0000
++++ ./meson_options.txt	2020-12-11 16:41:48.480431327 +0000
+@@ -26,6 +26,12 @@
+   description: 'shm driver to use for wayland clients'
+ )
+ 
++option('drm_device',
++  type: 'string',
++  value: 'NULL',
++  description: 'the dmabuf drm device'
++)
++
+ option('virtwl_device',
+   type: 'string',
+   value: '/dev/wl0',
+--- ./sommelier.c~	2020-12-11 17:20:40.000000000 +0000
++++ ./sommelier.c	2020-12-11 17:29:18.877510932 +0000
+@@ -3602,7 +3602,7 @@
+       .virtwl_socket_fd = -1,
+       .virtwl_ctx_event_source = NULL,
+       .virtwl_socket_event_source = NULL,
+-      .drm_device = DRM_DEVICE,
++      .drm_device = NULL,
+       .gbm = NULL,
+       .xwayland = 0,
+       .xwayland_pid = -1,
+@@ -4069,6 +4069,9 @@
+     }
+   }
+ 
++  if (!drm_device)
++    drm_device = DRM_DEVICE;
++
+   if (drm_device) {
+     int drm_fd = open(drm_device, O_RDWR | O_CLOEXEC);
+     if (drm_fd == -1) {

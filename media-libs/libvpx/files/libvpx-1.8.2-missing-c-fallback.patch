@@ -1,0 +1,13 @@
+--- ./vp8/common/rtcd_defs.pl	2020-06-16 12:46:49.953132978 +0000
++++ ./vp8/common/rtcd_defs.pl~	2020-06-16 12:46:20.000000000 +0000
+@@ -217,7 +217,8 @@
+ # Motion search
+ #
+ add_proto qw/int vp8_full_search_sad/, "struct macroblock *x, struct block *b, struct blockd *d, union int_mv *ref_mv, int sad_per_bit, int distance, struct variance_vtable *fn_ptr, int *mvcost[2], union int_mv *center_mv";
+-specialize qw/vp8_full_search_sad sse3 sse4_1/;
++specialize qw/vp8_full_search_sad ssse3 sse4_1/;
++$vp8_full_search_sad_c=vp8_full_search_sad_c;
+-$vp8_full_search_sad_sse3=vp8_full_search_sadx3;
++$vp8_full_search_sad_ssse3=vp8_full_search_sadx3;
+ $vp8_full_search_sad_sse4_1=vp8_full_search_sadx8;
+ 

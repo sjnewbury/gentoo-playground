@@ -1,0 +1,144 @@
+--- lcd4linux-9999.ebuild	2021-02-04 17:42:47.569638217 +0000
++++ /usr/portage/app-misc/lcd4linux/lcd4linux-0.11.0_pre20170527-r5.ebuild	2021-01-24 15:39:18.000000000 +0000
+@@ -1,41 +1,30 @@
+-# Copyright 1999-2019 Gentoo Authors
++# Copyright 1999-2021 Gentoo Authors
+ # Distributed under the terms of the GNU General Public License v2
+ 
+-EAPI="7"
++EAPI=7
+ 
+ PYTHON_COMPAT=( python3_{7,8,9} )
+ 
+-inherit autotools flag-o-matic python-single-r1 systemd
++inherit autotools flag-o-matic python-single-r1
+ 
+ DESCRIPTION="A small program that grabs information and displays it on an external LCD"
+-HOMEPAGE="https://lcd4linux.bulix.org/"
++HOMEPAGE="https://github.com/jmccrohan/lcd4linux/"
++SRC_URI="https://dev.gentoo.org/~conikost/files/${P}.tar.bz2"
+ 
+-if [[ ${PV} == 9999* ]]; then
+-	inherit git-r3
+-	EGIT_REPO_URI=https://github.com/feckert/lcd4linux
+-	EGIT_BRANCH=pr/feature
+-else
+-	SRC_URI="https://www.bl4ckb0x.de/files/${P}.tar.bz2"
+-	KEYWORDS="~amd64 ~x86"
+-fi
+ LICENSE="GPL-2"
+ SLOT="0"
++KEYWORDS="amd64 x86"
+ IUSE="dmalloc outb"
+ REQUIRED_USE="
+ 	?? ( lcd_devices_hd44780 lcd_devices_hd44780-i2c )
+ 	python? ( ${PYTHON_REQUIRED_USE} )
+ "
+ 
+-PATCHES=(
+-	"${FILESDIR}/list-to-help.patch"
+-	"${FILESDIR}/${PN}-0.11.0_pre20170527-python3.patch"
+-)
+-
+ # Define the list of valid lcd devices.
+ # Some drivers were removed from this list:
+ # - lcdlinux: It's an ancient driver, which needs app-misc/lcd-linux, that made it never to the portage tree.
+ # - lcdlinux: Besides, app-misc/lcd-linux won't compile on a modern linux kernel.
+-# - st2205: It's needs dev-libs/libst2205,  which made it never to the portage tree and is quite outdated.
++# - st2205: It's needs dev-libs/libst2205, which made it never to the portage tree and is quite outdated.
+ IUSE_LCD_DEVICES=(
+ 	ASTUSB BeckmannEgle BWCT CrystalFontz Curses Cwlinux D4D DPF EA232graphic EFN FutabaVFD
+ 	FW8888 G15 GLCD2USB HD44780 HD44780-I2C IRLCD LCD2USB LCDTerm LEDMatrix LPH7508 LUIse LW_ABP M50530
+@@ -51,11 +40,11 @@
+ # - seti: SETI@home software was replaced by sci-misc/boinc, which is not compatible.
+ # - xmms: XMMS software was replaced by media-sound/xmms2, which is not compatible.
+ IUSE_LCD4LINUX_PLUGINS=(
+-	apm asterisk button_exec control cpuinfo dbus diskstats dvb exec event 
+-	fifo file gps hddtemp huawei i2c_sensors iconv imon isdn kvv 
+-	layout list loadavg meminfo menu mpd mpris_dbus mysql netdev netinfo pop3 ppp 
+-	proc_stat python qnaplog raspi run sample seti statfs uname uptime 
+-	w1retap wireless xmms
++	apm asterisk button-exec cpuinfo dbus diskstats dvb exec event
++	fifo file gps hddtemp huawei i2c-sensors iconv isdn kvv
++	loadavg meminfo mpd mpris-dbus mysql netdev netinfo pop3
++	proc-stat python qnaplog raspi sample statfs uname uptime
++	w1retap wireless
+ )
+ 
+ # Add supported drivers from 'IUSE_LCD_DEVICES' to 'IUSE' and 'REQUIRED_USE'
+@@ -84,7 +73,7 @@
+ 	lcd_devices_lcd2usb? ( virtual/libusb:0= )
+ 	lcd_devices_ledmatrix? ( virtual/libusb:0= )
+ 	lcd_devices_luise? (
+-		dev-libs/luise-bin
++		dev-libs/luise
+ 		virtual/libusb:0=
+ 	)
+ 	lcd_devices_matrixorbitalgx? ( virtual/libusb:0= )
+@@ -118,7 +107,7 @@
+ 	hddtemp? ( app-admin/hddtemp )
+ 	iconv? ( virtual/libiconv )
+ 	mpd? ( media-libs/libmpd )
+-	mpris_dbus? ( sys-apps/dbus )
++	mpris-dbus? ( sys-apps/dbus )
+ 	mysql? ( dev-db/mysql-connector-c:0= )
+ 	python? ( ${PYTHON_DEPS} )
+ 	wireless? (
+@@ -132,19 +121,30 @@
+ RDEPEND="
+ 	dmalloc? ( dev-libs/dmalloc )
+ 	${DEPEND_LCD_DEVICES}
+-	${DEPEND_LCD4LINUX_PLUGINS}"
++	${DEPEND_LCD4LINUX_PLUGINS}
++"
+ 
+ DEPEND="${RDEPEND}"
+ 
++BDEPEND="sys-devel/autoconf-archive"
++
++PATCHES="${FILESDIR}/${P}-python3.patch"
++
+ pkg_setup() {
+-	if use python; then
+-		python-single-r1_pkg_setup
+-	fi
++	use python && python-single-r1_pkg_setup
+ }
+ 
+ src_prepare() {
+ 	default
+ 
++	if use python; then
++		# Shipped one is outdated and doesn't know python3, use system's instead.
++		rm ax_python_devel.m4
++
++		# Use correct python version.
++		append-libs "-lpython${EPYTHON#python}$(usex python_single_target_python3_7 'm' '')"
++	fi
++
+ 	eautoreconf
+ }
+ 
+@@ -161,7 +161,7 @@
+ 	local myeconfargs_lcd4linux_plugins
+ 	for lcd4linux_plugin in "${IUSE_LCD4LINUX_PLUGINS[@]}"; do
+ 		if use "${lcd4linux_plugin}"; then
+-			myeconfargs_lcd4linux_plugins+=",${lcd4linux_plugin}"
++			myeconfargs_lcd4linux_plugins+=",${lcd4linux_plugin/-/_}"
+ 		fi
+ 	done
+ 
+@@ -188,7 +188,11 @@
+ 	insopts -m 0600
+ 	doins lcd4linux.conf.sample
+ 
+-	newinitd "${FILESDIR}"/lcd4linux-r2.initd lcd4linux
++	newinitd "${FILESDIR}/lcd4linux-r2.initd" lcd4linux
++}
+ 
+-	systemd_dounit "${FILESDIR}"/lcd4linux.service
++pkg_postinst() {
++	if [[ ! -z ${REPLACING_VERSIONS} ]]; then
++		use python && einfo "Starting with that version, the python plugins uses now python3 instead if python2!"
++	fi
+ }

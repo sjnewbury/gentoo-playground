@@ -1,0 +1,12 @@
+--- ./emumidi.c~	1997-05-11 22:35:21.000000000 +0100
++++ ./emumidi.c	2020-10-15 13:09:49.948833929 +0100
+@@ -20,7 +20,8 @@
+ extern int seqfd, play_ext, play_gus, play_fm, play_awe;
+ extern int gus_dev, sb_dev, ext_dev, awe_dev;
+ extern struct synth_info card_info[MAX_CARDS];
+-extern int chanmask, perc, ticks, dochan, wantopl3, MT32;
++extern int chanmask, perc, dochan, wantopl3, MT32;
++extern long unsigned int ticks;
+ extern int patchloaded[256], fmloaded[256], useprog[16];
+ int note_vel[16][128];
+ struct voicestate voice[2][36];

@@ -1,0 +1,69 @@
+--- ./Makefile.orig	2020-10-15 12:56:48.708949301 +0100
++++ ./Makefile	2020-10-15 12:58:23.287619705 +0100
+@@ -16,8 +16,6 @@
+ 
+ ######### NOTE:  X11R6 or newer REQUIRED
+ LIBX11	= -L/usr/@LIBDIR@ -lXaw -lXmu -lXt -lX11 -lXext -lSM -lICE
+-LIBGTK	= -L/usr/@LIBDIR@ -lgtk-1.1 -lgdk-1.1 -lglib-1.1 -lX11 -lXext -lm
+-LIBVGA	= -L/usr/@LIBDIR@ -lvgagl -lvga
+ 
+ # ncurses is usually in /usr/include/ncurses, but you may need
+ # to use /usr/local/include/ncurses depending on your setup.
+@@ -31,10 +29,6 @@
+ # awe_voice.h path
+ INCAWE  += -I.
+ 
+-# usually in /usr/include, but -I/usr/local/include doesn't hurt
+-# unless there's more than one svgalib floating around your system.
+-INCVGA	= -I/usr/include
+-
+ # Directory where application defaults files are stored for X11 version
+ XAPPDEFAULTS = /usr/share/X11/app-defaults
+ 
+@@ -52,12 +46,6 @@
+ XOBJECTS= playmidi.o readmidi.o playevents.o \
+ 	  patchload.o emumidi.o io_xaw.o
+ 
+-SOBJECTS= playmidi.o readmidi.o playevents.o \
+-	  patchload.o emumidi.o io_svgalib.o
+-
+-GOBJECTS= playmidi.o readmidi.o playevents.o \
+-	  patchload.o emumidi.o io_gtk.o
+-
+ all: playmidi xplaymidi 
+ 
+ config:
+@@ -70,33 +58,18 @@
+ io_xaw.o: io_xaw.c
+ 	$(CC) $(CFLAGS) $(INCX11) -c io_xaw.c -o io_xaw.o
+ 
+-io_svgalib.o: io_svgalib.c
+-	$(CC) $(CFLAGS) $(INCVGA) -c io_svgalib.c -o io_svgalib.o
+-
+ playmidi: .depend $(OBJECTS)
+ 	$(CC) $(LDFLAGS) -o playmidi $(OBJECTS) $(LIBNC)
+ 
+ xplaymidi: .depend $(XOBJECTS)
+ 	$(CC) $(LDFLAGS) -o xplaymidi $(XOBJECTS) $(LIBX11)
+ 
+-gtkplaymidi: .depend $(GOBJECTS)
+-	$(CC) $(LDFLAGS) -o gtkplaymidi $(GOBJECTS) $(LIBGTK)
+-
+-splaymidi: .depend $(SOBJECTS)
+-	$(CC) $(LDFLAGS) -o splaymidi $(SOBJECTS) $(LIBVGA)
+-
+ $(INSTALLDIR)/playmidi: playmidi
+ 	$(INSTALL) playmidi $(INSTALLDIR)
+ 
+ $(INSTALLDIR)/xplaymidi: xplaymidi
+ 	$(INSTALL) xplaymidi $(INSTALLDIR)
+ 
+-$(INSTALLDIR)/gtkplaymidi: gtkplaymidi
+-	$(INSTALL) gtkplaymidi $(INSTALLDIR)
+-
+-$(INSTALLDIR)/splaymidi: splaymidi
+-	$(INSTALL) splaymidi $(INSTALLDIR)
+-
+ /etc/std.o3:
+ 	cp -i std.o3 /etc
+ 

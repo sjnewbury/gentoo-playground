@@ -1,0 +1,19 @@
+--- ./sommelier.c~	2020-12-11 15:48:36.000000000 +0000
++++ ./sommelier.c	2020-12-11 16:06:03.051626545 +0000
+@@ -4010,8 +4010,14 @@
+ 
+   event_loop = wl_display_get_event_loop(ctx.host_display);
+ 
+-  if (!virtwl_device)
+-    virtwl_device = VIRTWL_DEVICE;
++  // If neither virtwl_device nor display is specified try
++  // to get display from the environment
++  if (!virtwl_device) {
++    if (!display)
++      display = getenv("WAYLAND_DISPLAY");
++    if (!display)
++      virtwl_device = VIRTWL_DEVICE;
++  }
+ 
+   if (virtwl_device) {
+     struct virtwl_ioctl_new new_ctx = {

@@ -1,0 +1,32 @@
+--- ./picojson.h~	2018-04-28 15:18:36.000000000 +0100
++++ ./picojson.h	2018-04-28 15:21:31.495767539 +0100
+@@ -91,13 +91,18 @@
+ #endif
+ 
+ #ifndef PICOJSON_ASSERT
++#if PICOJSON_NOEXCEPT != noexcept
+ #define PICOJSON_ASSERT(e)                                                                                                         \
+   do {                                                                                                                             \
+     if (!(e))                                                                                                                      \
+       throw std::runtime_error(#e);                                                                                                \
+   } while (0)
++#else
++#define PICOJSON_ASSERT(e)                                                                                                         \
++  if (!e)                                                                                                                          \
++    std::cerr << "picosjon runtime error\n";
++#endif
+ #endif
+-
+ #ifdef _MSC_VER
+ #define SNPRINTF _snprintf_s
+ #pragma warning(push)
+@@ -245,7 +250,9 @@
+       isnan(n) || isinf(n)
+ #endif
+           ) {
++#if PICOJSON_NOEXCEPT != noexcept
+     throw std::overflow_error("");
++#endif
+   }
+   u_.number_ = n;
+ }

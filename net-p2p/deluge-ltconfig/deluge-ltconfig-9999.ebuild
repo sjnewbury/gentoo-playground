@@ -2,7 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-PYTHON_COMPAT=( python2_7 )
+PYTHON_COMPAT=( python3_{6,7,8} )
+
+EGIT_BRANCH=2.x
 
 inherit distutils-r1 git-r3
 
@@ -32,6 +34,6 @@ python_compile_all() {
 python_install_all() {
 	distutils-r1_python_install_all
 
-	insinto /usr/lib64/python2.7/site-packages/deluge/plugins
+	insinto $(python_get_sitedir)/deluge/plugins
 	doins dist/*
 }

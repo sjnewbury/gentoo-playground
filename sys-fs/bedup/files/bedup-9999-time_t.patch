@@ -1,0 +1,35 @@
+diff --git a/bedup/platform/futimens.py b/bedup/platform/futimens.py
+index 4af3c42..3861606 100644
+--- a/bedup/platform/futimens.py
++++ b/bedup/platform/futimens.py
+@@ -31,8 +31,8 @@ ffi = FFI()
+ ffi.cdef('''
+ struct timespec {
+-    // time_t is long
+-    long tv_sec;  // seconds
+-    long tv_nsec; // nanoseconds
++    // time_t is long long
++    long long tv_sec;  // seconds
++    long long tv_nsec; // nanoseconds
+ };
+ 
+ struct stat {
+diff --git a/bedup/platform/time.py b/bedup/platform/time.py
+index ba46e51..ac1f31e 100644
+--- a/bedup/platform/time.py
++++ b/bedup/platform/time.py
+@@ -28,11 +28,11 @@ ffi.cdef('''
+ #define CLOCK_MONOTONIC ...
+ 
+ // From /usr/include/bits:
+-// time_t is long, clockid_t is int
++// time_t is long long, clockid_t is int
+ 
+ struct timespec {
+-    long     tv_sec;        /* seconds */
+-    long     tv_nsec;       /* nanoseconds */
++    long long    tv_sec;        /* seconds */
++    long long    tv_nsec;       /* nanoseconds */
+ };
+ 
+ int clock_gettime(int clk_id, struct timespec *tp);

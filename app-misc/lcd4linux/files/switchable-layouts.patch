@@ -1,0 +1,6138 @@
+diff -urN lcd4linux-0.11.0_pre20170527/action.c /usr/src/lcd4linux+/action.c
+--- lcd4linux-0.11.0_pre20170527/action.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/action.c	2019-08-15 08:42:22.665645830 +0100
+@@ -0,0 +1,172 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++#include <stdlib.h>
++#include <stdio.h>
++
++#include "debug.h"
++#include "cfg.h"
++#include "action.h"
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++/* Actions are stored as linked list, referenced by its first element.
++ * An action has a name and a property. 
++ * The name should be unique within the action list because it is used
++ * to find an action within a action list to evaluate its property.
++ * 
++ * Action properties are expressions that change variables or call 
++ * plugin functions.
++ *  
++ */
++
++
++
++void action_free_all(Action * firstAction)
++{
++    Action *action;
++    Action *nextAction;
++
++    for (action = firstAction; action != NULL; action = nextAction) {
++	free(action->name);
++	property_free(action->property);
++	nextAction = action->next;
++	free(action);
++    }
++}
++
++static Action *action_read(const char *prefix, const char *actionName)
++{
++
++    if (prefix == NULL)
++	return NULL;
++
++    char *tmp = cfg_get_raw(prefix, actionName, NULL);
++    if (tmp == NULL)
++	return NULL;
++
++    PROPERTY *prop = malloc(sizeof(PROPERTY));
++    if (prop == NULL) {
++	error("action_read() couldn't allocate memory.");
++	return NULL;
++    }
++    prop->valid = 1;
++    prop->expression = tmp;	/* NO strdup see property_free() */
++    prop->compiled = NULL;
++    prop->result.string = NULL;
++    DelResult(&prop->result);
++    prop->name = cfg_make_str("%s.%s", prefix, actionName);
++    if (prop->name == NULL) {
++	property_free(prop);
++	return NULL;
++    }
++
++    Action *action = malloc(sizeof(Action));
++    if (action == NULL) {
++	error("action_read() couldn't allocate memory.");
++	property_free(prop);
++	return NULL;
++    }
++    action->name = strdup(actionName);
++    action->property = prop;
++    action->next = NULL;
++    return action;
++}
++
++
++void action_init_multiple(const char *prefix, const char **names, Action ** firstActionPtr)
++{
++
++    Action *prevAction = NULL;
++
++    for (; *names != NULL; names++) {
++
++	Action *action = action_read(prefix, *names);
++
++	if (action == NULL)
++	    continue;
++	if (prevAction == NULL)
++	    *firstActionPtr = action;
++	else
++	    prevAction->next = action;
++
++	Compile(action->property->expression, &action->property->compiled);
++	prevAction = action;
++    }
++}
++
++
++void action_init_default(const char *prefix, Action ** firstActionPtr)
++{
++
++    const int NUMBERED_ACTIONS = 20;
++    const int MAX_STRING_SIZE = 9;
++
++
++    const char *names[8 + NUMBERED_ACTIONS + 1];
++
++    names[8 + NUMBERED_ACTIONS] = NULL;
++    const char *namedAction[] = { "onenter", "onexit", "confirm", "cancel",
++	"up", "down", "left", "right"
++    };
++
++    int i;
++    for (i = 0; i < 8; i++)
++	names[i] = namedAction[i];
++
++    char buffer[MAX_STRING_SIZE * NUMBERED_ACTIONS];
++
++    for (i = 0; i < NUMBERED_ACTIONS; i++) {
++
++	char *str = buffer + MAX_STRING_SIZE * i;
++	if (sprintf(str, "action%d", i + 1) < 0) {
++	    error("action_init_default() couldn't set string.");
++	    names[8 + i] = NULL;
++	} else {
++	    names[8 + i] = str;
++	}
++    }
++
++    action_init_multiple(prefix, names, firstActionPtr);
++}
++
++
++int action_trigger(Action * firstAction, const char *name)
++{
++
++    Action *action;
++    for (action = firstAction; action != NULL; action = action->next) {
++	if (strcmp(action->name, name) == 0) {
++	    if (action->property == NULL || action->property->compiled == NULL) {
++
++		return 0;
++	    } else {
++		property_eval(action->property);
++		return 1;
++	    }
++	}
++    }
++    return 0;
++}
+diff -urN lcd4linux-0.11.0_pre20170527/action.h lcd4linux-0.11.0_pre20170527.new/action.h
+--- lcd4linux-0.11.0_pre20170527/action.h	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/action.h	2019-08-15 08:43:28.206371275 +0100
+@@ -0,0 +1,46 @@
++/* $Id: cfg.h 967 2009-01-15 15:15:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/cfg.h $
++ *
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++
++#ifndef _ACTION_H_
++#define _ACTION_H_
++
++
++#include "property.h"
++
++typedef struct Action Action;
++
++typedef struct Action {
++    char *name;
++    PROPERTY *property;
++    Action *next;
++} Action;
++
++void action_free_all(Action * firstAction);
++void action_init_default(const char *confPrefix, Action ** firstActionPtr);
++void action_init_multiple(const char *prefix, const char **names, Action ** firstActionPtr);
++int action_trigger(Action * firstAction, const char *name);
++
++
++
++#endif
+diff -urN lcd4linux-0.11.0_pre20170527/cfg.c lcd4linux-0.11.0_pre20170527.new/cfg.c
+--- lcd4linux-0.11.0_pre20170527/cfg.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/cfg.c	2019-08-15 08:43:28.209704645 +0100
+@@ -76,6 +76,7 @@
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
++#include <stdarg.h>
+ #include <string.h>
+ #include <ctype.h>
+ #include <errno.h>
+@@ -712,3 +713,65 @@
+ 
+     return 0;
+ }
++
++/* Creates a formated heap string
++ * pro: no buffer overflow
++ * con: slower
++ */
++char *cfg_make_str(const char *format, ...)
++{
++    char *str = NULL;
++
++    va_list args;
++    va_start(args, format);
++    int len = vasprintf(&str, format, args);
++    va_end(args);
++
++    if (len < 0) {
++	error("cfg_make_str() could't create string.");
++	return NULL;
++    }
++    return str;
++}
++
++/* Checks if section exists in config
++ *  
++ * returns 0 if it doesn't or for leafs, else 1
++ */
++int cfg_exist(const char *section)
++{
++
++    char *result = cfg_list(section);
++
++    if (result == NULL || *result == '\0') {
++	free(result);
++	return 0;
++    }
++    free(result);
++    return 1;
++}
++
++/* Counts numbered sections like
++ * 
++ * Key1 {...}
++ * Key2 {...}
++ * ...
++ * 
++ * doesn't count leafs
++ */
++int cfg_count(const char *sectionPrefix, const int max)
++{
++
++    int i;
++    for (i = 0; i < max; i++) {
++	char *section = cfg_make_str("%s%d", sectionPrefix, i + 1);
++	if (section == NULL)
++	    break;
++
++	int r = cfg_exist(section);
++	free(section);
++	if (r == 0)
++	    break;
++    }
++    return i;
++}
+diff -urN lcd4linux-0.11.0_pre20170527/cfg.h lcd4linux-0.11.0_pre20170527.new/cfg.h
+--- lcd4linux-0.11.0_pre20170527/cfg.h	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/cfg.h	2019-08-15 08:43:28.213038016 +0100
+@@ -37,4 +37,8 @@
+ int cfg_number(const char *section, const char *key, const int defval, const int min, const int max, int *value);
+ int cfg_exit(void);
+ 
++char *cfg_make_str(const char *format, ...) __attribute__ ((format(__printf__, 1, 2)));
++int cfg_exist(const char *section);
++int cfg_count(const char *sectionPrefix, const int max);
++
+ #endif
+diff -urN lcd4linux-0.11.0_pre20170527/config.h.in lcd4linux-0.11.0_pre20170527.new/config.h.in
+--- lcd4linux-0.11.0_pre20170527/config.h.in	2019-08-15 08:48:32.686419379 +0100
++++ lcd4linux-0.11.0_pre20170527.new/config.h.in	2019-08-15 08:43:28.209704645 +0100
+@@ -329,6 +329,9 @@
+ /* button_exec plugin */
+ #undef PLUGIN_BUTTON_EXEC
+ 
++/* control plugin */
++#undef PLUGIN_CONTROL
++
+ /* cpuinfo plugin */
+ #undef PLUGIN_CPUINFO
+ 
+@@ -377,12 +380,21 @@
+ /* kvv plugin */
+ #undef PLUGIN_KVV
+ 
++/* layout plugin */
++#undef PLUGIN_LAYOUT
++
++/* list plugin */
++#undef PLUGIN_LIST
++
+ /* loadavg plugin */
+ #undef PLUGIN_LOADAVG
+ 
+ /* meminfo plugin */
+ #undef PLUGIN_MEMINFO
+ 
++/* menu plugin */
++#undef PLUGIN_MENU
++
+ /* mpd plugin */
+ #undef PLUGIN_MPD
+ 
+@@ -416,6 +428,9 @@
+ /* raspi plugin */
+ #undef PLUGIN_RASPI
+ 
++/* run plugin */
++#undef PLUGIN_RUN
++
+ /* sample plugin */
+ #undef PLUGIN_SAMPLE
+ 
+diff -urN lcd4linux-0.11.0_pre20170527/drv_Curses.c lcd4linux-0.11.0_pre20170527.new/drv_Curses.c
+--- lcd4linux-0.11.0_pre20170527/drv_Curses.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_Curses.c	2019-08-15 08:43:28.213038016 +0100
+@@ -81,16 +81,20 @@
+ static void drv_Curs_write(const int row, const int col, const char *data, const int len)
+ {
+     int l = len;
+-    char *p;
+ 
+-    while ((p = strpbrk(data, "\r\n")) != NULL) {
+-	*p = '\0';
+-    }
++    int i;
++    for (i = 0; i < len; i++)
++	if (data[i] == '\r' || data[i] == '\n')
++	    break;
++
++    char str[i + 1];
++    memcpy(str, data, i);
++    str[i] = '\0';
+ 
+     if (col < DCOLS) {
+ 	if (DCOLS - col < l)
+ 	    l = DCOLS - col;
+-	mvwprintw(w, row + 1, col + 1, "%.*s", l, data);
++	mvwprintw(w, row + 1, col + 1, "%.*s", l, str);
+ 	wmove(w, DROWS + 1, 0);
+ 	wrefresh(w);
+     }
+diff -urN lcd4linux-0.11.0_pre20170527/drv_FutabaVFD.c lcd4linux-0.11.0_pre20170527.new/drv_FutabaVFD.c
+--- lcd4linux-0.11.0_pre20170527/drv_FutabaVFD.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_FutabaVFD.c	2019-08-15 08:43:28.213038016 +0100
+@@ -40,6 +40,7 @@
+ #include <unistd.h>
+ #include <string.h>
+ #include <errno.h>
++#include <math.h>
+ 
+ #include "debug.h"
+ #include "cfg.h"
+@@ -55,29 +56,51 @@
+ #include "drv_generic_text.h"
+ #include "drv_generic_parport.h"
+ 
++#include "timer.h"
++#include "action.h"
+ 
+-static char Name[] = "FutabaVFD";
++
++#define NAME "FutabaVFD"
++#define RELEASE NAME " 0.0.2"
++
++#define PWR_ON 1
++#define PWR_OFF 0
+ 
+ static unsigned char SIGNAL_WR;
+ static unsigned char SIGNAL_SELECT;
+-static unsigned char SIGNAL_TEST;
++static unsigned char SIGNAL_TEST;	/*test mode not implemented */
+ static unsigned char SIGNAL_BUSY;
++static unsigned char SIGNAL_PWR_ON;
++static unsigned char SIGNAL_PWR_5V;
+ 
+-static unsigned char dim;	/* brightness 0..3 */
+-static unsigned char curPos;	/* cursor position */
+-static unsigned char curOn;	/* cursor on */
++static unsigned char SIGNAL_PWR_5V;
++static unsigned char SIGNAL_PWR_5V;
+ 
+-static unsigned char BUSY_SHIFT;
+-static unsigned char BUSY_VALUE;
++static int pwrState = PWR_OFF;
++static int dim = 0;		/* brightness 0..3 */
+ 
++static char *displayBuffer = NULL;
++static Action *firstAction = NULL;
+ 
+-/****************************************/
+-/***  hardware dependant functions    ***/
+-/****************************************/
++static void my_reset(void);
++
++static void my_set_pwr_state(int newState)
++{
++
++    if (pwrState != newState) {
++	pwrState = newState;
++	if (pwrState == PWR_ON)
++	    my_reset();
++	action_trigger(firstAction, (pwrState == PWR_ON) ? "poweron" : "poweroff");
++    }
++}
+ 
+ 
+-/* example for sending one byte over the wire */
+-static void drv_FutabaVFD_writeChar(const unsigned char c)
++/* sending one byte over the wire 
++ * returns PWR_ON if VFD powered and write ok 
++ * else PWR_OFF
++ */
++static int my_writeChar_help(const unsigned char c)
+ {
+ 
+     int i;
+@@ -91,66 +114,109 @@
+     /*wait <=60ns till busy */
+     for (i = 0; i < 60; i++) {
+ 	status = drv_generic_parport_status();
+-	if (((status >> BUSY_SHIFT) & 1) == BUSY_VALUE)
++	if (!(status & SIGNAL_PWR_ON))
++	    return PWR_OFF;
++	if (!(status & SIGNAL_BUSY))	/* signal inverted */
+ 	    break;
+ 	ndelay(1);
+     }
++
+     ndelay(60 - i);
+     drv_generic_parport_control(SIGNAL_SELECT, 0xFF);
++    drv_generic_parport_control(SIGNAL_WR, 0);
+ 
+-    /*wait max 0.1s till not busy */
+-    for (i = 0; i < 100000000; i++) {
++    /*wait max 32000ns till not busy */
++    for (i = 0; i < 32000; i++) {
+ 	status = drv_generic_parport_status();
+-	if (((status >> BUSY_SHIFT) & 1) != BUSY_VALUE)
++	if (!(status & SIGNAL_PWR_ON))
++	    return PWR_OFF;
++	if ((status & SIGNAL_BUSY))	/* signal inverted */
+ 	    break;
+ 	ndelay(1);
+     }
++
+     ndelay(210);
++    return PWR_ON;
+ }
+ 
+ 
++static int my_writeChar(const unsigned char c)
++{
++
++    if (pwrState == PWR_ON)
++	my_set_pwr_state(my_writeChar_help(c));
+ 
+-static void drv_FutabaVFD_showCursor(int b)
++    return pwrState;
++}
++
++
++static void my_goto(const unsigned char pos)
+ {
+-    drv_FutabaVFD_writeChar((b) ? 0x13 : 0x14);	/* b==0: cursor off */
++    my_writeChar(0x10);
++    my_writeChar(pos);
+ }
+ 
+-static void drv_FutabaVFD_clear()
++
++static void my_brightness(const int brightness)
++{
++    if (brightness < 0)
++	dim = 0;
++    else if (brightness > 3)
++	dim = 3;
++    else
++	dim = brightness;
++    unsigned char val = (dim < 3) ? (1 + dim) * 0x20 : 0xFF;
++    my_writeChar(0x04);
++    my_writeChar(val);
++}
++
++
++static void my_reset(void)
+ {
+-    drv_FutabaVFD_writeChar(0x1F);	/*reset */
+-    drv_FutabaVFD_writeChar(0x11);	/*DC1 - normal display */
+-    drv_FutabaVFD_showCursor(0);
++    my_writeChar(0x1F);		/*reset */
++    my_writeChar(0x14);		/*hide cursor */
++    my_writeChar(0x11);		/*DC1 - normal display */
++    my_brightness(dim);
++
++    if (displayBuffer == NULL)
++	return;
++
++    int r, c;
++    for (r = 0; r < DROWS; r++) {
++	my_goto(r * DCOLS);
++	for (c = 0; c < DCOLS; c++)
++	    if (my_writeChar(displayBuffer[r * DCOLS + c]) != PWR_ON)
++		return;
++    }
+ }
+ 
+ 
+-static int drv_FutabaVFD_open(const char *section)
++static int my_open(const char *section)
+ {
+ 
+-    if (drv_generic_parport_open(section, Name) != 0) {
+-	error("%s: could not initialize parallel port!", Name);
++    if (drv_generic_parport_open(section, NAME) != 0) {
++	error("%s: could not initialize parallel port!", NAME);
+ 	return -1;
+     }
+ 
+-    /* read the wiring from config */
+-    if ((SIGNAL_WR = drv_generic_parport_wire_ctrl("WR", "STROBE")) == 0xFF)
++    /* hardwired */
++
++    if ((SIGNAL_WR = drv_generic_parport_hardwire_ctrl("WR", "STROBE")) == 0xFF)
+ 	return -1;
+-    if ((SIGNAL_SELECT = drv_generic_parport_wire_ctrl("SEL", "SLCTIN")) == 0xFF)
++    if ((SIGNAL_SELECT = drv_generic_parport_hardwire_ctrl("SEL", "SLCTIN")) == 0xFF)
+ 	return -1;
+-    if ((SIGNAL_TEST = drv_generic_parport_wire_ctrl("TEST", "AUTOFD")) == 0xFF)
++    if ((SIGNAL_TEST = drv_generic_parport_hardwire_ctrl("TEST", "AUTOFD")) == 0xFF)
+ 	return -1;
+-    if ((SIGNAL_BUSY = drv_generic_parport_wire_status("BUSY", "BUSY")) == 0xFF)
++    if ((SIGNAL_PWR_5V = drv_generic_parport_hardwire_ctrl("PWR_5V", "INIT")) == 0xFF)
++	return -1;
++    if ((SIGNAL_BUSY = drv_generic_parport_hardwire_status("BUSY", "BUSY")) == 0xFF)
++	return -1;
++    if ((SIGNAL_PWR_ON = drv_generic_parport_hardwire_status("PWR_ON", "PAPEROUT")) == 0xFF)
+ 	return -1;
+ 
+-    BUSY_SHIFT = 0;
+-    BUSY_VALUE = SIGNAL_BUSY;
+-    while (BUSY_VALUE > 1) {
+-	BUSY_VALUE >>= 1;
+-	BUSY_SHIFT++;
+-    }
+-    BUSY_VALUE = (SIGNAL_BUSY == 0x80) ? 0 : 1;	/* portpin 11 inverted */
+-
+-    /* set all signals to high */
+-    drv_generic_parport_control(SIGNAL_WR | SIGNAL_SELECT | SIGNAL_TEST, 0xFF);
++    /* set all signals but WR to high */
++    drv_generic_parport_control(SIGNAL_SELECT | SIGNAL_TEST | SIGNAL_PWR_5V, 0xFF);
++    drv_generic_parport_control(SIGNAL_WR, 0);
+ 
+     /* set direction: write */
+     drv_generic_parport_direction(0);
+@@ -159,70 +225,27 @@
+ }
+ 
+ 
+-static int drv_FutabaVFD_close(void)
++static void my_write(const int row, const int col, const char *data, const int len)
+ {
+-    drv_generic_parport_close();
+-    return 0;
+-}
++    if (displayBuffer != NULL)
++	memcpy(displayBuffer + (DCOLS * row + col), data, len);
+ 
+-static void drv_FutabaVFD_send(const char *data, const unsigned int len)
+-{
+-    unsigned int i;
++    my_goto(row * DCOLS + col);
++    int i;
+     for (i = 0; i < len; i++)
+-	drv_FutabaVFD_writeChar(*data++);
+-}
+-
+-
+-static void drv_FutabaVFD_goto(unsigned char pos)
+-{
+-    curPos = pos;
+-    drv_FutabaVFD_writeChar(0x10);
+-    drv_FutabaVFD_writeChar(curPos);
++	if (my_writeChar(*data++) != PWR_ON)
++	    break;
+ }
+ 
+ 
+-static void drv_FutabaVFD_write(const int row, const int col, const char *data, int len)
+-{
+-    unsigned char oldPos = curPos;
+-    if (curOn)
+-	drv_FutabaVFD_showCursor(0);
+-    drv_FutabaVFD_goto(row * DCOLS + col);
+-    drv_FutabaVFD_send(data, len);
+-    drv_FutabaVFD_goto(oldPos);
+-    if (curOn)
+-	drv_FutabaVFD_showCursor(1);
+-}
+-
+-static void drv_FutabaVFD_defchar(const int ascii, const unsigned char *matrix)
++static void my_defchar(const int ascii, const unsigned char *matrix)
+ {
+     return;			// no defchars
+ }
+ 
+ 
+-static void drv_FutabaVFD_brightness(int brightness)
+-{
+-
+-    if (brightness < 0)
+-	dim = 0;
+-    else if (brightness > 3)
+-	dim = 3;
+-    else
+-	dim = brightness;
+-
+-    drv_FutabaVFD_writeChar(0x04);
+-    drv_FutabaVFD_writeChar((dim < 3) ? (1 + dim) * 0x20 : 0xFF);
+-}
+-
+-
+-static void drv_FutabaVFD_test(int test)
+-{
+-    drv_generic_parport_control(SIGNAL_TEST, (test) ? 0 : 0xFF);
+-}
+-
+-
+-
+ /* start text mode display */
+-static int drv_FutabaVFD_start(const char *section)
++static int my_start(const char *section)
+ {
+ 
+     int brightness;
+@@ -232,11 +255,11 @@
+ 
+     s = cfg_get(section, "Size", NULL);
+     if (s == NULL || *s == '\0') {
+-	error("%s: no '%s.Size' entry from %s", Name, section, cfg_source());
++	error("%s: no '%s.Size' entry from %s", NAME, section, cfg_source());
+ 	return -1;
+     }
+     if (sscanf(s, "%dx%d", &cols, &rows) != 2 || rows < 1 || cols < 1) {
+-	error("%s: bad %s.Size '%s' from %s", Name, section, s, cfg_source());
++	error("%s: bad %s.Size '%s' from %s", NAME, section, s, cfg_source());
+ 	free(s);
+ 	return -1;
+     }
+@@ -244,16 +267,17 @@
+     DROWS = rows;
+     DCOLS = cols;
+ 
+-    /* open communication with the display */
+-    if (drv_FutabaVFD_open(section) < 0)
+-	return -1;
+ 
++    const char *names[] = { "poweron", "poweroff", NULL };
++    action_init_multiple(section, names, &firstAction);
+ 
+-    if (cfg_number(section, "Brightness", 0, 0, 255, &brightness) > 0)
+-	drv_FutabaVFD_brightness(brightness);
+ 
++    /* open communication with the display */
++    if (my_open(section) < 0)
++	return -1;
+ 
+-    drv_FutabaVFD_clear();	/* clear display */
++    if (cfg_number(section, "brightness", 0, 0, 255, &brightness) > 0)
++	dim = brightness;
+ 
+     return 0;
+ }
+@@ -271,31 +295,24 @@
+ 
+     switch (argc) {
+     case 0:
+-	SetResult(&result, R_NUMBER, &d);
+ 	break;
+     case 1:
+-	drv_FutabaVFD_brightness(R2N(argv[0]));
++	my_brightness(R2N(argv[0]));
+ 	d = dim;
+-	SetResult(&result, R_NUMBER, &d);
+ 	break;
+     default:
+-	error("%s::brightness(): wrong number of parameters", Name);
+-	SetResult(&result, R_STRING, "");
++	error("LCD::brightness(): wrong number of parameters.");
++	d = -1;
+     }
++    SetResult(&result, R_NUMBER, &d);
+ }
+ 
++static void plugin_power(RESULT * result)
++{
+ 
+-
+-/****************************************/
+-/***        widget callbacks          ***/
+-/****************************************/
+-
+-
+-/* using drv_generic_text_draw(W) */
+-/* using drv_generic_text_icon_draw(W) */
+-/* using drv_generic_text_bar_draw(W) */
+-/* using drv_generic_gpio_draw(W) */
+-
++    double res = (pwrState == PWR_ON) ? 1 : 0;
++    SetResult(&result, R_NUMBER, &res);
++}
+ 
+ /****************************************/
+ /***        exported functions        ***/
+@@ -303,77 +320,70 @@
+ 
+ 
+ /* list models */
+-int drv_FutabaVFD_list(void)
++int my_list(void)
+ {
+     printf("Futaba VFD M402SD06GL");
+     return 0;
+ }
+ 
+ 
+-/* initialize driver & display */
+-/* use this function for a text display */
+-int drv_FutabaVFD_init(const char *section, const int quiet)
++static void my_pwr_check_callback(void *null)
+ {
+-    WIDGET_CLASS wc;
+-    int ret;
++
++    int newState = (drv_generic_parport_status() & SIGNAL_PWR_ON)
++	? PWR_ON : PWR_OFF;
++
++    my_set_pwr_state(newState);
++}
+ 
+ 
+-    info("%s: %s", Name, "$Rev: 0.0.1 $");
++/* initialize driver & display */
++/* use this function for a text display */
++int my_init(const char *section, const int quiet)
++{
++    info("Init %s %s.", NAME, RELEASE);
+ 
++    WIDGET_CLASS wc;
+ 
+     XRES = 5;			/* pixel width of one char  */
+     YRES = 7;			/* pixel height of one char  */
+     GOTO_COST = 2;		/* number of bytes a goto command requires */
+ 
+-
+     /* real worker functions */
+-    drv_generic_text_real_write = drv_FutabaVFD_write;
+-    drv_generic_text_real_defchar = drv_FutabaVFD_defchar;
+-
++    drv_generic_text_real_write = my_write;
++    drv_generic_text_real_defchar = my_defchar;
+ 
+     /* start display */
+-    if ((ret = drv_FutabaVFD_start(section)) != 0)
++    int ret;
++    if ((ret = my_start(section)) != 0)
+ 	return ret;
+ 
+-    if (!quiet) {
+-	char buffer[40];
+-	qprintf(buffer, sizeof(buffer), "%s %dx%d", Name, DCOLS, DROWS);
+-	if (drv_generic_text_greet(buffer, "---")) {
+-	    sleep(3);
+-	    drv_FutabaVFD_clear();
+-	}
+-    }
+-
+     /* initialize generic text driver */
+-    if ((ret = drv_generic_text_init(section, Name)) != 0)
++    if ((ret = drv_generic_text_init(section, NAME)) != 0)
+ 	return ret;
+ 
+-    /* initialize generic icon driver TODO */
+-
++    /* initialize generic icon driver */
+     if ((ret = drv_generic_text_icon_init()) != 0)
+ 	return ret;
+ 
+-
+     /* initialize generic bar driver */
+-    if ((ret = drv_generic_text_bar_init(0)) != 0)
++    if ((ret = drv_generic_text_bar_init(1)) != 0)
+ 	return ret;
+ 
+     /* add fixed chars to the bar driver */
+-    drv_generic_text_bar_add_segment(0, 0, 255, '_');	/* ASCII  32 = blank */
+-    drv_generic_text_bar_add_segment(255, 255, 255, 0x7F);	/* 0x7F = full dot */
+-
++    drv_generic_text_bar_add_segment(0, 0, 255, '_');
++    drv_generic_text_bar_add_segment(255, 255, 255, 0x7F);	/* full dot */
+ 
+     /* register text widget */
+     wc = Widget_Text;
+     wc.draw = drv_generic_text_draw;
+     widget_register(&wc);
+ 
+-    /* register icon widget TODO */
++    /* register icon widget */
+     wc = Widget_Icon;
+     wc.draw = drv_generic_text_icon_draw;
+     widget_register(&wc);
+ 
+-
+     /* register bar widget */
+     wc = Widget_Bar;
+     wc.draw = drv_generic_text_bar_draw;
+@@ -381,8 +391,21 @@
+ 
+     /* register plugins */
+     AddFunction("LCD::brightness", -1, plugin_brightness);
++    AddFunction("LCD::power", 0, plugin_power);
+ 
++    my_reset();			/* clear display */
+ 
++    if (!quiet && drv_generic_text_greet(NULL, NULL)) {
++	sleep(3);
++    }
++
++    displayBuffer = malloc(DROWS * DCOLS * sizeof(char));
++    if (displayBuffer != NULL)
++	memset(displayBuffer, 0x20, DROWS * DCOLS);
++    else
++	return -1;
++
++    timer_add(my_pwr_check_callback, NULL, 100, 0);
+ 
+     return 0;
+ }
+@@ -390,29 +413,31 @@
+ 
+ /* close driver & display */
+ /* use this function for a text display */
+-int drv_FutabaVFD_quit(const int quiet)
++int my_quit(const int quiet)
+ {
++    info("%s: shutting down.", NAME);
+ 
+-    info("%s: shutting down.", Name);
++    timer_remove(my_pwr_check_callback, NULL);
+ 
+-    drv_generic_text_quit();
++    free(displayBuffer);
++    displayBuffer = NULL;
+ 
+-    drv_FutabaVFD_clear();
++    action_free_all(firstAction);
++    firstAction = NULL;
+ 
+-    if (!quiet) {
+-	drv_generic_text_greet("goodbye!", NULL);
+-    }
++    my_reset();
++    my_write(0, 0, "Goodbye...", 10);
+ 
++    drv_generic_text_quit();
+     debug("closing connection");
+-    drv_FutabaVFD_close();
+-
++    drv_generic_parport_close();
+     return (0);
+ }
+ 
+-/* use this one for a text display */
++/* CHECKED */
+ DRIVER drv_FutabaVFD = {
+-    .name = Name,
+-    .list = drv_FutabaVFD_list,
+-    .init = drv_FutabaVFD_init,
+-    .quit = drv_FutabaVFD_quit,
++    .name = NAME,
++    .list = my_list,
++    .init = my_init,
++    .quit = my_quit,
+ };
+diff -urN lcd4linux-0.11.0_pre20170527/drv_generic_parport.c lcd4linux-0.11.0_pre20170527.new/drv_generic_parport.c
+--- lcd4linux-0.11.0_pre20170527/drv_generic_parport.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_generic_parport.c	2019-08-15 08:43:28.209704645 +0100
+@@ -331,6 +331,27 @@
+ }
+ 
+ 
++unsigned char drv_generic_parport_hardwire_status(const char *name, const char *signal)
++{
++    unsigned char wire;
++    char key[256];
++    char *val;
++
++    qprintf(key, sizeof(key), "Wire.%s", name);
++    val = cfg_get(Section, key, "");
++
++    /* maybe warn the user */
++    if (*val != '\0' && strcasecmp(signal, val) != 0) {
++	error("%s: ignoring configured signal <%s> for status line <%s>", Driver, val, name);
++    }
++    free(val);
++
++    wire = drv_generic_parport_signal_status(name, signal);
++
++    return wire;
++}
++
++
+ unsigned char drv_generic_parport_wire_status(const char *name, const char *deflt)
+ {
+     unsigned char wire;
+diff -urN lcd4linux-0.11.0_pre20170527/drv_generic_parport.h lcd4linux-0.11.0_pre20170527.new/drv_generic_parport.h
+--- lcd4linux-0.11.0_pre20170527/drv_generic_parport.h	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_generic_parport.h	2019-08-15 08:43:28.209704645 +0100
+@@ -86,7 +86,8 @@
+ int drv_generic_parport_open(const char *section, const char *driver);
+ int drv_generic_parport_close(void);
+ unsigned char drv_generic_parport_wire_ctrl(const char *name, const char *deflt);
+-unsigned char drv_generic_parport_hardwire_ctrl(const char *name, const char *deflt);
++unsigned char drv_generic_parport_hardwire_ctrl(const char *name, const char *signal);
++unsigned char drv_generic_parport_hardwire_status(const char *name, const char *signal);
+ unsigned char drv_generic_parport_wire_status(const char *name, const char *deflt);
+ unsigned char drv_generic_parport_wire_data(const char *name, const char *deflt);
+ void drv_generic_parport_direction(const int direction);
+diff -urN lcd4linux-0.11.0_pre20170527/drv_generic_text.c lcd4linux-0.11.0_pre20170527.new/drv_generic_text.c
+--- lcd4linux-0.11.0_pre20170527/drv_generic_text.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_generic_text.c	2019-08-15 08:43:28.209704645 +0100
+@@ -999,3 +999,41 @@
+     return 0;
+ 
+ }
++
++void drv_generic_text_clear(int mode)
++{
++
++    static char *backupDisplayFB = NULL;
++
++    /* total clear ==> may flicker */
++    if (mode == 0) {
++	drv_generic_text_bar_clear();
++	memset(LayoutFB, ' ', LROWS * LCOLS);
++	memset(DisplayFB, 'X', DROWS * DCOLS);
++	drv_generic_text_blit(0, 0, LROWS, LCOLS);
++	return;
++    }
++
++    /* part 1 of non-flitter-clear
++     * see my_show_layout() in plugin_layout.c */
++    if (mode == 1) {
++	if (backupDisplayFB == NULL) {
++	    backupDisplayFB = malloc(DROWS * DCOLS * sizeof(char));
++	}
++	memset(LayoutFB, ' ', LROWS * LCOLS);
++	backupDisplayFB = malloc(DROWS * DCOLS * sizeof(char));
++	memcpy(backupDisplayFB, DisplayFB, DROWS * DCOLS);
++	return;
++    }
++
++    /* draw all widget between mode=1 and mode=2 */
++
++    /* part 2 of non-flitter-clear */
++    if (mode == 2) {
++	if (backupDisplayFB != NULL) {
++	    memcpy(DisplayFB, backupDisplayFB, DROWS * DCOLS);
++	    drv_generic_text_blit(0, 0, LROWS, LCOLS);
++	    free(backupDisplayFB);
++	}
++    }
++}
+diff -urN lcd4linux-0.11.0_pre20170527/drv_generic_text.h lcd4linux-0.11.0_pre20170527.new/drv_generic_text.h
+--- lcd4linux-0.11.0_pre20170527/drv_generic_text.h	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/drv_generic_text.h	2019-08-15 08:43:28.209704645 +0100
+@@ -52,6 +52,6 @@
+ void drv_generic_text_bar_add_segment(const int val1, const int val2, const DIRECTION dir, const int ascii);
+ int drv_generic_text_bar_draw(WIDGET * W);
+ int drv_generic_text_quit(void);
+-
++void drv_generic_text_clear(int mode);
+ 
+ #endif
+diff -urN lcd4linux-0.11.0_pre20170527/evaluator.c lcd4linux-0.11.0_pre20170527.new/evaluator.c
+--- lcd4linux-0.11.0_pre20170527/evaluator.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/evaluator.c	2019-08-15 08:41:21.288300812 +0100
+@@ -456,7 +456,10 @@
+ 
+     SetResult(&rp, R_STRING, value);
+ 
+-    return SetVariable(name, rp);
++    int r = SetVariable(name, rp);
++    free(rp->string);
++
++    return r;
+ }
+ 
+ 
+Binary files lcd4linux-0.11.0_pre20170527/lcd4linux-0.11.0-SVN.tar.gz and lcd4linux-0.11.0_pre20170527.new/lcd4linux-0.11.0-SVN.tar.gz differ
+diff -urN lcd4linux-0.11.0_pre20170527/Makefile.am lcd4linux-0.11.0_pre20170527.new/Makefile.am
+--- lcd4linux-0.11.0_pre20170527/Makefile.am	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/Makefile.am	2019-08-15 08:43:28.206371275 +0100
+@@ -40,6 +40,7 @@
+ qprintf.c     qprintf.h       \
+ rgb.c         rgb.h           \
+ event.c       event.h         \
++action.c      action.h        \
+                               \
+ widget.c      widget.h        \
+ widget_text.c widget_text.h   \
+@@ -54,7 +55,7 @@
+ plugin_math.c                 \
+ plugin_string.c               \
+ plugin_test.c                 \
+-plugin_time.c
++plugin_time.c                 
+ 
+ EXTRA_lcd4linux_SOURCES=      \
+ drv_generic_text.c            \
+@@ -131,9 +132,12 @@
+                               \
+ lcd4linux_i2c.h               \
+                               \
++plugin_layout.h               \
++                              \
+ plugin_apm.c                  \
+ plugin_asterisk.c             \
+ plugin_button_exec.c          \
++plugin_control.c              \
+ plugin_cpuinfo.c              \
+ plugin_dbus.c                 \
+ plugin_diskstats.c            \
+@@ -143,15 +147,18 @@
+ plugin_file.c                 \
+ plugin_gps.c                  \
+ plugin_hddtemp.c              \
+-plugin_huawei.c		      \
++plugin_huawei.c		          \
+ plugin_i2c_sensors.c          \
+ plugin_iconv.c                \
+ plugin_imon.c                 \
+ plugin_isdn.c                 \
+ plugin_kvv.c                  \
++plugin_layout.c               \
++plugin_list.c                 \
+ plugin_loadavg.c              \
+ plugin_meminfo.c              \
++plugin_menu.c                 \
+ plugin_mpd.c		      \
+ plugin_mpris_dbus.c           \
+ plugin_mysql.c                \
+ plugin_netdev.c               \
+@@ -162,12 +169,13 @@
+ plugin_python.c               \
+ plugin_qnaplog.c              \
+ plugin_raspi.c                \
++plugin_run.c                  \
+ plugin_sample.c               \
+ plugin_seti.c                 \
+ plugin_statfs.c               \
+ plugin_uname.c                \
+ plugin_uptime.c               \
+ plugin_w1retap.c	      \
+ plugin_wireless.c             \
+ plugin_xmms.c
+ 
+diff -urN lcd4linux-0.11.0_pre20170527/plugin.c lcd4linux-0.11.0_pre20170527.new/plugin.c
+--- lcd4linux-0.11.0_pre20170527/plugin.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin.c	2019-08-15 08:43:28.209704645 +0100
+@@ -60,6 +60,9 @@
+ #ifdef PLUGIN_BUTTON_EXEC
+     "button_exec",
+ #endif
++#ifdef PLUGIN_CONTROL
++    "control",
++#endif
+ #ifdef PLUGIN_CPUINFO
+     "cpuinfo",
+ #endif
+@@ -108,12 +111,21 @@
+ #ifdef PLUGIN_KVV
+     "kvv",
+ #endif
++#ifdef PLUGIN_LAYOUT
++    "layout",
++#endif
++#ifdef PLUGIN_LIST
++    "list",
++#endif
+ #ifdef PLUGIN_LOADAVG
+     "loadavg",
+ #endif
+ #ifdef PLUGIN_MEMINFO
+     "meminfo",
+ #endif
++#ifdef PLUGIN_MENU
++    "menu",
++#endif
+ #ifdef PLUGIN_MPD
+     "mpd",
+ #endif
+@@ -144,6 +156,9 @@
+ #ifdef PLUGIN_RASPI
+     "raspi",
+ #endif
++#ifdef PLUGIN_RUN
++    "run",
++#endif
+ #ifdef PLUGIN_SAMPLE
+     "sample",
+ #endif
+@@ -190,6 +205,8 @@
+ void plugin_exit_asterisk(void);
+ int plugin_init_button_exec(void);
+ void plugin_exit_button_exec(void);
++int plugin_init_control(void);
++void plugin_exit_control(void);
+ int plugin_init_cpuinfo(void);
+ void plugin_exit_cpuinfo(void);
+ int plugin_init_dbus(void);
+@@ -222,10 +239,16 @@
+ void plugin_exit_isdn(void);
+ int plugin_init_kvv(void);
+ void plugin_exit_kvv(void);
++int plugin_init_layout(void);
++void plugin_exit_layout(void);
++int plugin_init_list(void);
++void plugin_exit_list(void);
+ int plugin_init_loadavg(void);
+ void plugin_exit_loadavg(void);
+ int plugin_init_meminfo(void);
+ void plugin_exit_meminfo(void);
++int plugin_init_menu(void);
++void plugin_exit_menu(void);
+ int plugin_init_mpd(void);
+ void plugin_exit_mpd(void);
+ int plugin_init_mpris_dbus(void);
+@@ -246,6 +269,8 @@
+ void plugin_exit_python(void);
+ int plugin_init_raspi(void);
+ void plugin_exit_raspi(void);
++int plugin_init_run(void);
++void plugin_exit_run(void);
+ int plugin_init_sample(void);
+ void plugin_exit_sample(void);
+ int plugin_init_seti(void);
+@@ -297,6 +322,9 @@
+ #ifdef PLUGIN_BUTTON_EXEC
+     plugin_init_button_exec();
+ #endif
++#ifdef PLUGIN_CONTROL
++    plugin_init_control();
++#endif
+ #ifdef PLUGIN_CPUINFO
+     plugin_init_cpuinfo();
+ #endif
+@@ -345,12 +373,21 @@
+ #ifdef PLUGIN_KVV
+     plugin_init_kvv();
+ #endif
++#ifdef PLUGIN_LAYOUT
++    plugin_init_layout();
++#endif
++#ifdef PLUGIN_LIST
++    plugin_init_list();
++#endif
+ #ifdef PLUGIN_LOADAVG
+     plugin_init_loadavg();
+ #endif
+ #ifdef PLUGIN_MEMINFO
+     plugin_init_meminfo();
+ #endif
++#ifdef PLUGIN_MENU
++    plugin_init_menu();
++#endif
+ #ifdef PLUGIN_MPD
+     plugin_init_mpd();
+ #endif
+@@ -381,6 +418,9 @@
+ #ifdef PLUGIN_RASPI
+     plugin_init_raspi();
+ #endif
++#ifdef PLUGIN_RUN
++    plugin_init_run();
++#endif
+ #ifdef PLUGIN_SAMPLE
+     plugin_init_sample();
+ #endif
+@@ -421,6 +461,9 @@
+ #ifdef PLUGIN_BUTTON_EXEC
+     plugin_exit_button_exec();
+ #endif
++#ifdef PLUGIN_CONTROL
++    plugin_exit_control();
++#endif
+ #ifdef PLUGIN_CPUINFO
+     plugin_exit_cpuinfo();
+ #endif
+@@ -466,12 +509,21 @@
+ #ifdef PLUGIN_KVV
+     plugin_exit_kvv();
+ #endif
++#ifdef PLUGIN_LAYOUT
++    plugin_exit_layout();
++#endif
++#ifdef PLUGIN_LIST
++    plugin_exit_list();
++#endif
+ #ifdef PLUGIN_LOADAVG
+     plugin_exit_loadavg();
+ #endif
+ #ifdef PLUGIN_MEMINFO
+     plugin_exit_meminfo();
+ #endif
++#ifdef PLUGIN_MENU
++    plugin_exit_menu();
++#endif
+ #ifdef PLUGIN_MPD
+     plugin_exit_mpd();
+ #endif
+@@ -502,6 +554,9 @@
+ #ifdef PLUGIN_RASPI
+     plugin_exit_raspi();
+ #endif
++#ifdef PLUGIN_RUN
++    plugin_exit_run();
++#endif
+ #ifdef PLUGIN_SAMPLE
+     plugin_exit_sample();
+ #endif
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_control.c lcd4linux-0.11.0_pre20170527.new/plugin_control.c
+--- lcd4linux-0.11.0_pre20170527/plugin_control.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_control.c	2019-08-15 08:43:28.209704645 +0100
+@@ -0,0 +1,951 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * This plugin enables external controls (in/out).
++ * 
++ * https://lcd4linux.bulix.org/wiki/plugin_control
++ *
++ * Copyright (C) 2003 Michael Reinelt <michael@reinelt.co.at>
++ * Copyright (C) 2004, 2005, 2006, 2007, 2008 The LCD4Linux Team <lcd4linux-devel@users.sourceforge.net>
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++
++
++#include "config.h"
++
++/* these should always be included */
++#include "debug.h"
++#include "plugin.h"
++#include "cfg.h"
++#include "property.h"
++#include "timer.h"
++
++
++/* define the include files you need */
++#include <stdlib.h>
++#include <stdio.h>
++#include <string.h>
++#include <ctype.h>
++#include <unistd.h>
++#include <sys/wait.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <syslog.h>
++
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++
++#define SECTION "Plugin:Control"
++#define PLUGIN "Control"
++#define my_debug(args...) message (2, __FILE__ ": " args)
++#define my_info(args...)  message (1, "Info  Plugin '" PLUGIN "': " args)
++#define my_error(args...) message (0, "ERROR Plugin '" PLUGIN "': " args)
++#define my_noMemory() message (0, "ERROR Couldn't allocate new memory (%s:%d).",PLUGIN, __LINE__)
++
++#define MAX_CONTROLLERS 256
++#define DEFAULT_UPDATE 100
++#define MAX_EXEC_ARGS 100
++#define MAX_READS_PER_POLL 100
++#define LEN_STDERR_BUF 256
++
++#define ERROR_DUP 2
++#define ERROR_EXEC 3
++
++typedef struct Key Key;
++
++typedef struct Key {
++    unsigned char value;
++    char *name;
++    PROPERTY *action;
++    Key *next;
++} Key;
++
++typedef struct Controller {
++    char *name;
++    PROPERTY *defaultAction;
++    PROPERTY *anybyteAction;
++    int update;
++
++    Key *firstKey;
++
++    char **execArray;
++
++    int fdPoll;
++    int fdSend;
++    int isActive;
++    int lastByte;
++
++    pid_t pid;
++
++} Controller;
++
++typedef struct Plugin {
++    Controller **controllers;
++    int controllerNb;
++} Plugin;
++
++static Plugin *plugin = NULL;
++
++
++static void my_eval(PROPERTY * prop)
++{
++    if (prop != NULL)
++	property_eval(prop);
++}
++
++
++static void my_waitpid(Controller * ctrl)
++{
++    int status;
++
++    if (waitpid(ctrl->pid, &status, WNOHANG) == ctrl->pid) {
++	if (WIFEXITED(status)) {
++
++	    if (WEXITSTATUS(status) == 0) {
++		my_error("Controller '%s' terminated with exit code 0.", ctrl->name);
++	    } else {
++		int exitValue = WEXITSTATUS(status);
++		my_error("Controller '%s' terminated with exit code %d.", ctrl->name, exitValue);
++	    }
++	} else {
++	    my_error("Controller '%s' did not terminate normally.", ctrl->name);
++	}
++	ctrl->pid = -1;
++    }
++
++}
++
++static void my_handle_byte(Controller * ctrl, unsigned char byteVal)
++{
++
++    if (!ctrl->isActive)
++	return;
++
++    ctrl->lastByte = byteVal;
++
++    my_eval(ctrl->anybyteAction);
++
++    Key *key;
++    for (key = ctrl->firstKey; key != NULL; key = key->next)
++	if (key->value == byteVal) {
++	    my_eval(key->action);
++	    break;
++	}
++
++    if (key == NULL)
++	my_eval(ctrl->defaultAction);
++
++}
++
++
++
++static void my_waitpid_and_poll_callback(void *vCtrl)
++{
++
++    if (vCtrl == NULL) {
++	my_error("my_waitpid_and_poll_callback(): Argument == NULL. This shouldn't happen.");
++	return;
++    }
++
++    Controller *ctrl = (Controller *) vCtrl;
++
++
++    if (ctrl->pid < 0 && ctrl->fdPoll < 0) {
++	if (timer_remove(my_waitpid_and_poll_callback, vCtrl) == 0)
++	    my_info("Timer of controller '%s' removed.", ctrl->name);
++    }
++
++    if (ctrl->pid >= 0)
++	my_waitpid(ctrl);
++
++
++    if (ctrl->fdPoll > 0) {
++
++	unsigned char val;
++
++	int i;
++	for (i = 0; i < MAX_READS_PER_POLL; i++) {
++
++	    if (read(ctrl->fdPoll, &val, 1) != 1)
++		break;
++
++	    if (i == MAX_READS_PER_POLL - 1) {
++		my_error("Read %d bytes from controller '%s' at once.", MAX_READS_PER_POLL, ctrl->name);
++		my_error("This controller seems to write more than processible.");
++	    }
++
++	    my_info("Received from Controller '%s': %3d (0x%02x) '%c'", ctrl->name, val, val, val);
++	    my_handle_byte(ctrl, val);
++	}
++
++    }
++
++
++}
++
++
++static int my_set_nonblocking(int fd)
++{
++    int flags = fcntl(fd, F_GETFL, 0);
++    if (flags == -1)
++	return 0;
++    flags |= O_NONBLOCK;
++    return fcntl(fd, F_SETFL, flags) < 0 ? 0 : 1;
++}
++
++
++static int my_start_controller(Controller * ctrl)
++{
++
++    if (ctrl->defaultAction != NULL)
++	Compile(ctrl->defaultAction->expression, &ctrl->defaultAction->compiled);
++    if (ctrl->anybyteAction != NULL)
++	Compile(ctrl->anybyteAction->expression, &ctrl->anybyteAction->compiled);
++
++    Key *key;
++    for (key = ctrl->firstKey; key != NULL; key = key->next) {
++	Compile(key->action->expression, &key->action->compiled);
++    }
++
++
++    if (ctrl->execArray != NULL) {
++	int stdinCtrl[2];
++	int stdoutCtrl[2];
++	pipe(stdinCtrl);
++	pipe(stdoutCtrl);
++
++	int errorPipes[2];
++	pipe(errorPipes);
++	if (fcntl(errorPipes[1], F_SETFD, FD_CLOEXEC) == -1) {
++	    my_error("Can't set error pipe to close on exec.");
++	    return -1;
++
++	}
++
++	pid_t pidCtrl = fork();
++
++	if (pidCtrl < 0) {
++	    my_error("Cant't start controller '%s'. First fork failed.", ctrl->name);
++	    return -1;
++	}
++
++	/* child */
++	if (pidCtrl == 0) {
++
++	    close(errorPipes[0]);
++
++	    if (dup2(stdinCtrl[0], STDIN_FILENO) != STDIN_FILENO) {
++		my_error("Couldn't redirect stdin of external controller '%s'.", ctrl->name);
++		char error = ERROR_DUP;
++		write(errorPipes[1], &error, 1);
++		close(errorPipes[1]);
++		_exit(21);
++	    }
++
++	    if (dup2(stdoutCtrl[1], STDOUT_FILENO) != STDOUT_FILENO) {
++		my_error("Couldn't redirect stdout of external controller '%s'.", ctrl->name);
++		char error = ERROR_DUP;
++		write(errorPipes[1], &error, 1);
++		close(errorPipes[1]);
++		_exit(22);
++	    }
++
++	    close(STDERR_FILENO);
++	    close(stdinCtrl[0]);
++	    close(stdinCtrl[1]);
++	    close(stdoutCtrl[0]);
++	    close(stdoutCtrl[1]);
++
++	    execv(*ctrl->execArray, ctrl->execArray + 1);
++
++	    int errsv = errno;
++	    openlog("LCD4Linux", LOG_PID, LOG_USER);
++	    syslog(LOG_ERR, "Fail to execute '%s': %s", *ctrl->execArray, strerror(errsv));
++	    closelog();		/* TODO: Problem with main syslog? */
++
++	    char error = ERROR_EXEC;
++	    write(errorPipes[1], &error, 1);
++	    close(errorPipes[1]);
++
++	    _exit(24);
++	}
++
++	/* parent */
++	if (pidCtrl > 0) {
++
++	    close(errorPipes[1]);
++	    char res;
++	    int nb = read(errorPipes[0], &res, 1);
++	    close(errorPipes[0]);
++	    /*  child failed to dup2 or failed to exec */
++	    if (nb > 0) {
++
++		if (res == ERROR_DUP)
++		    my_error("Error while trying to redirect a standard stream of controller '%s'", ctrl->name);
++		if (res == ERROR_EXEC)
++		    my_error("Couldn't execute controller '%s'. See log file.", ctrl->name);
++
++		return -1;
++	    }
++	    ctrl->pid = pidCtrl;
++
++	    close(stdinCtrl[0]);
++	    close(stdoutCtrl[1]);
++	    ctrl->fdSend = stdinCtrl[1];
++	    ctrl->fdPoll = stdoutCtrl[0];
++	    my_set_nonblocking(ctrl->fdPoll);
++	    my_set_nonblocking(ctrl->fdSend);
++
++	    return timer_add_late(my_waitpid_and_poll_callback, ctrl, ctrl->update, 0);
++	}
++    }
++
++    return -1;
++}
++
++
++static void my_start_controller_callback(void *null)
++{
++
++    int c;
++    for (c = 0; c < plugin->controllerNb; c++)
++	my_start_controller(plugin->controllers[c]);
++}
++
++
++static void my_free_property(PROPERTY * prop)
++{
++    if (prop == NULL)
++	return;
++    property_free(prop);
++
++}
++
++static int my_set_property(char *key, PROPERTY ** result)
++{
++
++    char *tmp = cfg_get_raw(SECTION, key, NULL);
++    if (tmp == NULL)
++	return 0;
++
++    PROPERTY *prop = malloc(sizeof(PROPERTY));
++    if (prop == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    prop->valid = 1;
++    prop->expression = tmp;	/* NO strdup see property_free() */
++    prop->compiled = NULL;
++    prop->result.string = NULL;
++    DelResult(&prop->result);
++    prop->name = strdup(key);
++
++    *result = prop;
++    my_info("%s = %s.", key, prop->expression);
++
++    return 0;
++}
++
++
++
++static void my_free_key(Key * key)
++{
++
++    if (key == NULL)
++	return;
++
++    free(key->name);
++    my_free_property(key->action);
++    free(key);
++}
++
++
++static void my_free_controller(Controller * ctrl)
++{
++
++    if (ctrl == NULL)
++	return;
++
++    free(ctrl->name);
++    my_free_property(ctrl->defaultAction);
++    my_free_property(ctrl->anybyteAction);
++
++    Key *k;
++    Key *next;
++    for (k = ctrl->firstKey; k != NULL; k = next) {
++	next = k->next;
++	my_free_key(k);
++    }
++
++    if (ctrl->execArray != NULL) {
++	char **ptr;
++	for (ptr = ctrl->execArray; *ptr != NULL; ptr++) {
++	    free(*ptr);
++	}
++	free(ctrl->execArray);
++    }
++
++    if (ctrl->fdPoll >= 0)
++	close(ctrl->fdPoll);
++    if (ctrl->fdSend >= 0)
++	close(ctrl->fdSend);
++
++    free(ctrl);
++}
++
++static void my_free_plugin()
++{
++
++    if (plugin == NULL)
++	return;
++
++    int pidNb = 0;
++    pid_t pids[plugin->controllerNb];
++
++    int c;
++    for (c = 0; c < plugin->controllerNb; c++) {
++	Controller *ctrl = plugin->controllers[c];
++	timer_remove(my_waitpid_and_poll_callback, ctrl);
++	if (ctrl->pid >= 0) {
++	    kill(ctrl->pid, SIGTERM);
++	    pids[pidNb++] = ctrl->pid;
++	}
++	my_free_controller(ctrl);
++    }
++    free(plugin->controllers);
++    free(plugin);
++    plugin = NULL;
++
++    sleep(1);
++    int i;
++    for (i = 0; i < pidNb; i++)
++	if (waitpid(pids[i], NULL, WNOHANG) != pids[i])
++	    kill(pids[i], SIGKILL);
++}
++
++
++static int my_key_init(int idxC, int valK, Key *** key3Ptr)
++{
++
++    char *section = cfg_make_str("%s.Controller%d.Key%d", SECTION, idxC + 1, valK);
++    if (!cfg_exist(section)) {
++	free(section);
++	return 0;
++    }
++    free(section);
++
++    Key *key = malloc(sizeof(Key));
++    if (key == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    **key3Ptr = key;
++    *key3Ptr = &key->next;
++
++    key->value = valK;
++    key->name = NULL;
++    key->action = NULL;
++    key->next = NULL;
++
++    char *cfgKey = cfg_make_str("Controller%d.Key%d.name", idxC + 1, valK);
++    char *dfltName = cfg_make_str("Key%d", valK);
++    key->name = cfg_get(SECTION, cfgKey, dfltName);
++    free(cfgKey);
++    free(dfltName);
++
++    Key *k;
++    for (k = plugin->controllers[idxC]->firstKey; k != NULL && k != key; k = k->next) {
++
++	if (strcmp(k->name, key->name) == 0) {
++	    my_error("Key name '%s' of controller %d is not unique.", key->name, idxC + 1);
++	    return -1;
++	}
++    }
++
++    cfgKey = cfg_make_str("Controller%d.Key%d.action", idxC + 1, valK);
++    if (my_set_property(cfgKey, &key->action) < 0) {
++	free(cfgKey);
++	return -1;
++    }
++    free(cfgKey);
++
++    return 0;
++}
++
++
++static int my_init_controller(int idxC)
++{
++
++    Controller *ctrl = malloc(sizeof(Controller));
++    if (ctrl == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    plugin->controllers[idxC] = ctrl;
++
++    ctrl->name = NULL;
++    ctrl->defaultAction = NULL;
++    ctrl->anybyteAction = NULL;
++    ctrl->update = DEFAULT_UPDATE;
++    ctrl->firstKey = NULL;
++    ctrl->execArray = NULL;
++    ctrl->fdPoll = -1;
++    ctrl->fdSend = -1;
++    ctrl->isActive = 1;
++    ctrl->lastByte = -1;
++    ctrl->pid = -1;
++
++    int i;
++
++    char *key = cfg_make_str("Controller%d.name", idxC + 1);
++    char *dfltName = cfg_make_str("Controller%d", idxC + 1);
++    char *name = cfg_get(SECTION, key, dfltName);
++    free(key);
++    free(dfltName);
++
++    if (name == NULL || *name == '\0') {
++	my_error("Controller %d has no valide name.", idxC + 1);
++	free(name);
++	return -1;
++    }
++    for (i = 0; i < idxC; i++) {
++	if (strcmp(plugin->controllers[i]->name, name) == 0) {
++	    my_error("Controller name '%s' is not unique.", name);
++	    free(name);
++	    return -1;
++	}
++    }
++    ctrl->name = name;
++    my_info("Controller%d.name = '%s'.", idxC + 1, name);
++
++
++    key = cfg_make_str("Controller%d.anybyte", idxC + 1);
++    if (my_set_property(key, &ctrl->anybyteAction) < 0) {
++	free(key);
++	return -1;
++    }
++    free(key);
++
++    key = cfg_make_str("Controller%d.default", idxC + 1);
++    if (my_set_property(key, &ctrl->defaultAction) < 0) {
++	free(key);
++	return -1;
++    }
++    free(key);
++
++    key = cfg_make_str("Controller%d.update", idxC + 1);
++    if (cfg_number(SECTION, key, DEFAULT_UPDATE, 10, 1000, &ctrl->update) < 0) {
++	free(key);
++	my_error("Controller '%s' has no valide update value.", name);
++	return -1;
++    }
++    free(key);
++
++    key = cfg_make_str("Controller%d.prog", idxC + 1);
++    char *prog = cfg_get(SECTION, key, NULL);
++    free(key);
++
++    if (prog != NULL && *prog == '\0') {
++	free(prog);
++	prog = NULL;
++    }
++
++    if (prog != NULL) {
++
++	int argNb = 0;
++	for (i = 0; i < MAX_EXEC_ARGS; i++) {
++	    char *key = cfg_make_str("Controller%d.arg%d", idxC + 1, i + 1);
++	    char *arg = cfg_get(SECTION, key, NULL);
++	    free(key);
++	    if (arg != NULL)
++		argNb++;
++	    free(arg);
++	}
++
++	ctrl->execArray = malloc((argNb + 3) * sizeof(char *));
++	ctrl->execArray[0] = prog;
++	ctrl->execArray[1] = strdup(prog);	/* avoid double free */
++	ctrl->execArray[argNb + 2] = NULL;
++	for (i = 0; i < argNb; i++) {
++	    char *key = cfg_make_str("Controller%d.arg%d", idxC + 1, i + 1);
++	    ctrl->execArray[i + 2] = cfg_get(SECTION, key, NULL);
++	    free(key);
++	}
++    }
++
++    Key **key2Ptr = &ctrl->firstKey;
++    for (i = 0; i < 256; i++) {
++	if (my_key_init(idxC, i, &key2Ptr) < -1) {
++	    my_error("Can't init key #%d of controller '%s'.", i, ctrl->name);
++	    return -1;
++	}
++    }
++
++    return 0;
++}
++
++
++static int my_init_plugin()
++{
++
++    int active = 0;
++    if (cfg_number(SECTION, "active", 0, 0, 1, &active) != 1) {
++	my_error("No valide 'active' value. Set to inactive.");
++	return -1;
++    }
++
++    if (!active) {
++	my_info("Set inactive.");
++	return 1;
++    } else
++	my_info("Try to init.");
++
++
++    plugin = malloc(sizeof(Plugin));
++
++    if (plugin == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    plugin->controllers = NULL;
++    plugin->controllerNb = 0;
++
++    int c;
++
++    plugin->controllerNb = cfg_count("Plugin:Control.Controller", MAX_CONTROLLERS);
++
++    if (plugin->controllerNb <= 0) {
++	plugin->controllerNb = 0;
++	my_error("No controllers found.");
++	return -1;
++    } else
++	my_info("%d controllers found.", plugin->controllerNb);
++
++    plugin->controllers = malloc(plugin->controllerNb * sizeof(Controller *));
++
++    if (plugin->controllers == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (c = 0; c < plugin->controllerNb; c++)
++	plugin->controllers[c] = NULL;
++
++    for (c = 0; c < plugin->controllerNb; c++)
++	if (my_init_controller(c) < 0)
++	    return -1;
++
++    return timer_add_late(my_start_controller_callback, NULL, 0, 1);
++}
++
++
++static void my_init()
++{
++
++    int status = my_init_plugin();
++    if (status != 0) {
++	if (status < 0) {
++	    my_error("Error while initializing plugin.");
++	    my_error("Plugin will NOT work. Every call will return -1 (error).");
++	}
++	my_free_plugin();
++    }
++}
++
++
++
++static Controller *my_get_ctrl(RESULT * rCtrl)
++{
++
++    if (rCtrl == NULL)
++	return NULL;
++
++
++    if (rCtrl->type & R_NUMBER) {
++	double nb = rCtrl->number;
++	int idx = (int) nb;
++
++	if (idx != nb || idx < 0 || idx >= plugin->controllerNb)
++	    return NULL;
++	else
++	    return plugin->controllers[idx];
++    }
++    if (rCtrl->type & R_STRING) {
++	char *name = rCtrl->string;
++	Controller *ctrl;
++	int c;
++	for (c = 0; c < plugin->controllerNb; c++) {
++	    ctrl = plugin->controllers[c];
++	    if (strcmp(ctrl->name, name) == 0)
++		return ctrl;
++	}
++    }
++    return NULL;
++}
++
++
++static Key *my_get_key(Controller * ctrl, RESULT * rKey)
++{
++
++    if (rKey == NULL)
++	return NULL;
++
++    char *name = NULL;
++    int value = -1;
++
++    if (rKey->type & R_NUMBER) {
++	double nb = rKey->number;
++	value = (unsigned char) nb;
++
++	if (value != nb || value < 0 || value > 255)
++	    return NULL;
++    }
++
++    if (rKey->type & R_STRING)
++	name = R2S(rKey);
++
++    Key *key;
++
++    for (key = ctrl->firstKey; key != NULL; key = key->next) {
++	if (value >= 0 && key->value == value)
++	    return key;
++
++	if (name != NULL && strcmp(key->name, name) == 0)
++	    return key;
++    }
++
++    return NULL;
++}
++
++static int my_plugin_not_active(RESULT ** result)
++{
++
++    static int errorShown = 0;
++    if (plugin == NULL) {
++
++	if (!errorShown) {
++	    errorShown = 1;
++	    my_error("Plugin not active but attempt of using it was detected.");
++	}
++	double error = -1;
++	SetResult(result, R_NUMBER, &error);
++	return 1;
++    }
++    return 0;
++}
++
++
++static void plugin_control_send(RESULT * result, RESULT * rCtrl, RESULT * rByte)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++    SetResult(&result, R_NUMBER, &res);
++
++    Controller *ctrl = my_get_ctrl(rCtrl);
++
++    if (ctrl == NULL) {
++	my_error("send() can't find controller '%s'.", R2S(rCtrl));
++	return;
++    }
++
++    if ((rByte->type & R_NUMBER) == 0 || rByte->number != (unsigned char) rByte->number
++	|| rByte->number < 0 || rByte->number > 255) {
++
++	my_error("Second argument of send() has to be an integer from [0..255].");
++	return;
++    }
++
++    unsigned char byteVal = (unsigned char) rByte->number;
++
++    if (ctrl->fdSend < -1 || write(ctrl->fdSend, &byteVal, 1) != 1) {
++	my_error("send() can't write to controller '%s'.", ctrl->name);
++	return;
++    }
++
++    res = 0;
++    SetResult(&result, R_NUMBER, &res);
++
++}
++
++static void plugin_control_key(RESULT * result, RESULT * rCtrl, RESULT * rKey)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++    SetResult(&result, R_NUMBER, &res);
++
++    Controller *ctrl = my_get_ctrl(rCtrl);
++    if (ctrl == NULL) {
++	my_error("key() can't find controller '%s'.", R2S(rCtrl));
++	return;
++    }
++
++    if (!ctrl->isActive)
++	return;
++
++    Key *key = my_get_key(ctrl, rKey);
++    if (key == NULL) {
++	my_error("key() can't find key '%s' of controller '%s'.", R2S(rKey), R2S(rCtrl));
++	return;
++    }
++
++    ctrl->lastByte = key->value;
++    my_eval(ctrl->anybyteAction);
++    my_eval(key->action);
++
++    res = 0;
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++static void plugin_control_byte(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++    SetResult(&result, R_NUMBER, &res);
++
++    if (argc < 1 || argc > 2) {
++	my_error("byte() requires 1-2 arguments.");
++	return;
++    }
++
++    Controller *ctrl = my_get_ctrl(argv[0]);
++    if (ctrl == NULL) {
++	my_error("byte() can't find controller '%s'.", R2S(argv[0]));
++	return;
++    }
++
++    if (argc == 1) {
++	res = ctrl->lastByte;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    RESULT *rByte = argv[1];
++
++    if ((rByte->type & R_NUMBER) == 0 || rByte->number != (unsigned char) rByte->number
++	|| rByte->number < 0 || rByte->number > 255) {
++
++	my_error("Second argument of byte() has to be an integer from [0..255].");
++	return;
++    }
++
++    unsigned char byteVal = (unsigned char) rByte->number;
++    my_handle_byte(ctrl, byteVal);
++
++    res = 0;
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++static void plugin_control_running(RESULT * result, RESULT * rCtrl)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++    SetResult(&result, R_NUMBER, &res);
++
++    Controller *ctrl = my_get_ctrl(rCtrl);
++    if (ctrl == NULL) {
++	my_error("running() can't find controller '%s'.", R2S(rCtrl));
++	return;
++    }
++
++    res = ctrl->pid >= 0 ? 1 : 0;
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++static void plugin_control_active(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++    SetResult(&result, R_NUMBER, &res);
++
++    if (argc < 1 || argc > 2) {
++	my_error("active() requires 1-2 arguments.");
++	return;
++    }
++
++    Controller *ctrl = my_get_ctrl(argv[0]);
++    if (ctrl == NULL) {
++	my_error("active() can't find controller '%s'.", R2S(argv[0]));
++	return;
++    }
++
++    if (argc == 1) {
++	res = ctrl->isActive ? 1 : 0;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    RESULT *rAct = argv[1];
++
++    if ((rAct->type & R_NUMBER) == 0 || rAct->number != (int) rAct->number || rAct->number < 0 || rAct->number > 1) {
++
++	my_error("Second argument of active() has to be an integer from [0..1].");
++	return;
++    }
++
++    ctrl->isActive = (rAct->number == 0) ? 0 : 1;
++
++    res = 0;
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++
++int plugin_init_control(void)
++{
++
++    my_init();
++
++    AddFunction("control::active", -1, plugin_control_active);
++    AddFunction("control::running", 1, plugin_control_running);
++    AddFunction("control::send", 2, plugin_control_send);
++    AddFunction("control::key", 2, plugin_control_key);
++    AddFunction("control::byte", -1, plugin_control_byte);
++
++    return 0;
++}
++
++void plugin_exit_control(void)
++{
++    my_free_plugin();
++}
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_layout.c lcd4linux-0.11.0_pre20170527.new/plugin_layout.c
+--- lcd4linux-0.11.0_pre20170527/plugin_layout.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_layout.c	2019-08-15 08:41:21.288300812 +0100
+@@ -0,0 +1,1256 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * This plugin allows to switch between layouts while runtime.
++ * 
++ * https://lcd4linux.bulix.org/wiki/plugin_layout
++ *
++ * Copyright (C) 2003 Michael Reinelt <michael@reinelt.co.at>
++ * Copyright (C) 2004, 2005, 2006, 2007, 2008 The LCD4Linux Team <lcd4linux-devel@users.sourceforge.net>
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++#include <stdlib.h>
++#include <stdio.h>
++#include <string.h>
++#include <stdarg.h>
++
++#include "config.h"
++#include "debug.h"
++#include "plugin.h"
++#include "cfg.h"
++#include "layout.h"
++#include "timer.h"
++#include "timer_group.h"
++#include "widget.h"
++#include "action.h"
++#include "drv_generic_text.h"
++#include "drv_generic_graphic.h"
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++/*timer.c*/
++extern int nTimers;
++extern TIMER *Timers;
++
++/*timer_group.c*/
++extern int nTimerGroupWidgets;
++extern TIMER_GROUP_WIDGET *TimerGroupWidgets;
++
++/*widget_*.c*/
++extern void widget_timer_update(void *Self);
++extern void widget_text_update(void *Self);
++extern void widget_bar_update(void *Self);
++extern void widget_icon_update(void *Self);
++#ifdef WITH_IMAGE
++extern void widget_image_update(void *Self);
++#endif
++
++/*plugin_menu.c*/
++#ifdef PLUGIN_MENU
++extern int plugin_init_menu(void);
++#endif
++
++#define SECTION "Plugin:Layout"
++#define PLUGIN "Layout"
++#define MAX_GROUPS 1000
++#define MAX_LAYOUTS 1000
++
++#define my_debug(args...) message (2, __FILE__ ": " args)
++#define my_info(args...)  message (1, "Info  Plugin '" PLUGIN "': " args)
++#define my_error(args...) message (0, "ERROR Plugin '" PLUGIN "': " args)
++#define my_noMemory() message (0, "ERROR Couldn't allocate new memory (%s:%d).",PLUGIN, __LINE__)
++
++
++typedef struct LayoutGroup LayoutGroup;
++
++
++typedef struct Needle {
++    void (*callback) (void *data);
++    void *data;
++} Needle;
++
++
++typedef struct Layout {
++    char *name;
++    LayoutGroup *group;
++    Action *firstAction;
++    TIMER_GROUP_WIDGET **timerGroupWidgets;
++    int timerGroupWidgetNb;
++    int *timerGroupWidgetsUpdate;
++    TIMER **timers;
++    int timerNb;
++} Layout;
++
++
++typedef struct LayoutGroup {
++    char *name;
++    Action *firstAction;
++    Layout **layouts;
++    int layoutNb;
++    int layoutIdx;
++} LayoutGroup;
++
++
++typedef struct Plugin {
++    Action *firstAction;
++    LayoutGroup **groups;
++    int groupNb;
++    int groupIdx;
++    int isTextDrv;
++    int initGroupIdx;
++    int initLayoutIdx;
++    LayoutGroup *currentGroup;
++    Layout *currentLayout;
++} Plugin;
++
++
++static Plugin *plugin = NULL;
++
++
++int plugin_layout_isRunning()
++{
++    return plugin != NULL ? 1 : 0;
++}
++
++static int my_is_graphic_display()
++{
++    return drv_generic_graphic_real_blit == NULL ? 0 : 1;
++}
++
++
++static int my_show_layout(const Layout * layout)
++{
++
++    if (layout == NULL)
++	return 0;
++
++    char *widgetClasses[4] = { "text", "bar", "icon", "image" };
++    void (*widgetUpdates[4]) (void *) = {
++	widget_text_update, widget_bar_update, widget_icon_update,
++#ifdef WITH_IMAGE
++	    widget_image_update
++#else
++	    NULL
++#endif
++    };
++
++    if (my_is_graphic_display())
++	drv_generic_graphic_clear();
++    else {
++	drv_generic_text_clear(1);
++    }
++
++    int i, r;
++
++    for (i = 0; i < layout->timerGroupWidgetNb; i++) {
++
++	TIMER_GROUP_WIDGET *tgw = layout->timerGroupWidgets[i];
++	r = timer_add_widget(tgw->callback, tgw->data, tgw->interval, tgw->one_shot);
++
++	if (r < 0) {
++	    my_error("Can't set widget timers of layout '%s.%s'", layout->group->name, layout->name);
++	    return -1;
++	}
++
++	/*forced draw of widgets; update before first draw */
++	WIDGET *W = (WIDGET *) tgw->data;
++	if (layout->timerGroupWidgetsUpdate[i] == 1) {
++
++	    layout->timerGroupWidgetsUpdate[i] = 0;
++	    int j;
++	    for (j = 0; j < 4; j++) {
++
++		if (widgetUpdates[j] != NULL && strcmp(W->class->name, widgetClasses[j]) == 0) {
++
++		    widgetUpdates[j] (W);
++		    break;
++		}
++	    }
++	}
++	if (W->class->draw != NULL)
++	    W->class->draw(W);
++    }
++
++    if (!my_is_graphic_display())
++	drv_generic_text_clear(2);
++
++    for (i = 0; i < layout->timerNb; i++) {
++	TIMER *timer = layout->timers[i];
++	r = timer_add(timer->callback, timer->data, timer->interval, timer->one_shot);
++	if (r < 0) {
++	    my_error("Can't set timers of layout '%s.%s'.", layout->group->name, layout->name);
++	    return -1;
++	}
++    }
++    return 0;
++}
++
++
++static int my_hide_layout(const Layout * layout)
++{
++
++    if (layout == NULL)
++	return 0;
++
++    int i, j;
++    for (i = 0; i < layout->timerGroupWidgetNb; i++) {
++
++	TIMER_GROUP_WIDGET *tgw = layout->timerGroupWidgets[i];
++
++	if (timer_remove_widget(tgw->callback, tgw->data) < 0) {
++	    if (tgw->one_shot != 1 && tgw->interval != 0) {
++
++		my_error("Can't unset widget timers of layout '%s.%s'.", layout->group->name, layout->name);
++		return -1;
++	    }
++	}
++    }
++
++    for (i = 0; i < layout->timerNb; i++) {
++	TIMER *timer = layout->timers[i];
++
++	/* store current interval first */
++	for (j = 0; j < nTimers; j++) {
++	    if (Timers[j].active != TIMER_INACTIVE
++		&& Timers[j].data == timer->data && Timers[j].callback == timer->callback) {
++
++		timer->interval = Timers[j].interval;
++	    }
++	}
++
++	if (timer_remove(timer->callback, timer->data) < 0) {
++	    if (timer->one_shot != 1 && timer->interval != 0) {
++		my_error("Can't unset timers of layout '%s.%s'.", layout->group->name, layout->name);
++		return -1;
++	    }
++	}
++    }
++    return 0;
++}
++
++
++static int my_switch_layout(const int groupIdx, const int layoutIdx)
++{
++
++    if (groupIdx < 0 || groupIdx >= plugin->groupNb)
++	return -1;
++
++    LayoutGroup *oldGroup = plugin->currentGroup;
++    LayoutGroup *newGroup = plugin->groups[groupIdx];
++
++    if (layoutIdx < 0 || layoutIdx >= newGroup->layoutNb)
++	return -1;
++
++    Layout *oldLayout = plugin->currentLayout;
++    Layout *newLayout = newGroup->layouts[layoutIdx];
++
++    int status = 0;
++
++    if (newLayout != oldLayout) {
++
++	if (oldLayout != NULL)
++	    action_trigger(oldLayout->firstAction, "onexit");
++
++	if (newGroup != oldGroup && oldGroup != NULL)
++	    action_trigger(oldGroup->firstAction, "onexit");
++
++	plugin->groupIdx = groupIdx;
++	plugin->currentGroup = newGroup;
++	plugin->currentGroup->layoutIdx = layoutIdx;
++	plugin->currentLayout = newLayout;
++
++	if (my_hide_layout(oldLayout) < 0) {
++	    status = -1;
++	    my_error("Couldn't hide layout '%s.%s'.", oldGroup->name, oldLayout->name);
++	}
++	if (my_show_layout(newLayout) < 0) {
++	    status = -1;
++	    my_error("Couldn't show layout '%s.%s'.", newGroup->name, newLayout->name);
++	}
++	if (newGroup != oldGroup)
++	    action_trigger(newGroup->firstAction, "onenter");
++
++	action_trigger(newLayout->firstAction, "onenter");
++    }
++
++    return status;
++}
++
++
++static int my_init_widgets(Layout * layout)
++{
++
++    int i, j, idx;
++
++    char *section = cfg_make_str("Layout:%s", layout->name);
++    char *result = cfg_list(section);
++    free(section);
++
++    if (result == NULL || *result == '\0') {
++	free(result);
++	my_error("Layout '%s' has not been defined in conf-file.", layout->name);
++	return -1;
++    }
++    free(result);
++
++    Needle tgwNeedles[nTimerGroupWidgets];
++    int tgwBeforeNb = 0;
++
++    for (i = 0; i < nTimerGroupWidgets; i++) {
++	if (TimerGroupWidgets[i].active != TIMER_INACTIVE) {
++	    tgwNeedles[tgwBeforeNb].callback = TimerGroupWidgets[i].callback;
++	    tgwNeedles[tgwBeforeNb].data = TimerGroupWidgets[i].data;
++	    tgwBeforeNb++;
++	}
++    }
++
++    Needle timerNeedles[nTimers];
++    int timerBeforeNb = 0;
++
++    for (i = 0; i < nTimers; i++) {
++	if (Timers[i].active != TIMER_INACTIVE) {
++	    timerNeedles[timerBeforeNb].callback = Timers[i].callback;
++	    timerNeedles[timerBeforeNb].data = Timers[i].data;
++	    timerBeforeNb++;
++	}
++    }
++
++    if (layout_init(layout->name) != 0) {
++	my_error("Error while try to init layout '%s.%s'.", layout->group->name, layout->name);
++	return -1;
++    }
++
++    layout->timerGroupWidgets = malloc(nTimerGroupWidgets * sizeof(TIMER_GROUP_WIDGET *));
++
++    if (nTimerGroupWidgets > 0 && layout->timerGroupWidgets == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (i = 0; i < nTimerGroupWidgets; i++)
++	layout->timerGroupWidgets[i] = NULL;
++
++    idx = 0;
++    for (i = 0; i < nTimerGroupWidgets; i++) {
++
++	if (TimerGroupWidgets[i].active == TIMER_INACTIVE)
++	    continue;
++
++	int ignore = 0;
++	for (j = 0; j < tgwBeforeNb; j++) {
++	    if ((tgwNeedles[j].callback == TimerGroupWidgets[i].callback)
++		&& (tgwNeedles[j].data == TimerGroupWidgets[i].data)) {
++		ignore = 1;
++		break;
++	    }
++	}
++	if (ignore == 0) {
++	    layout->timerGroupWidgets[idx] = malloc(sizeof(TIMER_GROUP_WIDGET));
++	    if (layout->timerGroupWidgets[idx] == NULL) {
++		my_noMemory();
++		return -1;
++	    }
++	    *layout->timerGroupWidgets[idx] = TimerGroupWidgets[i];
++	    idx++;
++	}
++    }
++    layout->timerGroupWidgetNb = idx;
++
++    TIMER_GROUP_WIDGET **pTgw = realloc(layout->timerGroupWidgets,
++					layout->timerGroupWidgetNb * sizeof(TIMER_GROUP_WIDGET *));
++
++    if (layout->timerGroupWidgetNb > 0 && pTgw == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    layout->timerGroupWidgets = pTgw;
++
++    layout->timerGroupWidgetsUpdate = malloc(layout->timerGroupWidgetNb * sizeof(int));
++
++    if (layout->timerGroupWidgetNb > 0 && layout->timerGroupWidgetsUpdate == NULL) {
++
++
++	my_noMemory();
++	return -1;
++    }
++
++    for (i = 0; i < layout->timerGroupWidgetNb; i++)
++	layout->timerGroupWidgetsUpdate[i] = 1;
++
++    /* save timers related with this layout */
++
++    layout->timers = malloc(nTimers * sizeof(TIMER *));
++
++    if (nTimers > 0 && layout->timers == NULL) {
++
++	my_noMemory();
++	return -1;
++    }
++
++    idx = 0;
++    for (i = 0; i < nTimers; i++) {
++
++	if (Timers[i].active == TIMER_INACTIVE)
++	    continue;
++
++	int ignore = 0;
++	for (j = 0; j < timerBeforeNb; j++) {
++	    if ((timerNeedles[j].callback == Timers[i].callback)
++		&& (timerNeedles[j].data == Timers[i].data)) {
++
++		ignore = 1;
++		break;
++	    }
++	}
++
++	if (ignore == 0) {
++	    ignore = 1;
++
++	    for (j = 0; j < layout->timerGroupWidgetNb; j++) {
++
++		/* only widget related timers */
++		if (layout->timerGroupWidgets[j]->data == Timers[i].data) {
++		    ignore = 0;
++		    break;
++		}
++
++	    }
++	    if (Timers[i].callback == widget_timer_update)
++		ignore = 0;
++	}
++	if (ignore == 0) {
++	    layout->timers[idx] = malloc(sizeof(TIMER));
++	    if (layout->timers[idx] == NULL) {
++		my_noMemory();
++		return -1;
++	    }
++	    *layout->timers[idx] = Timers[i];
++	    idx++;
++	}
++    }
++    layout->timerNb = idx;
++
++    TIMER **pT = realloc(layout->timers, idx * sizeof(TIMER *));
++
++    if (layout->timerNb > 0 && pT == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    layout->timers = pT;
++
++    return my_hide_layout(layout);
++}
++
++
++static void my_free_layout(Layout * layout)
++{
++
++    if (layout == NULL)
++	return;
++    free(layout->name);
++    action_free_all(layout->firstAction);
++    int i;
++    if (layout->timerGroupWidgets != NULL) {
++	for (i = 0; i < layout->timerGroupWidgetNb; i++)
++	    free(layout->timerGroupWidgets[i]);
++	free(layout->timerGroupWidgets);
++    }
++    free(layout->timerGroupWidgetsUpdate);
++    if (layout->timers != NULL) {
++	for (i = 0; i < layout->timerNb; i++)
++	    free(layout->timers[i]);
++	free(layout->timers);
++    }
++    free(layout);
++}
++
++
++static void my_free_group(LayoutGroup * group)
++{
++
++    if (group == NULL)
++	return;
++    free(group->name);
++    action_free_all(group->firstAction);
++    if (group->layouts != NULL) {
++	int i;
++	for (i = 0; i < group->layoutNb; i++)
++	    my_free_layout(group->layouts[i]);
++	free(group->layouts);
++    }
++    free(group);
++}
++
++
++static void my_free_plugin()
++{
++
++    if (plugin == NULL)
++	return;
++
++    action_free_all(plugin->firstAction);
++
++    if (plugin->groups != NULL) {
++	int i;
++	for (i = 0; i < plugin->groupNb; i++)
++	    my_free_group(plugin->groups[i]);
++	free(plugin->groups);
++    }
++    free(plugin);
++    plugin = NULL;
++}
++
++
++/*checks if layouts contain allowed widgets*/
++static int my_precheck_layouts()
++{
++
++    int ok = 1;
++    int g, k, i;
++
++    void *visibleWidgetCallbacks[] = { widget_text_update,
++	widget_icon_update,
++	widget_bar_update,
++#ifdef HAVE_GD_GD_H
++	widget_image_update
++#else
++	NULL
++#endif
++    };
++
++    for (i = 0; ok && i < nTimerGroupWidgets; i++) {
++
++	TIMER_GROUP_WIDGET *tgw = &TimerGroupWidgets[i];
++	if (tgw->active == 0)
++	    continue;
++	for (k = 0; ok && k < 4; k++)
++	    if (visibleWidgetCallbacks[k] != NULL && tgw->callback == visibleWidgetCallbacks[k]) {
++
++		char *name = cfg_get(NULL, "Layout", NULL);
++		my_error("Main Layout '%s' MUST NOT contain visible widgets (text,bar,icon,image).", name);
++		free(name);
++		ok = 0;
++	    }
++    }
++
++    char *needles[] = { "Keypad1", "Gpo1" };
++    char **names = NULL;
++    int nameNb = 0;
++    int maxG = cfg_count("Plugin:Layout.Group", MAX_GROUPS);
++
++    for (g = 1; g <= maxG; g++) {
++
++	for (k = 1; k <= MAX_LAYOUTS; k++) {
++
++	    char *key = cfg_make_str("Group%d.Layout%d.name", g, k);
++	    char *name = cfg_get(SECTION, key, NULL);
++	    free(key);
++	    if (name == NULL || *name == '\0') {
++		free(name);
++		break;
++	    }
++
++	    int nameFound = 0;
++	    for (i = 0; !nameFound && i < nameNb; i++)
++		if (strcmp(names[i], name) == 0)
++		    nameFound = 1;
++	    if (!nameFound) {
++		char **p = realloc(names, (nameNb + 1) * sizeof(char *));
++		if (p == NULL) {
++		    my_noMemory();
++		    free(name);
++		    free(names);
++		    return -1;
++		}
++		names = p;
++		names[nameNb] = name;
++		nameNb++;
++	    } else
++		free(name);
++	}
++	if (k == 1)
++	    break;
++    }
++
++    int msg = 0;
++
++    for (k = 0; k < nameNb; k++) {
++
++	char *section = cfg_make_str("Layout:%s", names[k]);
++	for (i = 0; i < 2; i++) {
++	    char *res = cfg_get(section, needles[i], NULL);
++	    if (res != NULL && *res != '\0') {
++
++		if (!msg) {
++		    my_error("Layouts used in Plugin 'layout' MUST NOT contain invisible widgets (timer,keypad,gpo).");
++		    msg = 1;
++		}
++		my_error("Layout '%s' used in Plugin 'Layout' contains invisible widget '%s'.", names[k], needles[i]);
++		ok = 0;
++	    }
++	    free(res);
++	}
++	free(section);
++	free(names[k]);
++    }
++    free(names);
++
++    return ok ? 0 : -1;
++}
++
++
++static int my_init_layout(int idxG, int idxL)
++{
++
++    LayoutGroup *group = plugin->groups[idxG];
++    Layout *layout = malloc(sizeof(Layout));
++    if (layout == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    group->layouts[idxL] = layout;
++    layout->name = NULL;
++    layout->group = NULL;
++    layout->firstAction = NULL;
++    layout->timerGroupWidgets = NULL;
++    layout->timerGroupWidgetsUpdate = NULL;
++    layout->timerGroupWidgetNb = 0;
++    layout->timers = NULL;
++    layout->timerNb = 0;
++
++    int i;
++
++    char *key = cfg_make_str("Group%d.Layout%d.name", idxG + 1, idxL + 1);
++    char *name = cfg_get(SECTION, key, NULL);
++    free(key);
++
++    if (name == NULL || *name == '\0') {
++	my_error("Layout %d of group %d has no valide name.", idxL + 1, idxG + 1);
++	free(name);
++	return -1;
++    }
++
++    for (i = 0; i < idxL; i++) {
++	if (strcmp(group->layouts[i]->name, name) == 0) {
++	    my_error("Layout name '%s' is not unique in group %d ('%s').", name, idxG + 1, group->name);
++	    free(name);
++	    return -1;
++	}
++    }
++
++    layout->name = name;
++    my_info("Group%d.Layout%d.name = '%s'.", idxG + 1, idxL + 1, name);
++
++    if (my_init_widgets(layout) < 0) {
++	my_error("Fail to init Layout '%s.%s'.", group->name, layout->name);
++	return -1;
++    }
++
++    char *section = cfg_make_str("%s.Group%d.Layout%d", SECTION, idxG + 1, idxL + 1);
++    action_init_default(section, &layout->firstAction);
++    free(section);
++
++    return 0;
++}
++
++
++static int my_init_group(int idxG)
++{
++
++    LayoutGroup *group = malloc(sizeof(LayoutGroup));
++    if (group == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    plugin->groups[idxG] = group;
++    group->name = NULL;
++    group->firstAction = NULL;
++    group->layouts = NULL;
++    group->layoutNb = 0;
++    group->layoutIdx = -1;
++
++
++    int i, idxL;
++
++    char *key = cfg_make_str("Group%d.name", idxG + 1);
++    char *dfltName = cfg_make_str("Group%d", idxG + 1);
++    char *name = cfg_get(SECTION, key, dfltName);
++    free(key);
++    free(dfltName);
++
++    if (name == NULL || *name == '\0') {
++	free(name);
++	my_error("Group %d has no valide name.", idxG + 1);
++	return -1;
++    }
++    for (i = 0; i < idxG; i++) {
++	if (strcmp(plugin->groups[i]->name, name) == 0) {
++	    my_error("Group name '%s' is not unique.", name);
++	    free(name);
++	    return -1;
++	}
++    }
++    group->name = name;
++    my_info("Group%d.name = '%s'.", idxG + 1, name);
++
++    char *prefix = cfg_make_str("%s.Group%d.Layout", SECTION, idxG + 1);
++    int layoutNb = cfg_count(prefix, MAX_LAYOUTS);
++    free(prefix);
++
++    if (layoutNb <= 0) {
++	my_error("No layouts found in group '%s'.", group->name);
++	return -1;
++    }
++    group->layoutNb = layoutNb;
++    group->layoutIdx = 0;
++    my_info("%d layouts found in group '%s'.", group->layoutNb, group->name);
++
++    group->layouts = malloc(group->layoutNb * sizeof(Layout *));
++    if (group->layouts == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (idxL = 0; idxL < group->layoutNb; idxL++)
++	group->layouts[idxL] = NULL;
++
++
++    for (idxL = 0; idxL < group->layoutNb; idxL++)
++	if (my_init_layout(idxG, idxL) < 0)
++	    return -1;
++
++    key = cfg_make_str("%s.Group%d", SECTION, idxG + 1);
++    action_init_default(key, &group->firstAction);
++    free(key);
++
++    return 0;
++}
++
++
++/* return -1: error, 0: inactive, 1:active */
++static int my_init_plugin()
++{
++
++    int active = 0;
++    if (cfg_number(SECTION, "active", 0, 0, 1, &active) != 1) {
++	my_error("No valide 'active' value. Set to inactive.");
++	return -1;
++    }
++
++    if (!active) {
++	my_info("Set inactive.");
++	return 1;
++    } else
++	my_info("Try to init.");
++
++    if (my_precheck_layouts() < 0)
++	return -1;
++
++    plugin = malloc(sizeof(Plugin));
++    if (plugin == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    plugin->firstAction = NULL;
++    plugin->groups = NULL;
++    plugin->groupNb = 0;
++    plugin->groupIdx = -1;
++    plugin->currentGroup = NULL;
++    plugin->currentLayout = NULL;
++    plugin->isTextDrv = 1;
++    plugin->initGroupIdx = -1;
++    plugin->initLayoutIdx = -1;
++
++    /* TODD: check if current display is graphic or test display and
++     * update plugin->isTextDrv */
++
++    int idxG;
++
++    char *prefix = cfg_make_str("%s.Group", SECTION);
++    int groupNb = cfg_count(prefix, MAX_GROUPS);
++    free(prefix);
++
++    if (groupNb <= 0) {
++	my_error("No groups found.");
++	return -1;
++    }
++
++    plugin->groupNb = groupNb;
++    plugin->groupIdx = 0;
++    my_info("%d groups found.", plugin->groupNb);
++
++    plugin->groups = malloc(plugin->groupNb * sizeof(LayoutGroup *));
++
++    if (plugin->groups == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (idxG = 0; idxG < plugin->groupNb; idxG++)
++	plugin->groups[idxG] = NULL;
++
++    for (idxG = 0; idxG < plugin->groupNb; idxG++)
++	if (my_init_group(idxG) < 0)
++	    return -1;
++
++    action_init_default(SECTION, &plugin->firstAction);
++
++    char *name = cfg_get(SECTION, "initgroup", NULL);
++    if (name != NULL) {
++	for (idxG = 0; idxG < plugin->groupNb; idxG++)
++	    if (strcmp(name, plugin->groups[idxG]->name) == 0) {
++		plugin->initGroupIdx = idxG;
++		break;
++	    }
++	free(name);
++    }
++
++    if (plugin->initGroupIdx >= 0) {
++	char *name = cfg_get(SECTION, "initlayout", NULL);
++	if (name != NULL) {
++	    idxG = plugin->initGroupIdx;
++	    int idxL;
++	    for (idxL = 0; idxL < plugin->groups[idxG]->layoutNb; idxL++)
++		if (strcmp(name, plugin->groups[idxG]->layouts[idxL]->name) == 0) {
++		    plugin->initLayoutIdx = idxL;
++		    break;
++		}
++	    free(name);
++	}
++
++    }
++
++    if (plugin->initLayoutIdx < 0) {
++
++	if (plugin->initGroupIdx < 0)
++	    my_error("No valide 'initgroup' value found.");
++	else
++	    my_error("No valide 'initlayout' value found.");
++
++	my_error("Set to initgroup '%s' and initlayout '%s'.",
++		 plugin->groups[0]->name, plugin->groups[0]->layouts[0]->name);
++
++	plugin->initGroupIdx = 0;
++	plugin->initLayoutIdx = 0;
++    }
++
++    return 0;
++}
++
++
++static void my_init_late()
++{
++
++    int status = my_init_plugin();
++
++    if (status == 0) {
++#ifdef PLUGIN_MENU
++	if (!plugin_init_menu())
++#endif
++	    my_switch_layout(plugin->initGroupIdx, plugin->initLayoutIdx);
++    } else {
++	if (status < 0) {
++	    my_error("Error while initializing plugin.");
++	    my_error("Plugin will NOT work. Every call will return -1 (error).");
++	}
++	my_free_plugin();
++    }
++}
++
++
++static int my_plugin_not_active(RESULT ** result)
++{
++
++    static int errorShown = 0;
++    if (plugin == NULL) {
++
++	if (!errorShown) {
++	    errorShown = 1;
++	    my_error("Plugin not active but attempt of using it was detected.");
++	}
++	double error = -1;
++	SetResult(result, R_NUMBER, &error);
++	return 1;
++    }
++    return 0;
++}
++
++
++static int my_group_index_from_result(RESULT * rGroup)
++{
++
++    if (rGroup->type & R_NUMBER) {
++	int idx = ((int) rGroup->number) - 1;
++	if (idx + 1 != rGroup->number || idx < 0 || idx >= plugin->groupNb)
++	    return -1;
++	return (idx);
++    }
++
++    if (rGroup->type & R_STRING) {
++	int i;
++	for (i = 0; i < plugin->groupNb; i++)
++	    if (strcmp(rGroup->string, plugin->groups[i]->name) == 0)
++		return (i);
++    }
++
++    return -1;
++}
++
++/* not static: used by plugin menu*/
++void plugin_layout_layout(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double error = -1;
++
++    if (argc > 2) {
++	SetResult(&result, R_NUMBER, &error);
++	my_error("layout() requires 0-2 arguments.");
++	return;
++    }
++
++    if (argc == 0) {
++	double res = plugin->currentGroup->layoutIdx + 1;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    int i;
++
++    if (argc == 1 || argc == 2) {
++
++	int grpIdx = -1;
++
++	if (argc == 1) {
++	    grpIdx = plugin->groupIdx;
++	} else {
++	    RESULT *rGroup = argv[0];
++	    grpIdx = my_group_index_from_result(rGroup);
++
++	    if (grpIdx < 0) {
++		SetResult(&result, R_NUMBER, &error);
++		my_error("layout(): Group '%s' does not exist.", R2S(rGroup));
++		return;
++	    }
++	}
++
++	RESULT *rLayout = argv[argc - 1];
++	int layIdx = -1;
++
++	if (rLayout->type & R_NUMBER) {
++	    int idx = ((int) rLayout->number) - 1;
++
++	    if (idx + 1 != rLayout->number || idx < 0 || idx >= plugin->groups[grpIdx]->layoutNb) {
++		SetResult(&result, R_NUMBER, &error);
++		my_error("layout(): Layout index %g does not exist in group # %d", rLayout->number, grpIdx + 1);
++		return;
++	    }
++	    layIdx = idx;
++	}
++
++	if (rLayout->type & R_STRING) {
++
++	    for (i = 0; i < plugin->groups[grpIdx]->layoutNb; i++)
++		if (strcmp(rLayout->string, plugin->groups[grpIdx]->layouts[i]->name) == 0) {
++		    layIdx = i;
++		    break;
++		}
++	    if (layIdx < 0) {
++		SetResult(&result, R_NUMBER, &error);
++		my_error("layout(): Layout '%s' does not exist in group '%s'.", rLayout->string,
++			 plugin->groups[grpIdx]->name);
++		return;
++	    }
++	}
++
++	error = my_switch_layout(grpIdx, layIdx);
++	SetResult(&result, R_NUMBER, &error);
++    }
++}
++
++
++static void plugin_layout_group(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double error = -1;
++
++    if (argc > 1) {
++	SetResult(&result, R_NUMBER, &error);
++	my_error("group() requires 0-1 arguments.");
++	return;
++    }
++
++    if (argc == 0) {
++	double res = plugin->groupIdx + 1;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    if (argc == 1) {
++
++	RESULT *rGroup = argv[0];
++	int grpIdx = my_group_index_from_result(rGroup);
++
++	if (grpIdx < 0) {
++	    SetResult(&result, R_NUMBER, &error);
++	    my_error("group(): Group '%s' does not exist.", R2S(rGroup));
++	    return;
++	}
++
++	error = my_switch_layout(grpIdx, plugin->groups[grpIdx]->layoutIdx);
++	SetResult(&result, R_NUMBER, &error);
++    }
++}
++
++static void my_prevNextLayout_help(RESULT * result, RESULT * rLoop, int mode)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++
++    if ((rLoop->type & R_NUMBER) == 0) {
++	my_error("%s() requires 1 numeric argument.", (mode == 0) ? "prev" : "next");
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    int idxL = plugin->currentGroup->layoutIdx;
++    int nbL = plugin->currentGroup->layoutNb;
++    int idxG = plugin->groupIdx;
++
++    if (mode == 0) {
++	if (rLoop->number != 0 || idxL > 0)
++	    idxL = (idxL + nbL - 1) % nbL;
++    } else {
++	if (rLoop->number != 0 || idxL < nbL - 1)
++	    idxL = (idxL + 1) % nbL;
++    }
++
++    res = my_switch_layout(idxG, idxL);
++    SetResult(&result, R_NUMBER, &res);
++}
++
++static void plugin_layout_prev(RESULT * result, RESULT * rLoop)
++{
++    my_prevNextLayout_help(result, rLoop, 0);
++}
++
++static void plugin_layout_next(RESULT * result, RESULT * rLoop)
++{
++    error("next layout");
++
++    my_prevNextLayout_help(result, rLoop, 1);
++}
++
++
++static void my_prevNextGroup_help(RESULT * result, RESULT * rLoop, RESULT * rShowFirstLayout, int mode)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++
++    if ((rLoop->type & rShowFirstLayout->type & R_NUMBER) == 0) {
++	my_error("%sgroup() requires 2 numeric argument.", (mode == 0) ? "prev" : "next");
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    int idxL = plugin->currentGroup->layoutIdx;
++    int idxG = plugin->groupIdx;
++    int nbG = plugin->groupNb;
++
++    if (mode == 0) {
++	if (rLoop->number != 0 || idxG > 0)
++	    idxG = (idxG + nbG - 1) % nbG;
++    } else {
++	if (rLoop->number != 0 || idxG < nbG - 1)
++	    idxG = (idxG + 1) % nbG;
++    }
++
++    idxL = rShowFirstLayout->number != 0 ? 0 : plugin->groups[idxG]->layoutIdx;
++
++    res = my_switch_layout(idxG, idxL);
++    SetResult(&result, R_NUMBER, &res);
++}
++
++static void plugin_layout_prevgroup(RESULT * result, RESULT * rLoop, RESULT * rShowFirstLayout)
++{
++    my_prevNextGroup_help(result, rLoop, rShowFirstLayout, 0);
++}
++
++static void plugin_layout_nextgroup(RESULT * result, RESULT * rLoop, RESULT * rShowFirstLayout)
++{
++    my_prevNextGroup_help(result, rLoop, rShowFirstLayout, 1);
++}
++
++
++static void plugin_layout_groups(RESULT * result)
++{
++    if (my_plugin_not_active(&result))
++	return;
++
++    double d = plugin->groupNb;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static void plugin_layout_groupname(RESULT * result)
++{
++    if (my_plugin_not_active(&result))
++	return;
++
++    SetResult(&result, R_STRING, plugin->currentGroup->name);
++}
++
++
++static void plugin_layout_layouts(RESULT * result)
++{
++    if (my_plugin_not_active(&result))
++	return;
++
++    double d = plugin->currentGroup->layoutNb;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static void plugin_layout_layoutname(RESULT * result)
++{
++    if (my_plugin_not_active(&result))
++	return;
++
++    SetResult(&result, R_STRING, plugin->currentLayout->name);
++}
++
++
++
++static void my_action(RESULT * result, char *actionName)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    my_info("action: '%s'", actionName);
++
++    Action *firsts[] = { plugin->currentLayout->firstAction,
++	plugin->currentGroup->firstAction,
++	plugin->firstAction
++    };
++
++    double d = -1;
++    int i;
++
++    /* ignore onenter, onexit actions */
++    if (actionName != NULL && *actionName != 'o')
++	for (i = 0; i < 3; i++) {
++	    Action *first = firsts[i];
++
++	    if (action_trigger(first, actionName)) {
++		d = 0;
++		break;
++	    }
++	}
++    SetResult(&result, R_NUMBER, &d);
++}
++
++static void plugin_layout_trigger(RESULT * result, RESULT * rAction)
++{
++    my_action(result, R2S(rAction));
++}
++
++static void plugin_layout_confirm(RESULT * result)
++{
++    my_action(result, "confirm");
++}
++
++static void plugin_layout_cancel(RESULT * result)
++{
++    my_action(result, "cancel");
++}
++
++static void plugin_layout_left(RESULT * result)
++{
++    my_action(result, "left");
++}
++
++static void plugin_layout_right(RESULT * result)
++{
++    my_action(result, "right");
++}
++
++static void plugin_layout_up(RESULT * result)
++{
++    my_action(result, "up");
++}
++
++static void plugin_layout_down(RESULT * result)
++{
++    my_action(result, "down");
++}
++
++
++int plugin_init_layout(void)
++{
++
++    timer_add_late(my_init_late, NULL, 0, 1);
++
++    AddFunction("layout::layoutname", 0, plugin_layout_layoutname);
++    AddFunction("layout::layout", -1, plugin_layout_layout);
++    AddFunction("layout::layouts", 0, plugin_layout_layouts);
++    AddFunction("layout::prev", 1, plugin_layout_prev);
++    AddFunction("layout::next", 1, plugin_layout_next);
++
++    AddFunction("layout::group", -1, plugin_layout_group);
++    AddFunction("layout::groupname", 0, plugin_layout_groupname);
++    AddFunction("layout::groups", 0, plugin_layout_groups);
++    AddFunction("layout::prevgroup", 2, plugin_layout_prevgroup);
++    AddFunction("layout::nextgroup", 2, plugin_layout_nextgroup);
++
++    AddFunction("layout::trigger", 1, plugin_layout_trigger);
++    AddFunction("layout::confirm", 0, plugin_layout_confirm);
++    AddFunction("layout::cancel", 0, plugin_layout_cancel);
++    AddFunction("layout::left", 0, plugin_layout_left);
++    AddFunction("layout::right", 0, plugin_layout_right);
++    AddFunction("layout::up", 0, plugin_layout_up);
++    AddFunction("layout::down", 0, plugin_layout_down);
++
++    return 0;
++}
++
++
++void plugin_exit_layout(void)
++{
++    my_free_plugin();
++}
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_list.c lcd4linux-0.11.0_pre20170527.new/plugin_list.c
+--- lcd4linux-0.11.0_pre20170527/plugin_list.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_list.c	2019-08-15 08:41:21.274967332 +0100
+@@ -0,0 +1,626 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * This plugin adds some basic linked list functions to lcd4linux.
++ *
++ * https://lcd4linux.bulix.org/wiki/plugin_list
++ * 
++ * Copyright (C) 2003 Michael Reinelt <michael@reinelt.co.at>
++ * Copyright (C) 2004, 2005, 2006, 2007, 2008 The LCD4Linux Team <lcd4linux-devel@users.sourceforge.net>
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++
++
++#include "config.h"
++#include "cfg.h"
++#include "debug.h"
++#include "plugin.h"
++#include "evaluator.h"
++
++#include <stdlib.h>
++#include <string.h>
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++#define SECTION "Plugin:List"
++#define PLUGIN "List"
++#define LIST_LIMIT_MAX 1000
++#define LIST_LIMIT_DEFAULT 10
++
++/* copied from plugin_layout.c */
++#define my_debug(args...) message (2, __FILE__ ": " args)
++#define my_info(args...)  message (1, "Info  Plugin '" PLUGIN "': " args)
++#define my_error(args...) message (0, "ERROR Plugin '" PLUGIN "': " args)
++#define my_noMemory() message (0, "ERROR Couldn't allocate new memory (%s:%d).",PLUGIN, __LINE__)
++
++typedef struct Element Element;
++
++typedef struct Element {
++
++    RESULT *value;
++    Element *next;
++
++} Element;
++
++typedef struct List {
++
++    char *name;
++    int size;
++    int limit;
++    Element *firstElement;
++
++} List;
++
++
++typedef struct Plugin {
++
++    List **lists;
++    int listNb;
++
++} Plugin;
++
++static Plugin *plugin = NULL;
++
++
++
++static void my_set_result(RESULT * result, RESULT * rVal)
++{
++    if (rVal->type & R_STRING)
++	SetResult(&result, R_STRING, rVal->string);
++    else
++	SetResult(&result, R_NUMBER, &rVal->number);
++}
++
++
++static void my_free_element(Element * element)
++{
++
++    if (element == NULL)
++	return;
++
++    if (element->value != NULL) {
++	free(element->value->string);
++	free(element->value);
++    }
++    free(element);
++}
++
++
++static void my_free_Element(Element * e)
++{
++
++    if (e == NULL)
++	return;
++
++    if (e->value != NULL) {
++	DelResult(e->value);
++	free(e->value);
++    }
++    free(e);
++}
++
++
++static void my_free_list(List * list)
++{
++
++    if (list == NULL)
++	return;
++
++    Element *e;
++    Element *next;
++    for (e = list->firstElement; e != NULL; e = next) {
++	next = e->next;
++	my_free_Element(e);
++    }
++    free(list->name);
++    free(list);
++}
++
++static void my_free_plugin()
++{
++
++    if (plugin == NULL)
++	return;
++
++    int i;
++    if (plugin->listNb > 0)
++	for (i = 0; i < plugin->listNb; i++)
++	    my_free_list(plugin->lists[i]);
++
++    free(plugin->lists);
++    free(plugin);
++    plugin = NULL;
++}
++
++
++static RESULT *my_cfg_get_result(const char *section, const char *key)
++{
++
++    char *expression = cfg_get_raw(section, key, NULL);
++
++    if (expression == NULL)
++	return NULL;
++
++    void *tree = NULL;
++    RESULT *result = malloc(sizeof(RESULT));
++    result->string = NULL;
++
++    if (*expression == '\0' || strcmp(expression, "''") == 0) {
++	result->type = R_STRING;
++	result->size = 1;
++	result->string = strdup("");
++	return result;
++    }
++
++    if (Compile(expression, &tree) == 0 && Eval(tree, result) == 0) {
++	DelTree(tree);
++	return result;
++    }
++    DelTree(tree);
++    return NULL;
++}
++
++
++
++
++
++static int my_init_list(int idxL)
++{
++
++    List *list = malloc(sizeof(List));
++    if (list == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    plugin->lists[idxL] = list;
++
++    list->name = NULL;
++    list->limit = LIST_LIMIT_DEFAULT;
++    list->size = 0;
++    list->firstElement = NULL;
++
++    int i;
++
++    char *key = cfg_make_str("List%d.name", idxL + 1);
++    char *defVal = cfg_make_str("List%d", idxL + 1);
++    char *name = cfg_get(SECTION, key, defVal);
++    free(key);
++    free(defVal);
++
++    if (name == NULL || *name == '\0') {
++	my_error("List %d has no valide name.", idxL + 1);
++	free(name);
++	return -1;
++    }
++    for (i = 0; i < idxL; i++) {
++	if (strcmp(plugin->lists[i]->name, name) == 0) {
++	    my_error("List name '%s' is not unique.", name);
++	    free(name);
++	    return -1;
++	}
++    }
++    list->name = name;
++    my_info("List%d.name = '%s'.", idxL + 1, name);
++
++
++    key = cfg_make_str("List%d.limit", idxL + 1);
++    int limit = 0;
++    int r = cfg_number(SECTION, key, LIST_LIMIT_DEFAULT, 0,
++		       LIST_LIMIT_MAX, &limit);
++    free(key);
++
++
++    if (r < 0) {
++	my_error("List %d has no valide limit.", idxL + 1);
++	return -1;
++    }
++    list->limit = limit;
++
++
++
++    Element *prev = NULL;
++
++    for (i = 0; i < LIST_LIMIT_MAX; i++) {
++
++	char *key = cfg_make_str("List%d.value%d", idxL + 1, i + 1);
++
++	RESULT *res = my_cfg_get_result(SECTION, key);
++	free(key);
++
++	if (res == NULL)
++	    break;
++
++	Element *element = malloc(sizeof(Element));
++	if (element == NULL) {
++	    my_noMemory();
++	    return -1;
++	}
++
++	element->value = res;
++	element->next = NULL;
++
++	if (prev == NULL)
++	    list->firstElement = element;
++	else
++	    prev->next = element;
++
++	list->size++;
++	prev = element;
++    }
++
++    if (list->limit < list->size) {
++	list->limit = list->size;
++	my_error("Given limit of list '%s' is lower than its initial size.", list->name);
++	my_error("Limit has been increased to %d.", list->limit);
++    }
++
++    return 0;
++}
++
++static int my_init_plugin()
++{
++
++    plugin = malloc(sizeof(Plugin));
++    if (plugin == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    plugin->lists = NULL;
++    plugin->listNb = 0;
++
++
++    int active = 0;
++    if (cfg_number(SECTION, "active", 0, 0, 1, &active) != 1) {
++	my_error("No valide 'active' value. Set to inactive.");
++	return -1;
++    }
++
++    if (!active) {
++	my_info("Set inactive.");
++	return 0;
++    } else
++	my_info("Try to init.");
++
++
++    char *prefix = cfg_make_str("%s.List", SECTION);
++    int listNb = cfg_count(prefix, LIST_LIMIT_MAX);
++    free(prefix);
++
++    if (listNb <= 0) {
++	my_error("No lists found.");
++	return -1;
++    }
++
++    plugin->listNb = listNb;
++    my_info("%d lists found.", plugin->listNb);
++
++    plugin->lists = malloc(plugin->listNb * sizeof(List *));
++
++    if (plugin->lists == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    int i;
++    for (i = 0; i < plugin->listNb; i++)
++	plugin->lists[i] = NULL;
++
++    int status = 1;
++    for (i = 0; status == 1 && i < plugin->listNb; i++)
++	status = my_init_list(i) < 0 ? -1 : 1;
++
++    return status;
++}
++
++
++static void my_init()
++{
++    int status = my_init_plugin();
++
++    if (status != 1) {
++	if (status < 0) {
++	    my_error("ERROR while initializing plugin.");
++	    my_error("Plugin will NOT work. Every call will return -1 (error).");
++	}
++	my_free_plugin();
++	plugin = NULL;
++    }
++}
++
++
++
++static Element *my_get_element(int idxL, int idxE)
++{
++
++    if (idxL < 0 || idxL >= plugin->listNb)
++	return NULL;
++
++    List *list = plugin->lists[idxL];
++
++    if (idxE < 0 || idxE >= list->size)
++	return NULL;
++
++    Element *elem;
++    int idx = 0;
++    for (elem = list->firstElement; elem != NULL; elem = elem->next, idx++) {
++	if (idx == idxE)
++	    return elem;
++    }
++    return NULL;
++}
++
++static int my_get_list_idx(RESULT * result, RESULT * rList, char *prefix)
++{
++
++    double error = -1;
++
++    static int errorShown = 0;
++    if (plugin == NULL) {
++
++	if (!errorShown) {
++	    errorShown = 1;
++	    my_error("Plugin not active but attempt of using it was detected.");
++	}
++	SetResult(&result, R_NUMBER, &error);
++	return -1;
++    }
++
++    int idxL = -1;
++
++    if (rList->type & R_STRING) {
++	int i;
++	for (i = 0; i < plugin->listNb; i++)
++	    if (strcmp(rList->string, plugin->lists[i]->name) == 0)
++		return i;
++    }
++
++    if (rList->type & R_NUMBER) {
++	idxL = (int) rList->number - 1;
++	if (idxL + 1 != rList->number || idxL < 0 || idxL >= plugin->listNb)
++	    idxL = -1;
++    }
++
++    if (idxL < 0) {
++	SetResult(&result, R_NUMBER, &error);
++	my_error("Couldn't find list %s to apply %s.", R2S(rList), prefix);
++    }
++    return idxL;
++}
++
++
++static int my_get_element_idx(RESULT * result, int idxL, RESULT * rElem, int oneMore, char *prefix)
++{
++
++    if (idxL < 0)
++	return -1;
++
++    double error = -1;
++    int idxE = -1;
++
++    if (rElem->type & R_NUMBER) {
++
++	idxE = (int) rElem->number - 1;
++	if (idxE + 1 != rElem->number || idxE < 0 || idxE - (oneMore ? 1 : 0) >= plugin->lists[idxL]->size) {
++
++	    idxE = -1;
++	}
++    }
++
++    if (idxE < 0)
++	my_error("Invalide index %s of list '%s' to apply %s.", R2S(rElem), plugin->lists[idxL]->name, prefix);
++    SetResult(&result, R_NUMBER, &error);
++
++    return idxE;
++
++}
++
++
++static void plugin_list_size(RESULT * result, RESULT * rList)
++{
++
++    int idxL = my_get_list_idx(result, rList, "size()");
++    if (idxL < 0)
++	return;
++
++    double d = plugin->lists[idxL]->size;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++static void plugin_list_limit(RESULT * result, RESULT * rList)
++{
++
++    int idxL = my_get_list_idx(result, rList, "limit()");
++    if (idxL < 0)
++	return;
++
++    double d = plugin->lists[idxL]->limit;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static void plugin_list_get(RESULT * result, RESULT * rList, RESULT * rElem)
++{
++
++    int idxL = my_get_list_idx(result, rList, "get()");
++    int idxE = my_get_element_idx(result, idxL, rElem, 0, "get()");
++    if (idxE < 0)
++	return;
++
++    Element *elem = my_get_element(idxL, idxE);
++
++    if (elem != NULL) {
++	my_set_result(result, elem->value);
++    } else {
++	double d = -1;
++	SetResult(&result, R_NUMBER, &d);
++    }
++}
++
++
++/* not 100% safe because of mixed RESULT types and atof in R2N() */
++static void plugin_list_find(RESULT * result, RESULT * rList, RESULT * rVal)
++{
++
++    int idxL = my_get_list_idx(result, rList, "find()");
++    if (idxL < 0)
++	return;
++
++    List *list = plugin->lists[idxL];
++
++
++    double idxE = -1;
++    int i = 0;
++    Element *e;
++    for (e = list->firstElement; e != NULL; e = e->next, i++) {
++
++	int type = (e->value->type & rVal->type);
++	if (type == 0)
++	    continue;
++	if (type & R_STRING) {
++	    if (strcmp(R2S(e->value), R2S(rVal)) == 0) {
++		idxE = i;
++		break;
++	    } else
++		continue;
++	}
++	if (type & R_NUMBER) {
++	    if (R2N(e->value) == R2N(rVal)) {
++		idxE = i;
++		break;
++	    } else
++		continue;
++	}
++    }
++
++    if (idxE >= 0)
++	idxE++;
++    SetResult(&result, R_NUMBER, &idxE);
++}
++
++
++
++static void plugin_list_set(RESULT * result, RESULT * rList, RESULT * rElem, RESULT * rValue)
++{
++
++    int idxL = my_get_list_idx(result, rList, "set()");
++    int idxE = my_get_element_idx(result, idxL, rElem, 0, "set()");
++    if (idxE < 0)
++	return;
++
++    Element *elem = my_get_element(idxL, idxE);
++    CopyResult(&elem->value, rValue);
++
++    double d = 0;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++static void plugin_list_add(RESULT * result, RESULT * rList, RESULT * rElem, RESULT * rValue)
++{
++
++    int idxL = my_get_list_idx(result, rList, "add()");
++    int idxE = my_get_element_idx(result, idxL, rElem, 1, "add()");
++    if (idxE < 0)
++	return;
++
++    double d = -1;
++    List *list = plugin->lists[idxL];
++
++    if (list->size >= list->limit) {
++
++	my_error("Couldn't add element to list '%s'. Limit reached.", list->name);
++	SetResult(&result, R_NUMBER, &d);
++	return;
++    }
++
++    RESULT *value = malloc(sizeof(RESULT));
++    CopyResult(&value, rValue);
++
++    Element *elem = malloc(sizeof(Element));
++
++    elem->value = value;
++
++    Element **prevNextPtr = NULL;
++
++    if (idxE == 0)
++	prevNextPtr = &plugin->lists[idxL]->firstElement;
++    else
++	prevNextPtr = &my_get_element(idxL, idxE - 1)->next;
++
++    elem->next = *prevNextPtr;
++    *prevNextPtr = elem;
++
++    list->size++;
++
++    d = 0;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static void plugin_list_delete(RESULT * result, RESULT * rList, RESULT * rElem)
++{
++
++    int idxL = my_get_list_idx(result, rList, "delete()");
++    int idxE = my_get_element_idx(result, idxL, rElem, 0, "delete()");
++    if (idxE < 0)
++	return;
++
++    List *list = plugin->lists[idxL];
++    Element *elem = my_get_element(idxL, idxE);
++    Element **prevNextPtr = NULL;
++
++    if (idxE == 0)
++	prevNextPtr = &plugin->lists[idxL]->firstElement;
++    else
++	prevNextPtr = &my_get_element(idxL, idxE - 1)->next;
++
++    *prevNextPtr = elem->next;
++
++    list->size--;
++
++    my_free_element(elem);
++
++    double d = 0;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++int plugin_init_list(void)
++{
++    my_init();
++
++    AddFunction("list::size", 1, plugin_list_size);
++    AddFunction("list::limit", 1, plugin_list_limit);
++    AddFunction("list::get", 2, plugin_list_get);
++    AddFunction("list::find", 2, plugin_list_find);
++    AddFunction("list::set", 3, plugin_list_set);
++    AddFunction("list::add", 3, plugin_list_add);
++    AddFunction("list::delete", 2, plugin_list_delete);
++
++    return 0;
++}
++
++void plugin_exit_list(void)
++{
++    my_free_plugin();
++}
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_math.c lcd4linux-0.11.0_pre20170527.new/plugin_math.c
+--- lcd4linux-0.11.0_pre20170527/plugin_math.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_math.c	2019-08-15 08:43:28.213038016 +0100
+@@ -38,6 +38,7 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <math.h>
++#include <time.h>
+ 
+ #include "debug.h"
+ #include "plugin.h"
+@@ -134,6 +135,21 @@
+     CopyResult(&result, argv[index + 1]);
+ }
+ 
++/* random double from the half-open interval [0,1) */
++static void my_rand(RESULT * result)
++{
++    static int init = 0;
++
++    if (!init) {
++	srand(time(NULL));
++	init = 1;
++    }
++
++    double value = 1. * rand() / (1. * RAND_MAX + 1);
++    SetResult(&result, R_NUMBER, &value);
++
++}
++
+ 
+ int plugin_init_math(void)
+ {
+@@ -161,6 +177,10 @@
+     /* decode */
+     AddFunction("decode", -1, my_decode);
+ 
++    /* random [0,1) */
++    AddFunction("rand", 0, my_rand);
++
++
+     return 0;
+ }
+ 
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_menu.c lcd4linux-0.11.0_pre20170527.new/plugin_menu.c
+--- lcd4linux-0.11.0_pre20170527/plugin_menu.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_menu.c	2019-08-15 08:43:28.213038016 +0100
+@@ -0,0 +1,984 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * This plugin adds menu control to lcd4linux.
++ * 
++ * https://lcd4linux.bulix.org/wiki/plugin_menu
++ *
++ * Copyright (C) 2003 Michael Reinelt <michael@reinelt.co.at>
++ * Copyright (C) 2004, 2005, 2006, 2007, 2008 The LCD4Linux Team <lcd4linux-devel@users.sourceforge.net>
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <ctype.h>
++
++#include "config.h"
++#include "debug.h"
++#include "plugin.h"
++#include "cfg.h"
++#include "action.h"
++#include "timer.h"
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++#ifdef PLUGIN_LAYOUT
++extern void plugin_layout_layout(RESULT * result, int argc, RESULT * argv[]);
++#endif
++
++#define SECTION "Plugin:Menu"
++#define PLUGIN "Menu"
++
++#define MAX_MENUS 1000
++#define MAX_ITEMS 1000
++
++/* copied from plugin_layout.c */
++#define my_debug(args...) message (2, __FILE__ ": " args)
++#define my_info(args...)  message (1, "Info  Plugin '" PLUGIN "': " args)
++#define my_error(args...) message (0, "ERROR Plugin '" PLUGIN "': " args)
++#define my_noMemory() message (0, "ERROR Couldn't allocate new memory (%s:%d).",PLUGIN, __LINE__)
++
++
++typedef struct MenuItem {
++    char *name;
++    RESULT *layout;
++    Action *firstAction;
++} MenuItem;
++
++
++typedef struct Menu {
++    char *name;
++    RESULT *layoutgroup;
++    Action *firstAction;
++
++    MenuItem **items;
++    int itemNb;
++    int itemIdx;
++} Menu;
++
++
++typedef struct Plugin {
++    Menu **menus;
++    int menuNb;
++    int menuIdx;
++    int blink;
++    int blinkState;
++    Action *firstAction;
++} Plugin;
++
++
++static Plugin *plugin = NULL;
++
++
++static int my_plugin_not_active(RESULT ** result)
++{
++
++    static int errorShown = 0;
++    if (plugin == NULL) {
++
++	if (!errorShown) {
++	    errorShown = 1;
++	    my_error("Plugin not active but attempt of using it was detected.");
++	}
++	double error = -1;
++	SetResult(result, R_NUMBER, &error);
++	return 1;
++    }
++    return 0;
++}
++
++
++static RESULT *my_get_string_result(char *str)
++{
++
++    if (str == NULL || *str == '\0')
++	return NULL;
++
++    RESULT *result = malloc(sizeof(RESULT));
++    if (result == NULL) {
++	my_noMemory();
++	return NULL;
++    }
++    result->string = NULL;
++    DelResult(result);
++
++    result->type = R_STRING;
++    result->string = strdup(str);
++    result->size = strlen(result->string) + 1;
++
++    return result;
++}
++
++
++static void my_free_result(RESULT * res)
++{
++    if (res == NULL)
++	return;
++    free(res->string);
++    free(res);
++}
++
++
++static void my_free_item(MenuItem * item)
++{
++
++    if (item == NULL)
++	return;
++    free(item->name);
++    my_free_result(item->layout);
++    action_free_all(item->firstAction);
++    free(item);
++}
++
++static void my_free_menu(Menu * menu)
++{
++
++    if (menu == NULL)
++	return;
++    free(menu->name);
++    my_free_result(menu->layoutgroup);
++    action_free_all(menu->firstAction);
++    if (menu->items != NULL) {
++	int i;
++	for (i = 0; i < menu->itemNb; i++)
++	    my_free_item(menu->items[i]);
++	free(menu->items);
++    }
++    free(menu);
++}
++
++
++static void my_free_plugin()
++{
++
++    if (plugin == NULL)
++	return;
++
++    action_free_all(plugin->firstAction);
++
++    if (plugin->menus != NULL) {
++	int i;
++	for (i = 0; i < plugin->menuNb; i++)
++	    my_free_menu(plugin->menus[i]);
++	free(plugin->menus);
++    }
++    free(plugin);
++    plugin = NULL;
++}
++
++
++static int my_init_item(int idxM, int idxI)
++{
++
++    Menu *menu = plugin->menus[idxM];
++    MenuItem *item = malloc(sizeof(MenuItem));
++
++    if (item == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    menu->items[idxI] = item;
++
++    item->name = NULL;
++    item->layout = NULL;
++    item->firstAction = NULL;
++
++    char *key = cfg_make_str("Menu%d.Item%d.name", idxM + 1, idxI + 1);
++    char *dfltName = cfg_make_str("Item%d", idxI + 1);
++    char *name = cfg_get(SECTION, key, dfltName);
++    free(key);
++    free(dfltName);
++
++    if (name == NULL || *name == '\0') {
++	free(name);
++	my_error("Item %d of menu %d has no valide name.", idxI + 1, idxM + 1);
++	return -1;
++    }
++
++    int i;
++    for (i = 0; i < idxI; i++) {
++	if (strcmp(menu->items[i]->name, name) == 0) {
++	    my_error("Item name '%s' is not unique in menu #%d ('%s').", name, idxM + 1, menu->name);
++	    free(name);
++	    return -1;
++	}
++    }
++
++    item->name = name;
++    my_info("Menu%d.Item%d.name = '%s'.", idxM + 1, idxI + 1, name);
++
++    key = cfg_make_str("Menu%d.Item%d.layout", idxM + 1, idxI + 1);
++    char *layoutName = cfg_get(SECTION, key, NULL);
++    free(key);
++
++    if (layoutName == NULL || *layoutName == '\0') {
++	if (idxI == 0) {
++	    my_error("Item %d of menu %d has no valide layout.", idxM + 1, idxI + 1);
++	    free(layoutName);
++	    return -1;
++	} else {
++	    free(layoutName);
++	    layoutName = strdup(menu->items[idxI - 1]->layout->string);
++	}
++
++    }
++
++    RESULT *layout = my_get_string_result(layoutName);
++    free(layoutName);
++
++    if (layout == NULL) {
++	my_error("Can't create layout for item %d of menu %d.", idxI + 1, idxM + 1);
++	return -1;
++    }
++    item->layout = layout;
++    my_info("Menu%d.Item%d.layout = '%s'.", idxM + 1, idxI + 1, layout->string);
++
++    char *prefix = cfg_make_str("%s.Menu%d.Item%d", SECTION, idxM + 1, idxI + 1);
++    action_init_default(prefix, &item->firstAction);
++    free(prefix);
++
++    return 0;
++}
++
++static int my_init_menu(int idxM)
++{
++
++    Menu *menu = malloc(sizeof(Menu));
++    if (menu == NULL) {
++	my_noMemory();
++	return -1;
++    }
++    plugin->menus[idxM] = menu;
++
++    menu->name = NULL;
++    menu->layoutgroup = NULL;
++    menu->firstAction = NULL;
++    menu->items = NULL;
++    menu->itemNb = 0;
++    menu->itemIdx = 0;
++
++    int i, idxI;
++
++    char *key = cfg_make_str("Menu%d.name", idxM + 1);
++    char *dfltName = cfg_make_str("Menu%d", idxM + 1);
++    char *name = cfg_get(SECTION, key, dfltName);
++    free(key);
++    free(dfltName);
++
++    if (name == NULL || *name == '\0') {
++	free(name);
++	my_error("Menu %d has no valide name.", idxM + 1);
++	return -1;
++    }
++
++    for (i = 0; i < idxM; i++) {
++	if (strcmp(plugin->menus[i]->name, name) == 0) {
++	    my_error("Menu name '%s' is not unique.", name);
++	    free(name);
++	    return -1;
++	}
++    }
++    menu->name = name;
++    my_info("Menu%d.name = '%s'.", idxM + 1, name);
++
++    key = cfg_make_str("Menu%d.layoutgroup", idxM + 1);
++    char *groupName = cfg_get(SECTION, key, NULL);
++    free(key);
++
++    if (groupName == NULL || *groupName == '\0') {
++	my_error("Menu %d has no valide layout group.", idxM + 1);
++	free(groupName);
++	return -1;
++    }
++
++    RESULT *group = my_get_string_result(groupName);
++    free(groupName);
++
++    if (group == NULL) {
++	my_error("Can't create layoutgroup for menu %d.", idxM + 1);
++	return -1;
++    }
++    menu->layoutgroup = group;
++
++    char *prefix = cfg_make_str("%s.Menu%d.Item", SECTION, idxM + 1);
++    int itemNb = cfg_count(prefix, MAX_ITEMS);
++    free(prefix);
++
++    if (itemNb <= 0) {
++	my_error("No items found in menu '%s'.", menu->name);
++	return -1;
++    }
++    menu->itemNb = itemNb;
++    menu->itemIdx = 0;
++    my_info("%d items found in menu '%s'.", menu->itemNb, menu->name);
++
++    menu->items = malloc(menu->itemNb * sizeof(MenuItem *));
++    if (menu->items == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (idxI = 0; idxI < menu->itemNb; idxI++)
++	menu->items[idxI] = NULL;
++
++    for (idxI = 0; idxI < menu->itemNb; idxI++)
++	if (my_init_item(idxM, idxI) < 0)
++	    return -1;
++
++    prefix = cfg_make_str("%s.Menu%d", SECTION, idxM + 1);
++    action_init_default(prefix, &menu->firstAction);
++    free(prefix);
++
++    return 0;
++}
++
++
++static int my_init_plugin()
++{
++
++    int active = 0;
++    if (cfg_number(SECTION, "active", 0, 0, 1, &active) != 1) {
++	my_error("No valide 'active' value. Set to inactive.");
++	return -1;
++    }
++
++    if (!active) {
++	my_info("Set inactive.");
++	return 1;
++    } else
++	my_info("Try to init.");
++
++
++    plugin = malloc(sizeof(Plugin));
++    if (plugin == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    plugin->firstAction = NULL;
++    plugin->menus = NULL;
++    plugin->menuNb = 0;
++    plugin->menuIdx = -1;
++    plugin->blink = 200;
++    plugin->blinkState = 1;
++
++    if (cfg_number(SECTION, "blink", 0, 0, 1000, &plugin->blink) != 1) {
++	my_info("No valide 'blink' value. Set to default (200).");
++	plugin->blink = 200;
++    }
++
++    int m;
++
++    char *prefix = cfg_make_str("%s.Menu", SECTION);
++    int menuNb = cfg_count(prefix, MAX_MENUS);
++    free(prefix);
++
++    if (menuNb <= 0) {
++	my_error("No menus found.");
++	return -1;
++    }
++
++    plugin->menuNb = menuNb;
++    my_info("%d menus found.", plugin->menuNb);
++
++    plugin->menus = malloc(plugin->menuNb * sizeof(Menu *));
++
++    if (plugin->menus == NULL) {
++	my_noMemory();
++	return -1;
++    }
++
++    for (m = 0; m < plugin->menuNb; m++)
++	plugin->menus[m] = NULL;
++
++    for (m = 0; m < plugin->menuNb; m++)
++	if (my_init_menu(m) < 0)
++	    return -1;
++
++    char *initmenu = cfg_get(SECTION, "initmenu", NULL);
++
++    if (initmenu != NULL) {
++	for (m = 0; m < plugin->menuNb; m++)
++	    if (strcmp(initmenu, plugin->menus[m]->name) == 0) {
++		plugin->menuIdx = m;
++		break;
++	    }
++	free(initmenu);
++    }
++
++    action_init_default(SECTION, &plugin->firstAction);
++
++    return 0;
++}
++
++
++static int my_switch_menu(int idxM, int idxI)
++{
++
++
++    if (idxM < -1 || idxM >= plugin->menuNb) {
++	my_error("Try to switch to menu %d. Does not exist. ", idxM + 1);
++	return -1;
++    }
++
++    int oldIdxM = plugin->menuIdx;
++    Menu *oldMenu = oldIdxM < 0 ? NULL : plugin->menus[oldIdxM];
++    Menu *newMenu = idxM < 0 ? NULL : plugin->menus[idxM];
++
++    if ((idxM >= 0 && (idxI < 0 || idxI >= newMenu->itemNb))
++	|| (idxM == -1 && idxI != -1)) {
++
++	my_error("Try to switch to item %d of menu %d. Does not exist. ", idxI + 1, idxM + 1);
++	return -1;
++    }
++
++    int oldIdxI = oldMenu == NULL ? -1 : oldMenu->itemIdx;
++    MenuItem *oldItem = oldIdxI < 0 ? NULL : oldMenu->items[oldIdxI];
++    MenuItem *newItem = idxI < 0 ? NULL : newMenu->items[idxI];
++
++    if (oldItem != newItem) {
++
++	if (oldItem != NULL && oldItem != newItem)
++	    action_trigger(oldItem->firstAction, "onexit");
++
++	if (oldMenu != NULL && oldMenu != newMenu)
++	    action_trigger(oldMenu->firstAction, "onexit");
++
++	plugin->menuIdx = idxM;
++
++
++#ifdef PLUGIN_LAYOUT
++	if (newMenu != NULL && newItem != NULL) {
++
++	    newMenu->itemIdx = idxI;
++
++	    RESULT *argv[] = { newMenu->layoutgroup, newItem->layout };
++	    RESULT *rRes = malloc(sizeof(RESULT));
++	    rRes->string = NULL;
++	    plugin_layout_layout(rRes, 2, argv);
++	    if (rRes->number < 0) {
++		my_error("Couldn't switch layout.");
++		my_free_result(rRes);
++		return -1;
++	    }
++	    my_free_result(rRes);
++	}
++#endif
++
++	if (newMenu != NULL && oldMenu != newMenu)
++	    action_trigger(newMenu->firstAction, "onenter");
++	if (newItem != NULL && oldItem != newItem)
++	    action_trigger(newItem->firstAction, "onenter");
++    }
++    return 0;
++}
++
++
++static void my_blink_callback(void *null)
++{
++    plugin->blinkState = 1 - plugin->blinkState;
++}
++
++
++static void my_init()
++{
++    int status = my_init_plugin();
++
++    if (status == 0) {
++	if (plugin->blink != 0)
++	    timer_add_late(my_blink_callback, NULL, plugin->blink, 0);
++
++
++	int idxM = plugin->menuIdx;
++	plugin->menuIdx = -1;
++	my_switch_menu(idxM, idxM < 0 ? -1 : 0);
++
++    } else {
++	if (status < 0) {
++	    my_error("Error while initializing plugin.");
++	    my_error("Plugin will NOT work. Every call will return -1 (error).");
++	}
++	my_free_plugin();
++    }
++}
++
++
++static void my_prevNextItem_help(RESULT * result, RESULT * rLoop, int mode)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    Menu *menu = plugin->menus[plugin->menuIdx];
++
++    double res = -1;
++
++    if ((rLoop->type & R_NUMBER) == 0) {
++	my_error("%s() requires 1 numeric argument.", (mode == 0) ? "prev" : "next");
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    int idxI = menu->itemIdx;
++    int nbI = menu->itemNb;
++
++    if (mode == 0) {
++	if (rLoop->number == 1 || idxI > 0)
++	    idxI = (idxI - 1 + nbI) % nbI;
++    }
++
++    if (mode == 1) {
++	if (rLoop->number == 1 || idxI < nbI - 1)
++	    idxI = (idxI + 1) % nbI;
++    }
++
++    res = my_switch_menu(plugin->menuIdx, idxI);
++
++    SetResult(&result, R_NUMBER, &res);
++}
++
++static void plugin_menu_prev(RESULT * result, RESULT * rLoop)
++{
++    my_prevNextItem_help(result, rLoop, 0);
++}
++
++static void plugin_menu_next(RESULT * result, RESULT * rLoop)
++{
++    my_prevNextItem_help(result, rLoop, 1);
++}
++
++
++static void my_action(RESULT * result, char *actionName)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    my_info("action: '%s'", actionName);
++
++    Action *firsts[] = { NULL, NULL, plugin->firstAction };
++
++    if (plugin->menuIdx >= 0) {
++	Menu *menu = plugin->menus[plugin->menuIdx];
++	MenuItem *item = menu->items[menu->itemIdx];
++	firsts[0] = item->firstAction;
++	firsts[1] = menu->firstAction;
++    }
++
++    double d = -1;
++    int i;
++
++    /* ignore onenter, onexit actions */
++    if (actionName != NULL && *actionName != 'o')
++	for (i = 0; i < 3; i++) {
++	    Action *first = firsts[i];
++
++	    if (action_trigger(first, actionName)) {
++		d = 0;
++		break;
++	    }
++	}
++    SetResult(&result, R_NUMBER, &d);
++}
++
++static void plugin_menu_trigger(RESULT * result, RESULT * rAction)
++{
++    my_action(result, R2S(rAction));
++}
++
++static void plugin_menu_confirm(RESULT * result)
++{
++    my_action(result, "confirm");
++}
++
++static void plugin_menu_cancel(RESULT * result)
++{
++    my_action(result, "cancel");
++}
++
++static void plugin_menu_left(RESULT * result)
++{
++    my_action(result, "left");
++}
++
++static void plugin_menu_right(RESULT * result)
++{
++    my_action(result, "right");
++}
++
++static void plugin_menu_up(RESULT * result)
++{
++    my_action(result, "up");
++}
++
++static void plugin_menu_down(RESULT * result)
++{
++    my_action(result, "down");
++}
++
++
++static int my_result_to_menu_index(RESULT * result, char *prefix)
++{
++
++    int i, idxM = -1;
++
++    if (result->type & R_STRING) {
++	for (i = 0; i < plugin->menuNb; i++)
++	    if (strcmp(result->string, plugin->menus[i]->name) == 0) {
++		idxM = i;
++		break;
++	    }
++    }
++
++    if (idxM < 0 && (result->type & R_NUMBER)) {
++	int idx = ((int) result->number) - 1;
++
++	if (idx + 1 == result->number && idx >= 0 && idx < plugin->menuNb)
++	    idxM = idx;
++
++    }
++
++    if (idxM < 0)
++	my_error("%s: Menu %s does not exist.", prefix, R2S(result));
++
++    return idxM;
++}
++
++
++static int my_result_to_item_index(RESULT * result, int menuIdx, char *prefix)
++{
++
++    if (menuIdx < 0 || menuIdx >= plugin->menuNb)
++	return -1;
++
++    int i, idxI = -1;
++
++    Menu *menu = plugin->menus[menuIdx];
++
++    if (result->type & R_STRING) {
++
++	for (i = 0; i < menu->itemNb; i++)
++	    if (strcmp(result->string, menu->items[i]->name) == 0) {
++		idxI = i;
++		break;
++	    }
++    }
++
++    if (idxI < 0 && (result->type & R_NUMBER)) {
++	int idx = ((int) result->number) - 1;
++
++	if (idx + 1 == result->number && idx >= 0 && idx < menu->itemNb)
++	    idxI = idx;
++    }
++    if (idxI < 0 && prefix != NULL)
++	my_error("%s: Item %s does not exist in menu #%d.", prefix, R2S(result), menuIdx + 1);
++
++    return idxI;
++}
++
++
++static void plugin_menu_none(RESULT * result)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = my_switch_menu(-1, -1);
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++static void plugin_menu_menu(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double error = -1;
++
++    if (argc < 0 || argc > 1) {
++	my_error("menu() takes 0-1 arguments - given : %d", argc);
++	SetResult(&result, R_NUMBER, &error);
++	return;
++    }
++
++    if (argc == 0) {
++	double res = plugin->menuIdx + 1;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    if (argc > 0) {
++
++	int idxM = my_result_to_menu_index(argv[0], "menu()");
++	if (idxM < 0) {
++	    SetResult(&result, R_NUMBER, &error);
++	    return;
++	}
++
++	int idxI = plugin->menus[idxM]->itemIdx;
++
++	error = my_switch_menu(idxM, idxI);
++	SetResult(&result, R_NUMBER, &error);
++    }
++
++    SetResult(&result, R_NUMBER, &error);
++}
++
++
++static void plugin_menu_item(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = -1;
++
++    if (argc < 0 || argc > 2) {
++	my_error("item() takes 0-2 arguments - given : %d", argc);
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    if (argc == 0) {
++	if (plugin->menuIdx >= 0)
++	    res = plugin->menus[plugin->menuIdx]->itemIdx + 1;
++	else
++	    res = 0;
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    res = -1;
++    int idxM = -1;
++    if (argc == 1)
++	idxM = plugin->menuIdx;
++    else
++	idxM = my_result_to_menu_index(argv[0], "item()");
++
++    if (idxM < 0) {
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    int idxI = my_result_to_item_index(argv[argc - 1], idxM, "item()");
++    if (idxI >= 0)
++	res = my_switch_menu(idxM, idxI);
++
++    SetResult(&result, R_NUMBER, &res);
++}
++
++static void plugin_menu_menuname(RESULT * result)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    SetResult(&result, R_STRING, plugin->menus[plugin->menuIdx]->name);
++}
++
++
++static void plugin_menu_itemname(RESULT * result)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    Menu *menu = plugin->menus[plugin->menuIdx];
++    int idxI = menu->itemIdx;
++    SetResult(&result, R_STRING, menu->items[idxI]->name);
++}
++
++
++static void plugin_menu_menus(RESULT * result)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double d = plugin->menuNb;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static void plugin_menu_items(RESULT * result)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double d = plugin->menus[plugin->menuIdx]->itemNb;
++    SetResult(&result, R_NUMBER, &d);
++}
++
++
++static int my_check_help(RESULT * rMenu, RESULT * rItem)
++{
++
++    int idxM = my_result_to_menu_index(rMenu, NULL);
++
++    if (plugin->menuIdx < 0)
++	return (idxM == -1) ? 1 : 0;
++
++    int idxI = my_result_to_item_index(rItem, idxM, NULL);
++
++    if (idxM != plugin->menuIdx || idxI != plugin->menus[plugin->menuIdx]->itemIdx) {
++
++	return 0;
++    }
++    return 1;
++}
++
++
++static void plugin_menu_check(RESULT * result, RESULT * rMenu, RESULT * rItem)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double res = my_check_help(rMenu, rItem);
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++static void my_set_result(RESULT * result, RESULT * rVal)
++{
++    if (rVal->type & R_STRING)
++	SetResult(&result, R_STRING, rVal->string);
++    else
++	SetResult(&result, R_NUMBER, &rVal->number);
++}
++
++static void plugin_menu_if(RESULT * result, RESULT * rMenu, RESULT * rItem, RESULT * rIf, RESULT * rElse)
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    RESULT *res = my_check_help(rMenu, rItem) ? rIf : rElse;
++
++    if (res == NULL || res->type == 0) {
++	double d = -1;
++	SetResult(&result, R_NUMBER, &d);
++    }
++
++    my_set_result(result, res);
++}
++
++
++static void plugin_menu_blink(RESULT * result, int argc, RESULT * argv[])
++{
++
++    if (my_plugin_not_active(&result))
++	return;
++
++    double error = -1;
++
++    if (argc < 3 || argc > 4) {
++	my_error("blink() takes 3-4 arguments - given : %d", argc);
++	SetResult(&result, R_NUMBER, &error);
++	return;
++    }
++
++    RESULT *rMenu = argv[0];
++    RESULT *rItem = argv[1];
++    RESULT *rValIf = argv[2];
++    RESULT *rValElse = argv[argc - 1];
++
++    if (my_check_help(rMenu, rItem)) {
++	if (plugin->blinkState == 0) {
++	    /* keep string length constant otherwise text will jump
++	     * if prefix blinks */
++	    int len = strlen(R2S(rValIf)) + 1;
++	    char blanks[len];
++	    memset(blanks, ' ', len - 1);
++	    blanks[len - 1] = '\0';
++	    SetResult(&result, R_STRING, blanks);
++	} else {
++	    my_set_result(result, rValIf);
++	}
++    } else {
++	my_set_result(result, rValElse);
++    }
++}
++
++
++int plugin_init_menu(void)
++{
++
++#ifndef PLUGIN_LAYOUT
++    my_error("lcd4linux was made without plugin layout. Plugin menu won't work.");
++#endif
++
++    static int calls = 0;
++    calls++;
++
++    /* normal init call */
++    if (calls == 1) {
++	AddFunction("menu::item", -1, plugin_menu_item);
++	AddFunction("menu::items", 0, plugin_menu_items);
++	AddFunction("menu::itemname", 0, plugin_menu_itemname);
++	AddFunction("menu::prev", 1, plugin_menu_prev);
++	AddFunction("menu::next", 1, plugin_menu_next);
++
++	AddFunction("menu::none", 0, plugin_menu_none);
++	AddFunction("menu::menu", -1, plugin_menu_menu);
++	AddFunction("menu::menus", 0, plugin_menu_menus);
++	AddFunction("menu::menuname", 0, plugin_menu_menuname);
++
++	AddFunction("menu::check", 2, plugin_menu_check);
++	AddFunction("menu::if", 4, plugin_menu_if);
++	AddFunction("menu::blink", -1, plugin_menu_blink);
++
++	AddFunction("menu::trigger", 1, plugin_menu_trigger);
++	AddFunction("menu::confirm", 0, plugin_menu_confirm);
++	AddFunction("menu::cancel", 0, plugin_menu_cancel);
++	AddFunction("menu::left", 0, plugin_menu_left);
++	AddFunction("menu::right", 0, plugin_menu_right);
++	AddFunction("menu::up", 0, plugin_menu_up);
++	AddFunction("menu::down", 0, plugin_menu_down);
++    }
++
++    /* called by plugin layout after its init */
++    if (calls == 2) {
++	my_init();
++	if (plugin != NULL && plugin->menuIdx >= 0)
++	    return 1;
++	else
++	    return 0;
++    }
++
++    if (calls > 2) {
++	my_error("Something unexpected is going on: plugin_init_menu is called more than two times.");
++    }
++
++    return 0;
++}
++
++void plugin_exit_menu(void)
++{
++    timer_remove(my_blink_callback, NULL);
++    my_free_plugin();
++    plugin = NULL;
++}
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_run.c lcd4linux-0.11.0_pre20170527.new/plugin_run.c
+--- lcd4linux-0.11.0_pre20170527/plugin_run.c	1970-01-01 01:00:00.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_run.c	2019-08-15 08:41:21.288300812 +0100
+@@ -0,0 +1,511 @@
++/* $Id: plugin_sample.c 1091 2010-01-21 04:26:24Z michael $
++ * $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/plugin_sample.c $
++ *
++ * This plugin allows to run and (auto-)kill programs.
++ * 
++ * https://lcd4linux.bulix.org/wiki/plugin_run
++ *
++ * Copyright (C) 2003 Michael Reinelt <michael@reinelt.co.at>
++ * Copyright (C) 2004, 2005, 2006, 2007, 2008 The LCD4Linux Team <lcd4linux-devel@users.sourceforge.net>
++ * Copyright (C) 2015 Marcus Menzel <codingmax@gmx-topmail.de>
++ *
++ * This file is part of LCD4Linux.
++ *
++ * LCD4Linux is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2, or (at your option)
++ * any later version.
++ *
++ * LCD4Linux is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ */
++
++#include "config.h"
++
++/* these should always be included */
++#include "debug.h"
++#include "plugin.h"
++#include "timer.h"
++#include "evaluator.h"
++
++#include <stdlib.h>
++#include <string.h>
++#include <limits.h>
++#include <unistd.h>
++#include <sys/wait.h>
++#include <signal.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <syslog.h>
++
++#ifdef WITH_DMALLOC
++#include <dmalloc.h>
++#endif
++
++#define SECTION "Plugin:Run"
++#define PLUGIN "Run"
++#define PROCESS_TIMER_INTERVAL 1000
++
++#define my_debug(args...) message (2, __FILE__ ": " args)
++#define my_info(args...)  message (1, "Info  Plugin '" PLUGIN "': " args)
++#define my_error(args...) message (0, "ERROR Plugin '" PLUGIN "': " args)
++#define my_noMemory() message (0, "ERROR Couldn't allocate new memory (%s:%d).",PLUGIN, __LINE__)
++
++#define ERROR_PGID 1
++#define ERROR_DUP 2
++#define ERROR_EXEC 3
++
++typedef struct Process Process;
++
++typedef struct Process {
++
++    long id;
++    pid_t pid;
++    char *command;
++
++    int hasTimeLimit;
++    long timeLeft;
++
++    int exitValue;
++
++    void *tree;
++
++    Process *prev;
++    Process *next;
++
++} Process;
++
++
++typedef struct ProcessTimerData {
++
++    Process *firstProcess;
++    int processNb;
++
++} ProcessTimerData;
++
++
++ProcessTimerData *processTimerData = NULL;
++
++
++static void my_free_process(Process * process)
++{
++    free(process->command);
++    free(process);
++}
++
++
++static void my_free_processes(Process * firstProcess)
++{
++    Process *p;
++    Process *next;
++
++    for (p = firstProcess; p != NULL; p = next) {
++	next = p->next;
++	my_free_process(p);
++    }
++}
++
++
++static void my_free_processTimerData()
++{
++
++    if (processTimerData == NULL)
++	return;
++
++    my_free_processes(processTimerData->firstProcess);
++    free(processTimerData);
++    processTimerData = NULL;
++}
++
++
++static void my_processTimerData_callback(void *null)
++{
++
++    if (processTimerData == NULL)
++	return;
++
++    Process *p;
++    Process *next;
++
++
++    for (p = processTimerData->firstProcess; p != NULL; p = next) {
++
++	next = p->next;
++
++	int status;
++	int toRemove = 0;
++
++	if (waitpid(p->pid, &status, WNOHANG) == p->pid) {
++	    if (WIFEXITED(status)) {
++		p->exitValue = WEXITSTATUS(status);
++		my_error("Process '%s' (%d) returns exit code %d.", p->command, p->pid, p->exitValue);
++	    } else {
++		p->exitValue = -1;
++		my_error("Process '%s' (%d) did not return exit code.", p->command, p->pid);
++	    }
++
++	    if (p->tree != NULL) {
++		RESULT result;
++		result.string = NULL;
++		DelResult(&result);
++
++		if (Eval(p->tree, &result) != 0)
++		    my_error("Couldn't eval callback expression of process '%s' (%d).", p->command, p->pid);
++
++		DelResult(&result);
++	    }
++
++	    toRemove = 1;
++	}
++
++	if (!toRemove && p->hasTimeLimit) {
++	    p->timeLeft -= PROCESS_TIMER_INTERVAL;
++	    my_error(" ------------------------------callback %ld", p->timeLeft);
++	    if (p->timeLeft <= 0) {
++
++		int sig = p->timeLeft <= -PROCESS_TIMER_INTERVAL ? SIGKILL : SIGTERM;
++
++		/* kill process group */
++		if (kill(-p->pid, sig) != 0)
++		    my_error("Error while trying to send signal %d to process group of '%s' (%d)",
++			     sig, p->command, p->pid);
++	    }
++	}
++
++	if (toRemove) {
++
++	    if (processTimerData->processNb <= 1) {
++		my_free_processTimerData();
++		return;
++	    }
++
++	    if (p->prev != NULL)
++		p->prev->next = p->next;
++	    else
++		processTimerData->firstProcess = p->next;
++
++	    if (p->next != NULL)
++		p->next->prev = p->prev;
++
++	    my_free_process(p);
++	    processTimerData->processNb--;
++	}
++    }
++
++    timer_add_late(my_processTimerData_callback, NULL, PROCESS_TIMER_INTERVAL, 1);
++
++}
++
++static Process *my_run(int argc, RESULT * argv[], char *fctName)
++{
++
++    static long nextId = 0;
++
++    if (argc < 2) {
++	my_error("%s requires at least 2 arguments (duration, name of program).", fctName);
++	return NULL;
++    }
++
++    if ((argv[0]->type & R_NUMBER) == 0 || R2N(argv[0]) < 0 || R2N(argv[0]) > LONG_MAX) {
++	my_error("%s requires an integer from [0..%ld] as first argument (duration).", fctName, LONG_MAX);
++	return NULL;
++    }
++
++    long timeLeft = (long) R2N(argv[0]);
++
++
++
++
++    if ((argv[1]->type & R_STRING) == 0) {
++	my_error("%s requires a string as second argument (name of program).", fctName);
++	return NULL;
++    }
++
++    int i, j;
++    int len = 0;
++
++    char *args[argc];
++
++    for (i = 1; i < argc; i++) {
++	char *str = R2S(argv[i]);
++	if (str == NULL) {
++	    my_error("Invalide argument for %s:", fctName);
++	    for (j = 1; j < i; j++)
++		my_error("  %2d: '%s'", j, R2S(argv[j]));
++	    my_error("  %2d: INVALIDE", i);
++	    return NULL;
++	}
++	args[i - 1] = str;
++	len += strlen(str) + 1;
++    }
++
++    char *prog = args[0];
++    args[argc - 1] = NULL;
++
++    char *cmd = malloc(len * sizeof(char));
++    *cmd = '\0';
++    for (i = 1; i < argc; i++) {
++	strcat(cmd, R2S(argv[i]));
++	if (i < argc - 1)
++	    strcat(cmd, " ");
++    }
++
++    int errorPipes[2];
++    pipe(errorPipes);
++    if (fcntl(errorPipes[1], F_SETFD, FD_CLOEXEC) == -1) {
++	my_error("Can't set error pipe to close on exec.");
++	return NULL;
++    }
++
++    pid_t pid = fork();
++
++    /* child */
++    if (pid == 0) {
++
++	close(errorPipes[0]);
++
++	int fdNull;
++
++	if (setpgid(0, 0) != 0) {
++	    my_error("Fail to change gpid of '%s'", cmd);
++	    char error = ERROR_PGID;
++	    write(errorPipes[1], &error, 1);
++	    close(errorPipes[1]);
++	    _Exit(1);
++	}
++
++	for (i = 0; i <= 2; i++) {
++	    if ((fdNull = open("/dev/null", i == 0 ? O_RDONLY : O_WRONLY)) < 0 || dup2(fdNull, i) != i) {
++
++		openlog("LCD4Linux", LOG_PID, LOG_USER);
++		syslog(LOG_ERR, "Couldn't redirect fd %d of forked process '%s' to '/dev/null'.", i, cmd);
++		closelog();	/* TODO: Problem with main syslog? */
++
++		char error = ERROR_DUP;
++		write(errorPipes[1], &error, 1);
++		close(errorPipes[1]);
++		_Exit(1);
++	    }
++	}
++
++	execvp(prog, args);
++
++	int errsv = errno;
++	openlog("LCD4Linux", LOG_PID, LOG_USER);
++	syslog(LOG_ERR, "Fail to execute '%s': %s", cmd, strerror(errsv));
++	closelog();		/* TODO: Problem with main syslog? */
++
++	char error = ERROR_EXEC;
++	write(errorPipes[1], &error, 1);
++	close(errorPipes[1]);
++
++	_Exit(1);
++    }
++
++    if (pid == -1) {
++	my_error("Couldn't fork to '%s'.", cmd);
++	free(cmd);
++    }
++
++    /* parent */
++    if (pid > 0) {
++
++	close(errorPipes[1]);
++	char res;
++	int nb = read(errorPipes[0], &res, 1);
++	close(errorPipes[0]);
++	/*  child failed to dup2, change gpid or failed to exec */
++	if (nb > 0) {
++	    if (res == ERROR_DUP || res == ERROR_EXEC)
++		my_error("Error in child process. See log.");
++	    return NULL;
++	}
++
++	if (processTimerData == NULL) {
++	    processTimerData = malloc(sizeof(ProcessTimerData));
++	    processTimerData->firstProcess = NULL;
++	    processTimerData->processNb = 0;
++	    timer_add_late(my_processTimerData_callback, NULL, PROCESS_TIMER_INTERVAL, 1);
++	}
++
++	Process *process = malloc(sizeof(Process));
++
++	process->id = nextId++;
++	process->pid = pid;
++	process->command = cmd;
++	process->tree = NULL;
++	process->exitValue = -1;
++	process->hasTimeLimit = timeLeft == 0 ? 0 : 1;
++	process->timeLeft = 1000 * timeLeft;
++	process->prev = NULL;
++	if (processTimerData->firstProcess != NULL)
++	    processTimerData->firstProcess->prev = process;
++	process->next = processTimerData->firstProcess;
++	processTimerData->firstProcess = process;
++	processTimerData->processNb++;
++
++	return process;
++    }
++    return NULL;
++}
++
++static void plugin_run_run(RESULT * result, int argc, RESULT * argv[])
++{
++    Process *p = my_run(argc, argv, "run()");
++    double res = -1;
++    if (p != NULL)
++	res = p->id;
++    SetResult(&result, R_NUMBER, &res);
++}
++
++static void plugin_run_call(RESULT * result, int argc, RESULT * argv[])
++{
++
++    double res = -1;
++
++    if (argc < 3) {
++	my_error("call() requires at least 3 arguments.");
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    void *tree = NULL;
++
++    char *expression = R2S(argv[0]);
++
++    if (*expression == '\0')
++	expression = NULL;
++
++    if (expression != NULL && Compile(expression, &tree) != 0) {
++	DelTree(tree);
++	my_error("Couldn't compile expression '%s' in call().", expression);
++	SetResult(&result, R_NUMBER, &res);
++	return;
++    }
++
++    Process *p = my_run(argc - 1, argv + 1, "call()");
++    if (p != NULL) {
++	res = p->id;
++	p->tree = tree;
++    } else {
++	DelTree(tree);
++    }
++
++    SetResult(&result, R_NUMBER, &res);
++}
++
++
++Process *my_get_process_by_id_result(RESULT * result, RESULT * rId, char *fctName)
++{
++
++    double error = -1;
++    SetResult(&result, R_NUMBER, &error);
++
++    long id = 0;
++
++    if ((rId->type & R_NUMBER) == 0)
++	id = -1;
++    if (id >= 0) {
++	double dId = R2N(rId);
++	id = (long) dId;
++	if (id != dId || id < 0)
++	    id = -1;
++    }
++
++    if (id < 0) {
++	my_error("Argument '%s' given to function %s is not an integer from [0..%ld]", R2S(rId), fctName, LONG_MAX);
++	return NULL;
++    }
++
++    Process *process = NULL;
++
++    if (processTimerData != NULL) {
++	Process *p;
++	for (p = processTimerData->firstProcess; p != NULL; p = p->next)
++	    if (p->id == id) {
++		process = p;
++		break;
++	    }
++    }
++
++    if (process == NULL)
++	my_error("No process with id %ld found (function %s).", id, fctName);
++
++
++    error = 0;
++    SetResult(&result, R_NUMBER, &error);
++
++    return process;
++
++}
++
++static void plugin_run_pid(RESULT * result, RESULT * rId)
++{
++
++    Process *process = my_get_process_by_id_result(result, rId, "pid()");
++    if (process == NULL)
++	return;
++
++    double pid = process->pid;
++    SetResult(&result, R_NUMBER, &pid);
++}
++
++static void plugin_run_exitval(RESULT * result, RESULT * rId)
++{
++
++    Process *process = my_get_process_by_id_result(result, rId, "exitval()");
++    if (process == NULL)
++	return;
++
++    double exVal = process->exitValue;
++    SetResult(&result, R_NUMBER, &exVal);
++}
++
++
++static void plugin_run_cmd(RESULT * result, RESULT * rId)
++{
++
++    Process *process = my_get_process_by_id_result(result, rId, "cmd()");
++    if (process == NULL)
++	return;
++
++    SetResult(&result, R_STRING, process->command);
++}
++
++static void plugin_run_kill(RESULT * result, RESULT * rId)
++{
++
++    Process *process = my_get_process_by_id_result(result, rId, "kill()");
++    if (process == NULL)
++	return;
++
++    process->hasTimeLimit = 1;
++    process->timeLeft = PROCESS_TIMER_INTERVAL;
++
++    /* let my_processTimerData_callback do the job */
++    my_processTimerData_callback(NULL);
++}
++
++int plugin_init_run(void)
++{
++    AddFunction("run::run", -1, plugin_run_run);
++    AddFunction("run::call", -1, plugin_run_call);
++    AddFunction("run::kill", 1, plugin_run_kill);
++    AddFunction("run::pid", 1, plugin_run_pid);
++    AddFunction("run::cmd", 1, plugin_run_cmd);
++    AddFunction("run::exitval", 1, plugin_run_exitval);
++
++    return 0;
++}
++
++void plugin_exit_run(void)
++{
++    my_free_processTimerData();
++}
+diff -urN lcd4linux-0.11.0_pre20170527/plugins.m4 lcd4linux-0.11.0_pre20170527.new/plugins.m4
+--- lcd4linux-0.11.0_pre20170527/plugins.m4	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugins.m4	2019-08-15 08:42:22.672312570 +0100
+@@ -53,17 +53,18 @@
+       list)
+          AC_MSG_RESULT(
+             [available plugins:]
+-            [ apm,asterisk,button_exec,cpuinfo,dbus,diskstats,dvb,exec,event,]
++            [ apm,asterisk,button_exec,control,cpuinfo,dbus,diskstats,dvb,exec,event,]
+             [ fifo,file,gps,hddtemp,huawei,i2c_sensors,iconv,imon,isdn,kvv,]
+-            [ loadavg,meminfo,mpd,mpris_dbus,mysql,netdev,netinfo,pop3,ppp,]
+-	    [ proc_stat,python,qnaplog,raspi,sample,seti,statfs,uname,uptime,]
++            [ layout,list,loadavg,meminfo,menu,mpd,mpris_dbus,mysql,netdev,netinfo,pop3,ppp,]
++	    [ proc_stat,python,qnaplog,raspi,run,sample,seti,statfs,uname,uptime,]
+             [ w1retap,wireless,xmms])
+          AC_MSG_ERROR([run ./configure --with-plugins=...])
+          ;;
+       all)
+          PLUGIN_APM="yes"
+        	 PLUGIN_ASTERISK="yes"
+ 	 PLUGIN_BUTTON_EXEC="yes"
++         PLUGIN_CONTROL="yes"
+          PLUGIN_CPUINFO="yes"
+          PLUGIN_DBUS="yes"
+          PLUGIN_DISKSTATS="yes"
+@@ -80,10 +81,13 @@
+          PLUGIN_IMON="yes"
+          PLUGIN_ISDN="yes"
+          PLUGIN_KVV="yes"
++         PLUGIN_LAYOUT="yes"
++         PLUGIN_LIST="yes"
+          PLUGIN_LOADAVG="yes"
+          PLUGIN_MEMINFO="yes"
++         PLUGIN_MENU="yes"
+          PLUGIN_MPD="yes"
+ 	 PLUGIN_MPRIS_DBUS="yes"
+          PLUGIN_MYSQL="yes"
+          PLUGIN_NETDEV="yes"
+          PLUGIN_NETINFO="yes"
+@@ -93,6 +97,7 @@
+          PLUGIN_PYTHON=$with_python
+          PLUGIN_QNAPLOG="yes"
+          PLUGIN_RASPI="yes"
++         PLUGIN_RUN="yes"
+          PLUGIN_SAMPLE="yes"
+          PLUGIN_SETI="yes"
+          PLUGIN_STATFS="yes"
+@@ -105,7 +110,8 @@
+       none)
+          PLUGIN_APM="no"
+        	 PLUGIN_ASTERISK="no"
+ 	 PLUGIN_BUTTON_EXEC="no"
++         PLUGIN_CONTROL="no"
+          PLUGIN_CPUINFO="no"
+          PLUGIN_DBUS="no"
+          PLUGIN_DISKSTATS="no"
+@@ -122,10 +128,13 @@
+          PLUGIN_IMON="no"
+          PLUGIN_ISDN="no"
+          PLUGIN_KVV="no"
++         PLUGIN_LAYOUT="no"
++         PLUGIN_LIST="no"
+          PLUGIN_LOADAVG="no"
+          PLUGIN_MEMINFO="no"
++         PLUGIN_MENU="no"
+          PLUGIN_MPD="no"
+ 	 PLUGIN_MPRIS_DBUS="no"
+          PLUGIN_MYSQL="no"
+          PLUGIN_NETDEV="no"
+          PLUGIN_NETINFO="no"
+@@ -135,6 +144,7 @@
+          PLUGIN_PYTHON="no"
+          PLUGIN_QNAPLOG="no"
+          PLUGIN_RASPI="no"
++         PLUGIN_RUN="no"
+          PLUGIN_SAMPLE="no"
+          PLUGIN_SETI="no"
+          PLUGIN_STATFS="no"
+@@ -148,6 +163,9 @@
+       asterisk)
+          PLUGIN_ASTERISK=$val
+          ;;
++      control)
++         PLUGIN_CONTROL=$val
++         ;;
+       cpuinfo)
+          PLUGIN_CPUINFO=$val
+          ;;
+@@ -201,15 +214,24 @@
+       kvv)
+          PLUGIN_KVV=$val
+          ;;
++      layout)
++         PLUGIN_LAYOUT=$val
++         ;;
++      list)
++         PLUGIN_LIST=$val
++         ;;
+       loadavg)
+          PLUGIN_LOADAVG=$val
+          ;;
+       meminfo)
+          PLUGIN_MEMINFO=$val
+          ;;
++      menu)
++         PLUGIN_MENU=$val
++         ;;
+       mpd)
+          PLUGIN_MPD=$val
+-	 ;;
++	     ;;
+       mpris_dbus)
+          PLUGIN_MPRIS_DBUS=$val
+          ;;	 
+@@ -240,6 +262,9 @@
+       raspi)
+          PLUGIN_RASPI=$val
+          ;;
++      run)
++         PLUGIN_RUN=$val
++         ;;
+       sample)
+          PLUGIN_SAMPLE=$val
+          ;;
+@@ -293,6 +318,12 @@
+    AC_DEFINE(PLUGIN_ASTERISK,1,[asterisk plugin])
+ fi
+ 
++# control plugin
++if test "$PLUGIN_CONTROL" = "yes"; then
++   PLUGINS="$PLUGINS plugin_control.o"
++   AC_DEFINE(PLUGIN_CONTROL,1,[control plugin])
++fi
++
+ # /proc/cpuinfo
+ if test "$PLUGIN_CPUINFO" = "yes"; then
+    PLUGINS="$PLUGINS plugin_cpuinfo.o"
+@@ -442,6 +473,18 @@
+    AC_DEFINE(PLUGIN_KVV,1,[kvv plugin])
+ fi
+ 
++# layout switch
++if test "$PLUGIN_LAYOUT" = "yes"; then
++   PLUGINS="$PLUGINS plugin_layout.o"
++   AC_DEFINE(PLUGIN_LAYOUT,1,[layout plugin])
++fi
++
++# list plugin
++if test "$PLUGIN_LIST" = "yes"; then
++   PLUGINS="$PLUGINS plugin_list.o"
++   AC_DEFINE(PLUGIN_LIST,1,[list plugin])
++fi
++
+ # load average
+ if test "$PLUGIN_LOADAVG" = "yes"; then
+    PLUGINS="$PLUGINS plugin_loadavg.o"
+@@ -454,6 +497,12 @@
+    AC_DEFINE(PLUGIN_MEMINFO,1,[meminfo plugin])
+ fi
+ 
++# menu plugin
++if test "$PLUGIN_MENU" = "yes"; then
++   PLUGINS="$PLUGINS plugin_menu.o"
++   AC_DEFINE(PLUGIN_MENU,1,[menu plugin])
++fi
++
+ # MPD
+ if test "$PLUGIN_MPD" = "yes"; then
+    AC_CHECK_LIB(mpdclient, [mpd_connection_new], [has_mpd_header="true"], [has_mpd_header="false"])
+@@ -578,6 +627,12 @@
+    AC_DEFINE(PLUGIN_RASPI,1,[raspi plugin])
+ fi
+ 
++# run plugin
++if test "$PLUGIN_RUN" = "yes"; then
++   PLUGINS="$PLUGINS plugin_run.o"
++   AC_DEFINE(PLUGIN_RUN,1,[run plugin])
++fi
++
+ # sample
+ if test "$PLUGIN_SAMPLE" = "yes"; then
+    PLUGINS="$PLUGINS plugin_sample.o"
+diff -urN lcd4linux-0.11.0_pre20170527/plugin_string.c lcd4linux-0.11.0_pre20170527.new/plugin_string.c
+--- lcd4linux-0.11.0_pre20170527/plugin_string.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugin_string.c	2019-08-15 08:41:21.288300812 +0100
+@@ -128,6 +128,30 @@
+     free(str);
+ }
+ 
++/* Returns a string with all chars from rStart (inclusive) to rEnd 
++ * (exclusive). Length rEnd-rStart. May be used to test charset of LCD.
++ */
++static void my_charset(RESULT * result, RESULT * rStart, RESULT * rEnd)
++{
++
++    int start = R2N(rStart);
++    int end = R2N(rEnd);
++
++    if (start < 0 || end > 256 || start > end) {
++	SetResult(&result, R_STRING, "");
++	return;
++    }
++
++    char buf[end - start + 1];
++    buf[end - start] = '\0';
++    int i;
++    for (i = start; i < end; i++)
++	buf[i - start] = i;
++
++    SetResult(&result, R_STRING, buf);
++}
++
++
+ int plugin_init_string(void)
+ {
+ 
+@@ -136,6 +160,9 @@
+     AddFunction("strupper", 1, my_strupper);
+     AddFunction("strstr", 2, my_strstr);
+     AddFunction("substr", -1, my_substr);
++    AddFunction("charset", 2, my_charset);
++
++
+     return 0;
+ }
+ 
+diff -urN lcd4linux-0.11.0_pre20170527/property.c lcd4linux-0.11.0_pre20170527.new/property.c
+--- lcd4linux-0.11.0_pre20170527/property.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/property.c	2019-08-15 08:43:28.213038016 +0100
+@@ -90,7 +90,6 @@
+ 
+     /* pre-compile the expression */
+     Compile(prop->expression, &prop->compiled);
+-
+ }
+ 
+ 
+@@ -116,10 +115,11 @@
+ 
+     /* check if property value has changed */
+     update = 1;
+-    if (prop->result.type & R_NUMBER && old.type & R_NUMBER && prop->result.number == old.number) {
++
++    if ((prop->result.type & R_NUMBER) && (old.type & R_NUMBER) && prop->result.number == old.number) {
+ 	update = 0;
+     }
+-    if (prop->result.type & R_STRING && old.type & R_STRING && prop->result.size == old.size) {
++    if ((prop->result.type & R_STRING) && (old.type & R_STRING) && (prop->result.size == old.size)) {
+ 	if (prop->result.string == NULL && old.string == NULL) {
+ 	    update = 0;
+ 	} else if (prop->result.string != NULL && old.string != NULL && strcmp(prop->result.string, old.string) == 0) {
+diff -urN lcd4linux-0.11.0_pre20170527/timer.c lcd4linux-0.11.0_pre20170527.new/timer.c
+--- lcd4linux-0.11.0_pre20170527/timer.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/timer.c	2019-08-15 08:42:22.672312570 +0100
+@@ -76,34 +76,6 @@
+    and clock jitter */
+ #define CLOCK_SKEW_DETECT_TIME_IN_MS 1000
+ 
+-/* structure for storing all relevant data of a single timer */
+-typedef struct TIMER {
+-    /* pointer to function of type void func(void *data) that will be
+-       called when the timer is processed; it will also be used to
+-       identify a specific timer */
+-    void (*callback) (void *data);
+-
+-    /* pointer to data which will be passed to the callback function;
+-       it will also be used to identify a specific timer */
+-    void *data;
+-
+-    /* struct to hold the time (in seconds and milliseconds since the
+-       Epoch) when the timer will be processed for the next time */
+-    struct timeval when;
+-
+-    /* specifies the timer's triggering interval in milliseconds */
+-    int interval;
+-
+-    /* specifies whether the timer should trigger indefinitely until
+-       it is deleted (value of 0) or only once (all other values) */
+-    int one_shot;
+-
+-    /* marks timer as being active (so it will get processed) or
+-       inactive (which means the timer has been deleted and its
+-       allocated memory may be re-used) */
+-    int active;
+-} TIMER;
+-
+ /* number of allocated timer slots */
+ int nTimers = 0;
+ 
+@@ -301,7 +273,7 @@
+     /* create new timer slot and add it to the timer queue; mask it as
+        one-shot timer for now, so the timer will be delayed by a
+        single timer interval */
+-    if (!timer_add(callback, data, interval, 1)) {
++    if (timer_add(callback, data, interval, 1) != 0) {
+ 	/* signal unsuccessful timer creation */
+ 	return -1;
+     }
+diff -urN lcd4linux-0.11.0_pre20170527/timer_group.c lcd4linux-0.11.0_pre20170527.new/timer_group.c
+--- lcd4linux-0.11.0_pre20170527/timer_group.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/timer_group.c	2019-08-15 08:41:21.281634071 +0100
+@@ -92,32 +92,6 @@
+ /* pointer to memory allocated for storing the timer group slots */
+ TIMER_GROUP *TimerGroups = NULL;
+ 
+-
+-/* structure for storing all relevant timer data of a single widget */
+-typedef struct TIMER_GROUP_WIDGET {
+-    /* pointer to function of type void func(void *data) that will be
+-       called when the timer is processed; it will also be used to
+-       identify a specific widget */
+-    void (*callback) (void *data);
+-
+-    /* pointer to data which will be passed to the callback function;
+-       it will also be used to identify a specific widget */
+-    void *data;
+-
+-    /* specifies the timer's triggering interval in milliseconds; it
+-       will also be used to identify a specific widget */
+-    int interval;
+-
+-    /* specifies whether the timer should trigger indefinitely until
+-       it is deleted (value of 0) or only once (all other values) */
+-    int one_shot;
+-
+-    /* marks timer as being active (so it will get processed) or
+-       inactive (which means the timer has been deleted and its
+-       allocated memory may be re-used) */
+-    int active;
+-} TIMER_GROUP_WIDGET;
+-
+ /* number of allocated widget slots */
+ int nTimerGroupWidgets = 0;
+ 
+@@ -269,7 +243,7 @@
+ 	    TimerGroups[group].active = TIMER_INACTIVE;
+ 
+ 	    /* remove the generic timer that calls this group */
+-	    if (timer_remove(timer_process_group, &TimerGroups[group].interval)) {
++	    if (timer_remove(timer_process_group, TimerGroups[group].interval) == 0) {
+ 		/* signal successful removal of timer group */
+ 		return 0;
+ 	    } else {
+diff -urN lcd4linux-0.11.0_pre20170527/timer_group.h lcd4linux-0.11.0_pre20170527.new/timer_group.h
+--- lcd4linux-0.11.0_pre20170527/timer_group.h	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/timer_group.h	2019-08-15 08:41:21.288300812 +0100
+@@ -29,6 +29,30 @@
+ #ifndef _TIMER_GROUP_H_
+ #define _TIMER_GROUP_H_
+ 
++/* structure for storing all relevant timer data of a single widget */
++typedef struct TIMER_GROUP_WIDGET {
++    /* pointer to function of type void func(void *data) that will be
++       called when the timer is processed; it will also be used to
++       identify a specific widget */
++    void (*callback) (void *data);
++
++    /* pointer to data which will be passed to the callback function;
++       it will also be used to identify a specific widget */
++    void *data;
++
++    /* specifies the timer's triggering interval in milliseconds; it
++       will also be used to identify a specific widget */
++    int interval;
++
++    /* specifies whether the timer should trigger indefinitely until
++       it is deleted (value of 0) or only once (all other values) */
++    int one_shot;
++
++    /* marks timer as being active (so it will get processed) or
++       inactive (which means the timer has been deleted and its
++       allocated memory may be re-used) */
++    int active;
++} TIMER_GROUP_WIDGET;
+ 
+ void timer_process_group(void *data);
+ 
+diff -urN lcd4linux-0.11.0_pre20170527/timer.h lcd4linux-0.11.0_pre20170527.new/timer.h
+--- lcd4linux-0.11.0_pre20170527/timer.h	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/timer.h	2019-08-15 08:43:28.206371275 +0100
+@@ -33,6 +33,34 @@
+ 
+ #include <time.h>
+ 
++/* structure for storing all relevant data of a single timer */
++typedef struct TIMER {
++    /* pointer to function of type void func(void *data) that will be
++       called when the timer is processed; it will also be used to
++       identify a specific timer */
++    void (*callback) (void *data);
++
++    /* pointer to data which will be passed to the callback function;
++       it will also be used to identify a specific timer */
++    void *data;
++
++    /* struct to hold the time (in seconds and milliseconds since the
++       Epoch) when the timer will be processed for the next time */
++    struct timeval when;
++
++    /* specifies the timer's triggering interval in milliseconds */
++    int interval;
++
++    /* specifies whether the timer should trigger indefinitely until
++       it is deleted (value of 0) or only once (all other values) */
++    int one_shot;
++
++    /* marks timer as being active (so it will get processed) or
++       inactive (which means the timer has been deleted and its
++       allocated memory may be re-used) */
++    int active;
++} TIMER;
++
+ int timer_add(void (*callback) (void *data), void *data, const int interval, const int one_shot);
+ 
+ int timer_add_late(void (*callback) (void *data), void *data, const int interval, const int one_shot);
+diff -urN lcd4linux-0.11.0_pre20170527/widget_image.c lcd4linux-0.11.0_pre20170527.new/widget_image.c
+--- lcd4linux-0.11.0_pre20170527/widget_image.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/widget_image.c	2019-08-15 08:43:28.213038016 +0100
+@@ -169,7 +169,7 @@
+ }
+ 
+ 
+-static void widget_image_update(void *Self)
++void widget_image_update(void *Self)
+ {
+     WIDGET *W = (WIDGET *) Self;
+     WIDGET_IMAGE *Image = W->data;
+diff -urN lcd4linux-0.11.0_pre20170527/widget_keypad.c lcd4linux-0.11.0_pre20170527.new/widget_keypad.c
+--- lcd4linux-0.11.0_pre20170527/widget_keypad.c	2018-04-04 23:29:12.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/widget_keypad.c	2019-08-15 08:43:28.213038016 +0100
+@@ -85,6 +85,7 @@
+ 	keypad->key = WIDGET_KEY_RELEASED;
+     else
+ 	keypad->key = WIDGET_KEY_PRESSED;
++    free(c);
+ 
+     /* position: confirm (default), up, down, left, right, cancel */
+     c = cfg_get(section, "position", "confirm");
+@@ -101,6 +102,7 @@
+     else
+ 	keypad->key += WIDGET_KEY_CONFIRM;
+ 
++    free(c);
+     free(section);
+     Self->data = keypad;
+     Self->x2 = NOCOORD;
+--- lcd4linux-0.11.0_pre20170527/plugins.m4	2019-08-15 10:21:19.000000000 +0100
++++ lcd4linux-0.11.0_pre20170527.new/plugins.m4	2019-08-15 11:23:04.185661842 +0100
+@@ -26,8 +26,8 @@
+ AC_MSG_CHECKING([which plugins to compile])
+ AC_ARG_WITH(
+   plugins, 
+-  [  --with-plugins=<list>   choose which plugins to compile.]
+-  [                        type --with-plugins=list for a list]	
++  [  --with-plugins=<help>   choose which plugins to compile.]
++  [                        type --with-plugins=help for a list]	
+   [                        of avaible plugins]
+   [                        plugins may be excluded with 'all,!<plugin>',]	
+   [                        (try 'all,\!<plugin>' if your shell complains...)],
+@@ -50,7 +50,7 @@
+    esac
+ 	
+    case "$plugin" in
+-      list)
++      help)
+          AC_MSG_RESULT(
+             [available plugins:]
+             [ apm,asterisk,button_exec,control,cpuinfo,dbus,diskstats,dvb,exec,event,]

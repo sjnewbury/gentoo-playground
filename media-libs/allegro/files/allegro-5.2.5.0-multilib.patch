@@ -1,0 +1,10 @@
+--- allegro/CMakeLists.txt~	2018-06-16 18:16:16.000000000 +0100
++++ allegro/CMakeLists.txt	2018-06-16 18:19:05.101122376 +0100
+@@ -620,7 +620,6 @@
+ endif((NOT ALLEGRO_RASPBERRYPI) AND (SUPPORT_X11 AND NOT SUPPORT_OPENGL))
+ 
+ if(SUPPORT_X11)
+-    set(CMAKE_REQUIRED_LIBRARIES ${X11_LIBRARIES})
+ 
+     check_library_exists(Xcursor XcursorImageCreate "" CAN_XCURSOR)
+     if(CAN_XCURSOR)

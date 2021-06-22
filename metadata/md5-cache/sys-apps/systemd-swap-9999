@@ -1,0 +1,13 @@
+BDEPEND=virtual/pkgconfig >=dev-vcs/git-1.8.2.1[curl]
+DEFINED_PHASES=compile install unpack
+DEPEND=sys-apps/systemd dev-python/python-systemd dev-python/sysv_ipc
+DESCRIPTION=systemd support for swap deviceds
+EAPI=7
+HOMEPAGE=https://github.com/Nefelim4ag/systemd-swap
+KEYWORDS=~amd64 ~x86
+LICENSE=GPL-3
+PROPERTIES=live
+RDEPEND=sys-apps/systemd dev-python/python-systemd dev-python/sysv_ipc
+SLOT=0
+_eclasses_=git-r3	b8e8c92aa5fe8df7187e466138eb4e52	multilib	d410501a125f99ffb560b0c523cd3d1e	systemd	fdf0d765c3f11f91fe54f8def9a8c0e6	toolchain-funcs	24921b57d6561d87cbef4916a296ada4
+_md5_=b07d597a6d5bb40c6b018ed78cde78c4

@@ -404,41 +404,6 @@ diff -urN zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp zimg-9999.new/zimg
 +#endif // ZIMG_X86_AVX2
 +
  #endif // ZIMG_X86
---- ./configure.ac~	2018-05-02 17:17:53.000000000 +0100
-+++ ./configure.ac	2018-05-02 18:36:23.521191475 +0100
-@@ -72,6 +72,24 @@
-         AX_CHECK_COMPILE_FLAG([-mtune=skylake-avx512], AC_SUBST([SKYLAKESPCFLAGS], [-mtune=skylake-avx512]))
- 
-         AX_CHECK_COMPILE_FLAG(
-+          [-mavx2],
-+          [
-+            AC_DEFINE([ZIMG_X86_AVX2])
-+            enable_x86_simd_avx2=yes
-+          ], [], [],
-+          [AC_LANG_SOURCE([
-+#include <immintrin.h>
-+int main()
-+{
-+	volatile __m256 x = _mm256_setzero_ps();
-+	x = _mm256_xor_si256(x, x);
-+#if defined(__GNUC__) && defined(__x86_64__)
-+	asm volatile ("" : : : "zmm0", "zmm1", "zmm2", "zmm3");
-+#endif
-+	return 0;
-+}
-+          ])])
-+        AX_CHECK_COMPILE_FLAG(
-           [-mavx512f -mavx512pf -mavx512er -mavx512cd -mavx512vl -mavx512bw -mavx512dq -mavx512ifma -mavx512vbmi],
-           [
-             AC_DEFINE([ZIMG_X86_AVX512])
-@@ -96,6 +114,7 @@
- AM_CONDITIONAL([EXAMPLES],       [test "x$enable_example" = "xyes"])
- AM_CONDITIONAL([UNIT_TEST],      [test "x$enable_unit_test" = "xyes"])
- AM_CONDITIONAL([X86SIMD],        [test "x$enable_x86_simd" = "xyes"])
-+AM_CONDITIONAL([X86SIMD_AVX2], [test "x$enable_x86_simd_avx2" = "xyes"])
- AM_CONDITIONAL([X86SIMD_AVX512], [test "x$enable_x86_simd_avx512" = "xyes"])
- 
- AS_CASE([$host_os],
 --- ./Makefile.am~	2018-05-02 17:17:53.000000000 +0100
 +++ ./Makefile.am	2018-05-02 18:40:20.328186964 +0100
 @@ -184,9 +184,24 @@
@@ -540,3 +505,38 @@ diff -urN zimg-9999/test/resize/x86/resize_impl_avx2_test.cpp zimg-9999.new/zimg
  		if (!func && cpu >= CPUClass::X86_SSE2)
  			func = select_left_shift_func_sse2(pixel_in, pixel_out);
  	}
+--- ./configure.ac.orig	2019-09-03 09:15:04.067615233 +0100
++++ ./configure.ac	2019-09-03 09:52:52.969091279 +0100
+@@ -73,6 +73,24 @@
+         AX_CHECK_COMPILE_FLAG([-mtune=cascadelake], AC_SUBST([CLX_CFLAGS], [-mtune=cascadelake]))
+ 
+         AX_CHECK_COMPILE_FLAG(
++          [-mavx2],
++          [
++            AC_DEFINE([ZIMG_X86_AVX2])
++            enable_x86_simd_avx2=yes
++          ], [], [],
++          [AC_LANG_SOURCE([
++#include <immintrin.h>
++int main()
++{
++	volatile __m256 x = _mm256_setzero_ps();
++	x = _mm256_xor_si256(x, x);
++#if defined(__GNUC__) && defined(__x86_64__)
++	asm volatile ("" : : : "zmm0", "zmm1", "zmm2", "zmm3");
++#endif
++	return 0;
++}
++          ])])
++        AX_CHECK_COMPILE_FLAG(
+           [-mavx512f -mavx512pf -mavx512er -mavx512cd -mavx512vl -mavx512bw -mavx512dq -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vpopcntdq -mavx512vnni],
+           [
+             AC_DEFINE([ZIMG_X86_AVX512])
+@@ -97,6 +115,7 @@
+ AM_CONDITIONAL([EXAMPLES],       [test "x$enable_example" = "xyes"])
+ AM_CONDITIONAL([UNIT_TEST],      [test "x$enable_unit_test" = "xyes"])
+ AM_CONDITIONAL([X86SIMD],        [test "x$enable_x86_simd" = "xyes"])
++AM_CONDITIONAL([X86SIMD_AVX2], [test "x$enable_x86_simd_avx2" = "xyes"])
+ AM_CONDITIONAL([X86SIMD_AVX512], [test "x$enable_x86_simd_avx512" = "xyes"])
+ 
+ AS_CASE([$host_os],
