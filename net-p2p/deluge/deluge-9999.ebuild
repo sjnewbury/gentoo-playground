@@ -44,8 +44,7 @@ RDEPEND="
 		dev-python/pyxdg[${PYTHON_MULTI_USEDEP}]
 		dev-python/rencode[${PYTHON_MULTI_USEDEP}]
 		dev-python/setproctitle[${PYTHON_MULTI_USEDEP}]
-		dev-python/six[${PYTHON_MULTI_USEDEP}]
-		>=dev-python/twisted-17.1.0[crypt,${PYTHON_MULTI_USEDEP}]
+		dev-python/six[${PYTHON_MULTI_USEDEP}]		>=dev-python/twisted-17.1.0[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/zope-interface-4.4.2[${PYTHON_MULTI_USEDEP}]
 		geoip? ( dev-python/geoip-python[${PYTHON_MULTI_USEDEP}] )
 		gtk? (
@@ -56,6 +55,7 @@ RDEPEND="
 		)
 		net-libs/libtorrent-rasterbar[python,${PYTHON_MULTI_USEDEP}]
 		dev-python/mako[${PYTHON_MULTI_USEDEP}]
+		virtual/libcrypt
 	')"
 
 PATCHES=(
