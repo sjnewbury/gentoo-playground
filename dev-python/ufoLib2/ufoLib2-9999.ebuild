@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8} )
+PYTHON_COMPAT=( python3_{7,8,9,10} )
 inherit distutils-r1
 if [[ -z ${PV%%*9999} ]]; then
 	inherit git-r3
@@ -50,9 +50,9 @@ pkg_setup() {
 }
 
 python_prepare_all() {
-	local PATCHES=(
-		"${FILESDIR}"/${PN}-newGlyph.diff
-	)
+	#local PATCHES=(
+	#	"${FILESDIR}"/${PN}-newGlyph.diff
+	#)
 	sed -e '/\<wheel\>/d' -i setup.cfg
 	distutils-r1_python_prepare_all
 }

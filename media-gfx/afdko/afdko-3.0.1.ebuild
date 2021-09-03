@@ -1,6 +1,6 @@
 EAPI="6"
 
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=( python3_{7,8,9,10} )
 
 inherit distutils-r1
 
@@ -20,6 +20,7 @@ RDEPEND="
 	>=dev-python/fonttools-4.0.0[unicode,ufo,${PYTHON_USEDEP}]
 	>=dev-python/cu2qu-1.6.5[${PYTHON_USEDEP}]
 	>=dev-python/py-zopfli-0.1.4[${PYTHON_USEDEP}]
+	>=dev-python/fontPens-0.2.4[${PYTHON_USEDEP}]
 "
 
 src_prepare() {
