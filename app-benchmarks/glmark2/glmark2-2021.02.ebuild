@@ -2,30 +2,34 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=4
+EAPI=7
 
-inherit waf-utils
+PYTHON_COMPAT=( python3_{7,8,9,10} )
+PYTHON_REQ_USE='threads(+)'
+
+inherit python-single-r1 waf-utils
 
 DESCRIPTION="Opengl test suite"
-HOMEPAGE="https://launchpad.net/glmark2"
-SRC_URI="http://launchpad.net/${PN}/trunk/${PV}/+download/${P}.tar.gz"
+HOMEPAGE="https://github.com/${PN}"
+SRC_URI="https://github.com/${PN}/${PN}/archive/refs/tags/${PV}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="X wayland gles2"
 
-REQUIRED_USE="X ( !wayland )"
+REQUIRED_USE="X? ( !wayland )"
 
 RDEPEND="media-libs/libpng
 	media-libs/mesa[gles2?,wayland?]
 	X? ( x11-libs/libX11 )
 "
 DEPEND="${RDEPEND}
-	dev-util/pkgconfig
+	virtual/pkgconfig
 "
 
 src_prepare() {
+	default
 	rm -rf ${S}/src/libpng
 	sed -i -e 's#libpng12#libpng#g' ${S}/wscript ${S}/src/wscript_build || die
 }
@@ -35,8 +39,6 @@ append_flavor() {
 }
 
 src_configure() {
-	: ${WAF_BINARY:="${S}/waf"}
-
 	local myconf
 	local FLAVORS
 	
@@ -50,9 +52,7 @@ src_configure() {
 	fi
 
 	# it does not know --libdir specification, dandy huh
-	CCFLAGS="${CFLAGS}" LINKFLAGS="${LDFLAGS}" "${WAF_BINARY}" \
-		--prefix=/usr \
+	waf-utils_src_configure \
 		--with-flavors=${FLAVORS} \
-		${myconf} \
-		configure || die "configure failed"
+		${myconf} 
 }
