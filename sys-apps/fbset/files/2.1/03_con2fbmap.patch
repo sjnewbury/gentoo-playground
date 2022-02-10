@@ -3,12 +3,12 @@ Status: not-sent
 # although its development has stagnated.
 
 ---
- con2fbmap.1 |   29 ++++++++++++++++++++++++++
- con2fbmap.c |   66 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ./con2fbmap.1 |   29 ++++++++++++++++++++++++++
+ ./con2fbmap.c |   66 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  2 files changed, 95 insertions(+)
 
 --- /dev/null
-+++ con2fbmap.1
++++ ./con2fbmap.1
 @@ -0,0 +1,29 @@
 +.TH con2fbmap 1 2006-01-18 2.1 "Linux frame buffer utils"
 +.SH NAME
@@ -40,7 +40,7 @@ Status: not-sent
 +.TP
 +Sven LUTHER <luther@debian.org>
 --- /dev/null
-+++ con2fbmap.c
++++ ./con2fbmap.c
 @@ -0,0 +1,66 @@
 +#include <stdio.h>
 +#include <stdlib.h>

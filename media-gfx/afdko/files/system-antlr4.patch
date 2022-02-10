@@ -1,0 +1,39 @@
+--- ./CMakeLists.txt~	2021-08-31 19:59:39.000000000 +0100
++++ ./CMakeLists.txt	2021-12-14 21:50:31.378963766 +0000
+@@ -36,13 +36,13 @@
+ # https://www.antlr.org/download/antlr4-cpp-runtime-4.9.2-source.zip
+ # set(ANTLR4_ZIP_REPOSITORY "/path_to_antlr4_archive/a4.zip")
+ 
+-add_definitions(-DANTLR4CPP_STATIC)
+-set(ANTLR4_WITH_STATIC_CRT OFF)
++#add_definitions(-DANTLR4CPP_STATIC)
++#set(ANTLR4_WITH_STATIC_CRT OFF)
+ # Use slightly more recent commit than 4.9.2 to deal with utfcpp test
+ # compilation problems
+ # set(ANTLR4_TAG tags/4.9.2)
+-set(ANTLR4_TAG 916f03366edf15bf8b50010b11d479c189bf9f96)
+-include(ExternalAntlr4Cpp)
++#set(ANTLR4_TAG 916f03366edf15bf8b50010b11d479c189bf9f96)
++#include(ExternalAntlr4Cpp)
+ 
+ # sanitizer support
+ # work around https://github.com/pypa/setuptools/issues/1928 with environment
+--- ./c/makeotf/CMakeLists.txt~	2021-08-31 19:59:39.000000000 +0100
++++ ./c/makeotf/CMakeLists.txt	2021-12-14 22:26:37.108220940 +0000
+@@ -1,4 +1,5 @@
+ include_directories(include resource ../shared/include)
++include_directories(/usr/include/antlr4-runtime)
+ 
+ add_subdirectory(lib)
+ add_subdirectory(source)
+--- ./c/makeotf/lib/hotconv/CMakeLists.txt~	2021-08-31 19:59:39.000000000 +0100
++++ ./c/makeotf/lib/hotconv/CMakeLists.txt	2021-12-14 22:31:21.710970151 +0000
+@@ -69,7 +69,7 @@
+ 
+ set_property(TARGET hotconv PROPERTY C_STANDARD 99)
+ target_include_directories(hotconv PRIVATE AFTER $<$<COMPILE_LANGUAGE:CXX>:${ANTLR4_INCLUDE_DIRS}>)
+-target_link_libraries(hotconv PUBLIC antlr4_static)
++target_link_libraries(hotconv PUBLIC antlr4-runtime)
+ 
+ if ( CMAKE_COMPILER_IS_GNUCC )
+     target_compile_options(hotconv PRIVATE -Wall -Wno-attributes)

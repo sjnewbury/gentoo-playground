@@ -14,8 +14,8 @@ else
 		inherit vcs-snapshot
 		MY_PV="c7a898a"
 	fi
-	SRC_URI="
-		mirror://githubcl/robotools/${PN}/tar.gz/${MY_PV} -> ${P}.tar.gz
+	SRC_URI="https://github.com/robotools/${P}/archive/refs/tags/${PV}.tar.gz
+		-> ${P}.tar.gz
 	"
 	RESTRICT="primaryuri"
 	KEYWORDS="~amd64 ~x86"
@@ -35,3 +35,7 @@ DEPEND="
 	${RDEPEND}
 "
 distutils_enable_tests pytest
+
+pkg_setup() {
+	export SETUPTOOLS_SCM_PRETEND_VERSION="${PV%_*}"
+}

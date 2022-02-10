@@ -5,28 +5,28 @@ EAPI=7
 
 inherit meson
 
-DESCRIPTION="wlroots (EGLStreams fork)"
-HOMEPAGE="https://github.com/danvd/wlroots-eglstreams"
+DESCRIPTION="wlroots"
+HOMEPAGE="https://gitlab.freedesktop.org/wlroots/wlroots.git"
 
 if [[ ${PV} == 9999 ]]; then
-	EGIT_REPO_URI="https://github.com/danvd/wlroots-eglstreams.git"
+	EGIT_REPO_URI="https://gitlab.freedesktop.org/wlroots/wlroots.git"
 	inherit git-r3
 	SLOT="0/9999"
 else
-	SRC_URI="https://github.com/swaywm/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://gitlab.freedesktop.org/${PN}/${PN}/-/releases/${PV}/downloads/${P}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 	SLOT="0/14"
 fi
 
 LICENSE="MIT"
-IUSE="x11-backend X"
+IUSE="x11-backend X vulkan"
 
 DEPEND="
 	>=dev-libs/libinput-1.14.0:0=
 	>=dev-libs/wayland-1.19.0
 	>=dev-libs/wayland-protocols-1.17.0
 	gui-libs/egl-wayland
-	media-libs/mesa[egl,gles2,gbm]
+	media-libs/mesa[gles2,vulkan?]
 	sys-auth/seatd:=
 	virtual/libudev
 	x11-libs/libdrm
@@ -50,14 +50,16 @@ BDEPEND="
 "
 
 src_configure() {
+	local wl_backends="drm,libinput$(use x11-backend && echo ,x11)"
+
 	# xcb-util-errors is not on Gentoo Repository (and upstream seems inactive?)
 	local emesonargs=(
 		"-Dxcb-errors=disabled"
 		"-Dexamples=false"
 		"-Dwerror=false"
-		"-Drenderers=gles2"
+		"-Drenderers=gles2$(use vulkan && echo ,vulkan)"
 		-Dxwayland=$(usex X enabled disabled)
-		-Dx11-backend=$(usex x11-backend enabled disabled)
+		-Dbackends="${wl_backends}"
 	)
 
 	meson_src_configure

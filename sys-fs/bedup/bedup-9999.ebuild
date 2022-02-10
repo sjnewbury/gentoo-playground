@@ -33,9 +33,9 @@ DEPEND=">=dev-python/cffi-0.5:=[${PYTHON_USEDEP}]
 RDEPEND="${DEPEND}
 	dev-python/mako[${PYTHON_USEDEP}]
 	dev-python/alembic[${PYTHON_USEDEP}]
-	dev-python/contextlib2[${PYTHON_USEDEP}]
 	dev-python/pyxdg[${PYTHON_USEDEP}]
 	>=dev-python/sqlalchemy-0.8.2[sqlite,${PYTHON_USEDEP}]"
+#	dev-python/contextlib2[${PYTHON_USEDEP}]
 
 #if LIVE
 SRC_URI=

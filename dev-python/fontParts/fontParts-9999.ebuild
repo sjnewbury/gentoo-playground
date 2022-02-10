@@ -14,8 +14,7 @@ else
 		inherit vcs-snapshot
 		MY_PV="9f6ff05"
 	fi
-	SRC_URI="
-		mirror://githubcl/robotools/${PN}/tar.gz/${MY_PV}
+	SRC_URI="https://github.com/robotools/${P}/archive/refs/tags/${PV}.tar.gz
 		-> ${P}.tar.gz
 	"
 	RESTRICT="primaryuri"
@@ -45,4 +44,8 @@ BDEPEND="
 python_test() {
 	"${EPYTHON}" Lib/fontParts/fontshell/test.py -v || die \
 		"Tests failed with ${EPYTHON}"
+}
+
+pkg_setup() {
+	export SETUPTOOLS_SCM_PRETEND_VERSION="${PV%_*}"
 }

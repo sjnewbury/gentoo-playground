@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-inherit autotools eutils verify-git-sig
+inherit autotools eutils git-r3
 
 DESCRIPTION="Suspend and hibernation utilities"
 HOMEPAGE="https://pm-utils.freedesktop.org/"
@@ -17,8 +17,8 @@ IUSE="debug +logrotate video_cards_intel video_cards_radeon"
 
 RESTRICT="mirror"
 
-VERIFY_GIT_SIG_OPENPGP_KEY_PATH="/usr/share/openpgp-keys/halcon.asc"
-VERIFY_SIG_OPENPGP_KEY_PATH="/usr/share/openpgp-keys/halcon.asc"
+#VERIFY_GIT_SIG_OPENPGP_KEY_PATH="/usr/share/openpgp-keys/halcon.asc"
+#VERIFY_SIG_OPENPGP_KEY_PATH="/usr/share/openpgp-keys/halcon.asc"
 
 vbetool="!video_cards_intel? ( sys-apps/vbetool )"
 RDEPEND="
@@ -34,8 +34,8 @@ RDEPEND="
 "
 DEPEND="
 	${RDEPEND}
-	verify-git-sig? ( >=app-crypt/openpgp-keys-pm-utils-20210206 )
 "
+#verify-git-sig? ( >=app-crypt/openpgp-keys-pm-utils-20210206 )
 
 DOCS="AUTHORS ChangeLog NEWS pm/HOWTO* README* TODO"
 

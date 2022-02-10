@@ -1,7 +1,8 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2021 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
  
+EAPI=7
+
 inherit toolchain-funcs flag-o-matic eutils
 
 DESCRIPTION="A utility to set the framebuffer videomode"
@@ -17,10 +18,9 @@ DEPEND="sys-devel/bison
 	sys-devel/flex"
 RDEPEND=""
 
-src_unpack() {
-	unpack ${A}
-	cd "${S}"
-	EPATCH_SOURCE="${FILESDIR}/${PV}" EPATCH_SUFFIX="patch" EPATCH_FORCE="yes" epatch
+src_prepare() {
+	default
+	eapply "${FILESDIR}/${PV}"/*
 }
 
 src_compile() {

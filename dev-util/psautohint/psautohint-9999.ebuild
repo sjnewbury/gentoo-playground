@@ -58,9 +58,9 @@ pkg_setup() {
 }
 
 python_prepare_all() {
-	local PATCHES=(
-		"${FILESDIR}"/${PN}-bininpath.diff
-	)
+	#local PATCHES=(
+	#	"${FILESDIR}"/${PN}-bininpath.diff
+	#)
 	sed \
 		-e "s:self.distribution.has_\(executabl\|c_librari\)es():False:" \
 		-e "/\(executabl\|librari\)es=\(executabl\|librari\)es,/d" \

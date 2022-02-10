@@ -7,7 +7,7 @@ EAPI=5
 case "${PV}" in
 	(9999*)
 	KEYWORDS=""
-	VCS_ECLASS=git-2
+	VCS_ECLASS=git-r3
 	EGIT_REPO_URI="https://github.com/tokiclover/${PN}.git"
 	EGIT_PROJECT="${PN}.git"
 	;;
