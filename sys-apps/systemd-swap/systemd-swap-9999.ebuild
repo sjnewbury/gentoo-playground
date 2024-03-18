@@ -20,7 +20,6 @@ IUSE=""
 DEPEND="
 	sys-apps/systemd
 	dev-python/python-systemd
-	dev-python/sysv_ipc
 "
 RDEPEND="${DEPEND}"
 

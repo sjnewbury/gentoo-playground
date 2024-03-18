@@ -2,13 +2,13 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id: dev-python/python-efl/python-efl-1.12.0.ebuild,v 1.2 2015/06/08 Exp $
 
-EAPI=5
-PYTHON_COMPAT=( python{2_{6,7},3_{3,4,5}} )
+EAPI=7
+PYTHON_COMPAT=( python3_{9,10,11,12} )
 
 case "${PV}" in
 	(9999*)
 	KEYWORDS=""
-	VCS_ECLASS=git-2
+	VCS_ECLASS=git-r3
 	EGIT_REPO_URI="https://git.enlightenment.org/bindings/python/${PN}.git"
 	EGIT_PROJECT="${PN}.git"
 	case "${PV}" in

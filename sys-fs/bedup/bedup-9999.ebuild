@@ -4,14 +4,16 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8,9} )
+PYTHON_COMPAT=( python3_{9,10,11,12} )
 DISTUTILS_USE_SETUPTOOLS=rdepend
 
 # pypy unsupported for now due to dev-python/alembic ;-(
 
 #if LIVE
-EGIT_REPO_URI="git://github.com/g2p/bedup.git
-	https://github.com/g2p/bedup.git"
+#EGIT_REPO_URI="git://github.com/g2p/bedup.git
+#	https://github.com/g2p/bedup.git"
+EGIT_REPO_URI=https://github.com/saimonn/bedup.git
+
 inherit git-r3
 #endif
 

@@ -4,8 +4,6 @@
 
 EAPI=7
 
-inherit eutils
-
 DESCRIPTION="A multi-purpose WAVE data processing and reporting utility"
 HOMEPAGE="http://www.etree.org/shnutils/shntool/"
 SRC_URI="http://www.etree.org/shnutils/shntool/dist/src/${P}.tar.gz"

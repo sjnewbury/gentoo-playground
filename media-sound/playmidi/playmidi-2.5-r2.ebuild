@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit eutils toolchain-funcs
+inherit toolchain-funcs
 
 DESCRIPTION="Command Line and GUI based MIDI Player"
 HOMEPAGE="https://sourceforge.net/projects/playmidi/"

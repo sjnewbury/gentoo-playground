@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=6
+EAPI=7
 
-inherit eutils meson
+inherit meson
 [ "${PV}" = 9999 ] && inherit git-r3
 
 DESCRIPTION="Enlightenment window manager"

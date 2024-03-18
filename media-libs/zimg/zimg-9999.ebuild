@@ -25,7 +25,7 @@ LICENSE="WTFPL-2"
 SLOT="0"
 IUSE="static-libs cpu_flags_x86_sse cpu_flags_x86_avx2 cpu_flags_x86_avx512f"
 
-PATCHES=("${FILESDIR}/${PN}-optional-avx2-r6.patch")
+PATCHES=("${FILESDIR}/${PN}-optional-avx2-r7.patch")
 
 DEPEND=""
 RDEPEND="${DEPEND}"

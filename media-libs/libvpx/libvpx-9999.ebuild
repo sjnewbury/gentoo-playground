@@ -5,7 +5,7 @@
 EAPI=7
 inherit toolchain-funcs multilib-minimal
 
-LIBVPX_TESTDATA_VER=1.8.2
+LIBVPX_TESTDATA_VER=1.9.0
 
 if [[ ${PV} == *9999* ]]; then
 	inherit git-r3
@@ -26,15 +26,13 @@ DESCRIPTION="WebM VP8 and VP9 Codec SDK"
 HOMEPAGE="http://www.webmproject.org"
 
 LICENSE="BSD"
-SLOT="0/4"
+SLOT="0/7"
 IUSE="cpu_flags_x86_avx cpu_flags_x86_avx2 doc cpu_flags_x86_mmx postproc cpu_flags_x86_sse cpu_flags_x86_sse2 cpu_flags_x86_sse3 cpu_flags_x86_ssse3 cpu_flags_x86_sse4_1 doc +highbitdepth postproc static-libs svc test +threads"
 
 RDEPEND="abi_x86_32? ( !app-emulation/emul-linux-x86-medialibs[-abi_x86_32(-)] )"
 DEPEND="abi_x86_32? ( dev-lang/yasm )
 	abi_x86_64? ( dev-lang/yasm )
 	abi_x86_x32? ( dev-lang/yasm )
-	x86-fbsd? ( dev-lang/yasm )
-	amd64-fbsd? ( dev-lang/yasm )
 	doc? (
 		app-doc/doxygen
 		dev-lang/php

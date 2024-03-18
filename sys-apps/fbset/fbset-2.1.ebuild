@@ -3,7 +3,7 @@
  
 EAPI=7
 
-inherit toolchain-funcs flag-o-matic eutils
+inherit toolchain-funcs flag-o-matic
 
 DESCRIPTION="A utility to set the framebuffer videomode"
 HOMEPAGE="http://users.telenet.be/geertu/Linux/fbdev/"

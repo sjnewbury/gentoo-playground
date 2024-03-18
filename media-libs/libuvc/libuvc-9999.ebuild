@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit cmake-utils
+inherit cmake
 
 DESCRIPTION="A cross-platform library for USB video devices, built atop libusb"
 HOMEPAGE="https://int80k.com/libuvc/"
@@ -27,8 +27,6 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}"
 
-CMAKE_MIN_VERSION="2.8.0"
-
 DOCS=( changelog.txt README.md )
 
 src_prepare() {
@@ -37,7 +35,7 @@ src_prepare() {
 		-e 's/LANGUAGES C/LANGUAGES C CXX/' \
 		CMakeLists.txt || die
 
-	cmake-utils_src_prepare
+	cmake_src_prepare
 }
 
 src_configure() {
@@ -45,5 +43,5 @@ src_configure() {
 		-DCMAKE_BUILD_TARGET=Shared
 	)
 
-	cmake-utils_src_configure
+	cmake_src_configure
 }

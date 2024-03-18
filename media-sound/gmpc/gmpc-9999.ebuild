@@ -2,10 +2,10 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/media-sound/gmpc/gmpc-11.8.16-r1.ebuild,v 1.1 2014/06/27 16:16:01 angelos Exp $
 
-EAPI=4
+EAPI=7
 VALA_MIN_API_VERSION=0.12
 
-inherit autotools eutils gnome2-utils vala git-r3
+inherit autotools gnome2-utils vala git-r3
 
 DESCRIPTION="A GTK+3 client for the Music Player Daemon"
 HOMEPAGE="http://gmpc.wikia.com/wiki/Gnome_Music_Player_Client"

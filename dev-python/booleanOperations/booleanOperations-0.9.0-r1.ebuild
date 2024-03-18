@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8,9,10} )
+PYTHON_COMPAT=( python3_{9,10,11,12} )
 inherit distutils-r1
 
 DESCRIPTION="Boolean operations on paths"

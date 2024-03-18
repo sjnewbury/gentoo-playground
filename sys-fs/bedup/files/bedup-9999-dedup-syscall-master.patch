@@ -241,7 +241,7 @@ index 1f1f1b2..0514ac0 100644
                  ds.tt.update(fhash=None)
  
              for fileset in by_hash.values():
-@@ -619,39 +625,58 @@ def dedup_fileset(ds, fileset, fd_names, fd_inodes, size):
+@@ -636,44 +636,63 @@
          btrfs_defragment(sfd)
      dfiles = fileset[1:]
      dfiles_successful = []
@@ -258,9 +258,6 @@ index 1f1f1b2..0514ac0 100644
 -            deduped = clone_data(dest=dfd, src=sfd, check_first=True)
 -        except IOError as e:
 -            if e.errno == errno.EINVAL:
--                ds.tt.notify(
--                    'Error deduplicating, maybe a file is marked NODATACOW:\n'
--                    '- %r\n- %r' % (sdesc, ddesc))
 +    if False:
 +        for dfile in dfiles:
 +            dfd = dfile.fileno()
@@ -270,13 +267,7 @@ index 1f1f1b2..0514ac0 100644
 +                # Probably a bug since we just used a crypto hash
 +                ds.tt.notify('Files differ: %r %r' % (sdesc, ddesc))
 +                assert False, (sdesc, ddesc)
-                 return
--            raise
--        if deduped:
--            ds.tt.notify(
--                'Deduplicated:\n- %r\n- %r' % (sdesc, ddesc))
--            dfiles_successful.append(dfile)
--            ds.space_gain += size
++
 +            try:
 +                deduped = clone_data(dest=dfd, src=sfd, check_first=True)
 +            except IOError as e:
@@ -285,9 +276,18 @@ index 1f1f1b2..0514ac0 100644
 +                        'Error deduplicating, maybe a file is marked NODATACOW:\n'
 +                        '- %r\n- %r' % (sdesc, ddesc))
 +                    return
++                elif e.errno == errno.EPERM:
++                    ds.tt.notify(
++                        'Error deduplicating, maybe a file is immutable:\n'
++                        '- %r\n- %r' % (sdesc, ddesc))
++                    return
 +                raise
 +            if deduped:
-+                ds.tt.notify(
+                 ds.tt.notify(
+-                    'Error deduplicating, maybe a file is marked NODATACOW:\n'
+-                    '- %r\n- %r' % (sdesc, ddesc))
+-                return
+-            elif e.errno == errno.EPERM:
 +                    'Deduplicated:\n- %r\n- %r' % (sdesc, ddesc))
 +                dfiles_successful.append(dfile)
 +                ds.space_gain += size
@@ -298,7 +298,16 @@ index 1f1f1b2..0514ac0 100644
 +                # mini-hash but a difference elsewhere.
 +                # We hash the same extents multiple times, but
 +                # I assume the data is shared in the vfs cache.
-+                ds.tt.notify(
+                 ds.tt.notify(
+-                    'Error deduplicating, maybe a file is immutable:\n'
+-                    '- %r\n- %r' % (sdesc, ddesc))
+-                return
+-            raise
+-        if deduped:
+-            ds.tt.notify(
+-                'Deduplicated:\n- %r\n- %r' % (sdesc, ddesc))
+-            dfiles_successful.append(dfile)
+-            ds.space_gain += size
 +                    'Did not deduplicate (same extents): %r %r' % (
 +                        sdesc, ddesc))
 +    else:

@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-PYTHON_COMPAT=( python3_{6,7,8,9} )
+PYTHON_COMPAT=( python3_{9,10,11,12,12} )
 DISTUTILS_SINGLE_IMPL=1
 inherit distutils-r1 systemd
 
@@ -29,32 +29,32 @@ REQUIRED_USE="
 
 DEPEND="
 	$(python_gen_cond_dep '
-		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_MULTI_USEDEP}]
-		dev-python/wheel[${PYTHON_MULTI_USEDEP}]
+		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_SINGLE_USEDEP}]
+		dev-python/wheel[${PYTHON_SINGLE_USEDEP}]
 	')
 	dev-util/intltool
 	acct-group/deluge
 	acct-user/deluge"
 RDEPEND="
 	$(python_gen_cond_dep '
-		dev-python/chardet[${PYTHON_MULTI_USEDEP}]
-		dev-python/distro[${PYTHON_MULTI_USEDEP}]
-		dev-python/pillow[${PYTHON_MULTI_USEDEP}]
-		dev-python/pyopenssl[${PYTHON_MULTI_USEDEP}]
-		dev-python/pyxdg[${PYTHON_MULTI_USEDEP}]
-		dev-python/rencode[${PYTHON_MULTI_USEDEP}]
-		dev-python/setproctitle[${PYTHON_MULTI_USEDEP}]
-		dev-python/six[${PYTHON_MULTI_USEDEP}]		>=dev-python/twisted-17.1.0[${PYTHON_MULTI_USEDEP}]
-		>=dev-python/zope-interface-4.4.2[${PYTHON_MULTI_USEDEP}]
-		geoip? ( dev-python/geoip-python[${PYTHON_MULTI_USEDEP}] )
+		dev-python/chardet[${PYTHON_SINGLE_USEDEP}]
+		dev-python/distro[${PYTHON_SINGLE_USEDEP}]
+		dev-python/pillow[${PYTHON_SINGLE_USEDEP}]
+		dev-python/pyopenssl[${PYTHON_SINGLE_USEDEP}]
+		dev-python/pyxdg[${PYTHON_SINGLE_USEDEP}]
+		dev-python/rencode[${PYTHON_SINGLE_USEDEP}]
+		dev-python/setproctitle[${PYTHON_SINGLE_USEDEP}]
+		dev-python/six[${PYTHON_SINGLE_USEDEP}]		>=dev-python/twisted-17.1.0[${PYTHON_SINGLE_USEDEP}]
+		>=dev-python/zope-interface-4.4.2[${PYTHON_SINGLE_USEDEP}]
+		geoip? ( dev-python/geoip-python[${PYTHON_SINGLE_USEDEP}] )
 		gtk? (
-			sound? ( dev-python/pygame[${PYTHON_MULTI_USEDEP}] )
-			dev-python/pygobject:3[${PYTHON_MULTI_USEDEP}]
+			sound? ( dev-python/pygame[${PYTHON_SINGLE_USEDEP}] )
+			dev-python/pygobject:3[${PYTHON_SINGLE_USEDEP}]
 			gnome-base/librsvg
 			libnotify? ( x11-libs/libnotify )
 		)
-		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_MULTI_USEDEP}]
-		dev-python/mako[${PYTHON_MULTI_USEDEP}]
+		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_SINGLE_USEDEP}]
+		dev-python/mako[${PYTHON_SINGLE_USEDEP}]
 		virtual/libcrypt
 	')"
 

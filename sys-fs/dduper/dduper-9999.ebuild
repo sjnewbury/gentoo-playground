@@ -4,7 +4,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=( python3_{9,10,11,12} )
 
 inherit python-single-r1 python-utils-r1
 
@@ -29,8 +29,8 @@ SLOT="0"
 RDEPEND="
 	${PYTHON_DEPS}
 	$(python_gen_cond_dep '
-		dev-python/prettytable[${PYTHON_MULTI_USEDEP}]
-		dev-python/numpy[${PYTHON_MULTI_USEDEP}]
+		dev-python/prettytable[${PYTHON_SINGLE_USEDEP}]
+		dev-python/numpy[${PYTHON_SINGLE_USEDEP}]
 		'
 	)
 "

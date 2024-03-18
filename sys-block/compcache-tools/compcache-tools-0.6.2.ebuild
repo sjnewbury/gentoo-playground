@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=2
+EAPI=7
 
-inherit eutils toolchain-funcs
+inherit toolchain-funcs
 
 MY_P="${P/-tools/}"
 MY_PN="${PN/-tools/}"
@@ -19,9 +19,7 @@ IUSE=""
 
 S="${WORKDIR}/${MY_P}/sub-projects/rzscontrol"
 
-src_prepare() {
-	epatch "${FILESDIR}/${PN}-0.6_gentoo.patch"
-}
+PATCHES=( "${FILESDIR}/${PN}-0.6_gentoo.patch" )
 
 src_compile() {
 	tc-export CC

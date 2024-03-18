@@ -4,7 +4,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8,9,10} )
+PYTHON_COMPAT=( python3_{9,10,11,12} )
 
 inherit python-single-r1 scons-utils toolchain-funcs xdg-utils
 
@@ -38,7 +38,7 @@ DEPEND="${RDEPEND}
         dev-libs/json-glib
         sys-devel/gettext
         $(python_gen_cond_dep '
-                doc? ( dev-python/sphinx[${PYTHON_MULTI_USEDEP}] )
+                doc? ( dev-python/sphinx[${PYTHON_SINGLE_USEDEP}] )
                 ')
 "
 

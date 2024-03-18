@@ -1,9 +1,9 @@
 # Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="6"
+EAPI=7
 
-inherit cmake-utils flag-o-matic eutils git-r3
+inherit cmake flag-o-matic git-r3
 
 DESCRIPTION="SoftFloat-3a for Hercules. This is a modification of Dr. John Hauser’s SoftFloat-3a package."
 HOMEPAGE="http://www.hercules-390.eu/"
@@ -23,7 +23,7 @@ src_unpack() {
 }
 
 src_prepare() {
-	cmake-utils_src_prepare
+	cmake_src_prepare
 	# Don't produce fatal error on "Gentoo" BUILD_TYPE
 	sed -i -e '/^[[:space:]]*message([[:space:]]FATAL_ERROR.*BUILD_TYPE.*)/{s/^/#IGNORE /g}' CMakeLists.txt
 }
@@ -39,12 +39,12 @@ src_configure() {
 		-DCUSTOM="Gentoo ${PF}.ebuild"
 		-DOPTIMIZATION="${CFLAGS}"
 	)
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 src_install() {
 	default
-	cmake-utils_src_install
+	cmake_src_install
 	# clean up install breakage
 	rm -rf "${D}"/var
 

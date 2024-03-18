@@ -2,8 +2,8 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=5
-inherit eutils multilib toolchain-funcs
+EAPI=7
+inherit multilib toolchain-funcs
 
 DESCRIPTION="open source high performance realtime 3D engine written in C++"
 HOMEPAGE="http://irrlicht.sourceforge.net/"
@@ -29,10 +29,11 @@ DEPEND="${RDEPEND}
 S=${WORKDIR}/${P}/source/Irrlicht
 
 src_prepare() {
+	default
 	cd "${WORKDIR}"/${P} || die
 	edos2unix include/IrrCompileConfig.h
 
-	epatch \
+	eapply \
 		"${FILESDIR}"/${PN}-1.8.1-gentoo.patch \
 		"${FILESDIR}"/${PN}-1.8.1-config.patch \
 		"${FILESDIR}"/${PN}-1.8.1-demoMake.patch \

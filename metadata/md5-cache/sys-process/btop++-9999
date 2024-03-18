@@ -1,0 +1,13 @@
+BDEPEND=>=dev-vcs/git-1.8.2.1[curl]
+DEFINED_PHASES=compile install unpack
+DESCRIPTION=Linux/OSX/FreeBSD resource monitor
+EAPI=7
+HOMEPAGE=https://github.com/aristocratos/btop
+INHERIT=git-r3
+IUSE=test
+LICENSE=Apache-2.0
+PROPERTIES=live
+RDEPEND=>=dev-python/psutil-5.7.1
+SLOT=0
+_eclasses_=git-r3	86fa1f157b70b9d2ff340c4633b1cf4b
+_md5_=94b622b1b19940e097e45987388c97eb

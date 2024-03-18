@@ -49,7 +49,7 @@ src_prepare() {
 		-e 's;test_program(testsprite;#test_program(testsprite;' \
 		CMakeLists.txt || die
 
-	cmake-utils_src_prepare
+	cmake_src_prepare
 }
 
 multilib_src_configure() {
@@ -57,7 +57,7 @@ multilib_src_configure() {
 	econf
 	popd
 
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 multilib_src_install() {
