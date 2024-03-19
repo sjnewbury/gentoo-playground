@@ -37,24 +37,24 @@ DEPEND="
 	acct-user/deluge"
 RDEPEND="
 	$(python_gen_cond_dep '
-		dev-python/chardet[${PYTHON_SINGLE_USEDEP}]
-		dev-python/distro[${PYTHON_SINGLE_USEDEP}]
-		dev-python/pillow[${PYTHON_SINGLE_USEDEP}]
-		dev-python/pyopenssl[${PYTHON_SINGLE_USEDEP}]
-		dev-python/pyxdg[${PYTHON_SINGLE_USEDEP}]
-		dev-python/rencode[${PYTHON_SINGLE_USEDEP}]
-		dev-python/setproctitle[${PYTHON_SINGLE_USEDEP}]
-		dev-python/six[${PYTHON_SINGLE_USEDEP}]		>=dev-python/twisted-17.1.0[${PYTHON_SINGLE_USEDEP}]
-		>=dev-python/zope-interface-4.4.2[${PYTHON_SINGLE_USEDEP}]
-		geoip? ( dev-python/geoip-python[${PYTHON_SINGLE_USEDEP}] )
+		dev-python/chardet[${PYTHON_USEDEP}]
+		dev-python/distro[${PYTHON_USEDEP}]
+		dev-python/pillow[${PYTHON_USEDEP}]
+		dev-python/pyopenssl[${PYTHON_USEDEP}]
+		dev-python/pyxdg[${PYTHON_USEDEP}]
+		dev-python/rencode[${PYTHON_USEDEP}]
+		dev-python/setproctitle[${PYTHON_USEDEP}]
+		dev-python/six[${PYTHON_USEDEP}]		>=dev-python/twisted-17.1.0[${PYTHON_USEDEP}]
+		>=dev-python/zope-interface-4.4.2[${PYTHON_USEDEP}]
+		geoip? ( dev-python/geoip-python[${PYTHON_USEDEP}] )
 		gtk? (
-			sound? ( dev-python/pygame[${PYTHON_SINGLE_USEDEP}] )
-			dev-python/pygobject:3[${PYTHON_SINGLE_USEDEP}]
+			sound? ( dev-python/pygame[${PYTHON_USEDEP}] )
+			dev-python/pygobject:3[${PYTHON_USEDEP}]
 			gnome-base/librsvg
 			libnotify? ( x11-libs/libnotify )
 		)
-		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_SINGLE_USEDEP}]
-		dev-python/mako[${PYTHON_SINGLE_USEDEP}]
+		<net-libs/libtorrent-rasterbar-2[python,${PYTHON_USEDEP}]
+		dev-python/mako[${PYTHON_USEDEP}]
 		virtual/libcrypt
 	')"
 

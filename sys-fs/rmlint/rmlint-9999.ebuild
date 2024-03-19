@@ -38,7 +38,7 @@ DEPEND="${RDEPEND}
         dev-libs/json-glib
         sys-devel/gettext
         $(python_gen_cond_dep '
-                doc? ( dev-python/sphinx[${PYTHON_SINGLE_USEDEP}] )
+                doc? ( dev-python/sphinx[${PYTHON_USEDEP}] )
                 ')
 "
 

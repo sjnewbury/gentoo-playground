@@ -29,8 +29,8 @@ SLOT="0"
 RDEPEND="
 	${PYTHON_DEPS}
 	$(python_gen_cond_dep '
-		dev-python/prettytable[${PYTHON_SINGLE_USEDEP}]
-		dev-python/numpy[${PYTHON_SINGLE_USEDEP}]
+		dev-python/prettytable[${PYTHON_USEDEP}]
+		dev-python/numpy[${PYTHON_USEDEP}]
 		'
 	)
 "
